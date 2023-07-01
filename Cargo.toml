@@ -12,4 +12,4 @@ readme = "README.md"
 license = "Apache-2.0"
 
 [dependencies]
-async-trait = "*"
+async-trait = "0.1"
