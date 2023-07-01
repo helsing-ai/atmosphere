@@ -12,22 +12,30 @@
 ## Roadmap
 
 ### Alpha Release
-- [ ] Trait System (`Model`, `Column`, `Query` ..)
-- [ ] Derive Macro (`Model`)
-- [ ] Field Attributes (`#[id]`, and so on)
-- [ ] Query Generation
+- [x] Trait System (`Model`, `Column`, `Reference` ..)
+- [x] Derive Macro (`Model`)
+- [x] Field Attributes (`#[id]`, and so on)
+- [x] Query Generation
 
 ### Beta Release
-- [ ] Field Attributes (`#[id]`, and so on)
+- [ ] Implement all standard queries (`find`, `store`, `update`)
 
 ### Stable Release
+- [ ] Stabilize Traits
 - [ ] Filtering and `where` macro
 - [ ] Model Views (subsets)
 
 ### Advanced
 - [ ] Compile Time Verification
 - [ ] Postgres Composite Types
+- [ ] Support `updated_at` fields
+- [ ] Support custom types
+- [ ] Runtime Inspection
+- [ ] Generate Graphs
 - [ ] `validator` support
+
+### Longterm
+- [ ] Generate HTTP, gRPC and GraphQL Bindings
 
 ## Quickstart
 
