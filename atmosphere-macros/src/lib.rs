@@ -10,7 +10,7 @@ use syn::{
     FieldsNamed, Ident, Lifetime, Lit, LitStr, Meta, MetaNameValue,
 };
 
-#[proc_macro_derive(Model, attributes(id))]
+#[proc_macro_derive(Model, attributes(key))]
 pub fn model(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
@@ -39,6 +39,29 @@ pub fn model(input: TokenStream) -> TokenStream {
 
 fn model_impl(input: &DeriveInput, fields: &Punctuated<Field, Comma>) -> syn::Result<TokenStream2> {
     let ident = &input.ident;
+
+    let columns = fields.iter().map(Column::parse);
+
+    let (key, data): (Vec<Column>, Vec<Column>) = columns.partition(|c| c.key);
+
+    let key = {
+        if key.len() == 0 {
+            panic!("missing primary key column (#[key]) on model {}", ident);
+        }
+        if key.len() > 1 {
+            panic!(
+                "found more than one primary key column (#[key]) on model {}",
+                ident
+            );
+        }
+        key[0].clone()
+    };
+
+    dbg!(key.name);
+
+    for data in data {
+        dbg!(data.name);
+    }
 
     //let container_attributes = parse_container_attributes(&input.attrs)?;
 
@@ -111,8 +134,6 @@ fn model_impl(input: &DeriveInput, fields: &Punctuated<Field, Comma>) -> syn::Re
     //})
     //.collect();
 
-    let names = fields.iter().map(|field| &field.ident);
-
     Ok(quote!(
         #[automatically_derived]
         impl ::atmosphere::Model for #ident {
@@ -140,6 +161,40 @@ fn model_impl(input: &DeriveInput, fields: &Punctuated<Field, Comma>) -> syn::Re
         }
     ))
 }
+
+#[derive(Clone)]
+struct Model {
+    schema: String,
+    table: String,
+    key: Column,
+    refs: Vec<Reference>,
+    data: Vec<Column>,
+}
+
+#[derive(Clone)]
+struct Column {
+    key: bool,
+    name: Ident,
+    ty: syn::Type,
+}
+
+impl Column {
+    fn parse(field: &Field) -> Self {
+        let key = field
+            .attrs
+            .iter()
+            .any(|a| a.path.get_ident().unwrap().to_string() == "key");
+
+        Self {
+            key,
+            name: field.ident.clone().unwrap(),
+            ty: field.ty.clone(),
+        }
+    }
+}
+
+#[derive(Clone)]
+struct Reference;
 
 //fn build_static_model_schema(config: &Config) -> TokenStream2 {
 //let crate_name = &config.crate_name;

@@ -1,6 +1,6 @@
+use async_trait::async_trait;
 use std::marker::PhantomData;
 
-use async_trait::async_trait;
 pub trait Model: Sized + Send + 'static
 where
     Self::Key: for<'q> sqlx::Encode<'q, sqlx::Postgres> + sqlx::Type<sqlx::Postgres> + Send,
