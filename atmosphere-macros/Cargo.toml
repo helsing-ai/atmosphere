@@ -1,6 +1,6 @@
 [package]
 name = "atmosphere-macros"
-description = ""
+description = "Macro crate of atmosphere"
 version.workspace = true
 license.workspace = true
 edition.workspace = true
