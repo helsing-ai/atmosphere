@@ -9,9 +9,29 @@
 
 </div>
 
+## Roadmap
+
+### Alpha Release
+- [ ] Trait System (`Model`, `Column`, `Query` ..)
+- [ ] Derive Macro (`Model`)
+- [ ] Field Attributes (`#[id]`, and so on)
+- [ ] Query Generation
+
+### Beta Release
+- [ ] Field Attributes (`#[id]`, and so on)
+
+### Stable Release
+- [ ] Filtering and `where` macro
+- [ ] Model Views (subsets)
+
+### Advanced
+- [ ] Compile Time Verification
+- [ ] Postgres Composite Types
+- [ ] `validator` support
+
 ## Quickstart
 
-### Schmea
+### Schema
 
 ```sql
 CREATE TABLE recipe (
@@ -32,6 +52,8 @@ CREATE TABLE recipe_step (
 ### Model
 
 ```rust
+use atmosphere::prelude::*;
+
 #[derive(Model)]
 #[atmosphere(table = "recipe")]
 struct Recipe {
