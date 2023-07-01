@@ -4,7 +4,7 @@ use sqlx::FromRow;
 #[derive(Debug, FromRow, Model)]
 struct Forest {
     #[id]
-    id: i8,
+    id: i32,
     name: String,
     location: String,
 }
@@ -22,9 +22,9 @@ impl Forest {
 #[derive(Debug, FromRow, Model)]
 struct Tree {
     #[id]
-    id: i8,
+    id: i32,
     #[reference(Forest)]
-    forest_id: i8,
+    forest_id: i32,
 }
 
 #[tokio::main]

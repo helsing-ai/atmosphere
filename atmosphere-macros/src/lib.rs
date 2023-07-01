@@ -90,6 +90,7 @@ impl Model {
             data,
         } = self;
 
+        let id_ty = &self.id.ty;
         let id = self.id.quote();
         let refs = self.refs.iter().map(|r| r.column.quote());
         let data = self.data.iter().map(|d| d.quote());
@@ -97,7 +98,7 @@ impl Model {
         quote!(
             #[automatically_derived]
             impl ::atmosphere::Model for #ident {
-                type Id = i8;
+                type Id = #id_ty;
 
                 const ID: ::atmosphere::Column<#ident> = #id;
 
