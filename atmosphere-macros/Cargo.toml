@@ -1,0 +1,18 @@
+[package]
+name = "atmosphere-macros"
+description = ""
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+atmosphere = { workspace = true }
+
+proc-macro2 = { version = "1.0.36", default-features = false }
+syn = { version = "1.0.84", default-features = false, features = ["parsing", "proc-macro"] }
+quote = { version = "1.0.14", default-features = false }

@@ -1,17 +1,13 @@
-[workspace]
-members = [
-    "atmosphere",
-    #"atmosphere-core",
-    "atmosphere-macros",
-]
-
-[workspace.package]
-version = "0.0.1-alpha.1"
-license = "Apache-2.0"
-edition = "2021"
-authors = ["Mara Schulke <mara@hemisphere.studio>"]
-repository = "https://github.com/hemisphere-studio/atmosphere"
-keywords = ["sqlx", "postgres", "database", "orm", "backend"]
+[package]
+name = "atmosphere"
+readme = "README.md"
+description = "Atmosphere for sustainable growth of sqlx projects"
+documentation = "https://docs.rs/atmosphere"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
 
 [features]
 default = ["runtime-tokio-rustls", "postgres"]
