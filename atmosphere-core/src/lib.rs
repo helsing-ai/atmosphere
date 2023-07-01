@@ -47,6 +47,21 @@ impl<M: Model> Column<M> {
     }
 }
 
+//#[derive(Debug)]
+//pub struct Reference<A: Model, B: Model> {
+//pub column: Column<A>,
+//marker: PhantomData<B>
+//}
+
+//impl<A: Model, B: Model> for Reference<A, B> {
+//pub const fn new(col: Column<A>) -> Self {
+//Self {
+//column,
+//marker: PhantomData,
+//}
+//}
+//}
+
 /// All possible types for postgres
 #[derive(Debug)]
 pub enum DataType {

@@ -10,7 +10,7 @@ use syn::{
     FieldsNamed, Ident, Lifetime, Lit, LitStr, Meta, MetaNameValue,
 };
 
-#[proc_macro_derive(Model, attributes(id))]
+#[proc_macro_derive(Model, attributes(id, reference))]
 pub fn model(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
@@ -62,12 +62,14 @@ impl Model {
             id[0].clone()
         };
 
+        let refs: Vec<Reference> = fields.iter().filter_map(Reference::parse).collect();
+
         Self {
             ident: ident.to_owned(),
             schema: "public".to_owned(),
             table: ident.to_string().to_lowercase(),
             id,
-            refs: vec![],
+            refs,
             data,
         }
     }
@@ -83,6 +85,7 @@ impl Model {
         } = self;
 
         let id = self.id.quote();
+        let refs = self.refs.iter().map(|r| r.column.quote());
         let data = self.data.iter().map(|d| d.quote());
 
         quote!(
@@ -95,7 +98,9 @@ impl Model {
                 const SCHEMA: &'static str = #schema;
                 const TABLE: &'static str = #table;
 
-                const REFS: &'static [::atmosphere::Column<#ident>] = &[];
+                const REFS: &'static [::atmosphere::Column<#ident>] = &[
+                    #(#refs),*
+                ];
                 const DATA: &'static [::atmosphere::Column<#ident>] = &[
                     #(#data),*
                 ];
@@ -114,15 +119,8 @@ struct Column {
 
 impl Column {
     fn parse(field: &Field) -> Self {
-        let id = field
-            .attrs
-            .iter()
-            .any(|a| a.path.get_ident().unwrap().to_string() == "id");
-
-        let fk = field
-            .attrs
-            .iter()
-            .any(|a| a.path.get_ident().unwrap().to_string() == "fk");
+        let id = field.attrs.iter().any(|a| a.path.is_ident("id"));
+        let fk = field.attrs.iter().any(|a| a.path.is_ident("reference"));
 
         if id && fk {
             panic!(
@@ -163,7 +161,31 @@ impl Column {
 }
 
 #[derive(Clone)]
-struct Reference;
+struct Reference {
+    model: Ident,
+    column: Column,
+}
+
+impl Reference {
+    fn parse(field: &Field) -> Option<Self> {
+        let referenced = field
+            .attrs
+            .iter()
+            .filter(|a| a.path.is_ident("reference"))
+            .map(|a| {
+                a.parse_args::<Ident>()
+                    .expect("ref requires the model it refers to as parameter")
+            })
+            .collect::<Vec<Ident>>();
+
+        let model = referenced.get(0)?;
+
+        Some(Self {
+            model: model.to_owned(),
+            column: Column::parse(&field),
+        })
+    }
+}
 
 //fn build_static_model_schema(config: &Config) -> TokenStream2 {
 //let crate_name = &config.crate_name;

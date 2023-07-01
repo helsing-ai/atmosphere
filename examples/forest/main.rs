@@ -18,6 +18,14 @@ impl Forest {
     }
 }
 
+#[derive(Debug, Model)]
+struct Tree {
+    #[id]
+    id: i8,
+    #[reference(Forest)]
+    forest_id: i8,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     use atmosphere::Model;
@@ -29,6 +37,8 @@ async fn main() -> Result<()> {
         Forest::REFS,
         Forest::DATA
     );
+
+    dbg!(Tree::SCHEMA, Tree::TABLE, Tree::ID, Tree::REFS, Tree::DATA);
 
     dbg!(Forest::new("Grunewald", "Berlin"));
     Ok(())
