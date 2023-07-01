@@ -8,7 +8,7 @@ use syn::{
     FieldsNamed, Ident, Lit, LitStr, Meta, MetaNameValue,
 };
 
-#[proc_macro_derive(Model, attributes(schema, table))]
+#[proc_macro_derive(Model, attributes(id))]
 pub fn derive(input: TokenStream) -> TokenStream {
     let DeriveInput {
         ident, data, attrs, ..
@@ -29,4 +29,11 @@ pub fn derive(input: TokenStream) -> TokenStream {
     //#sqlx_crud_impl
     }
     .into()
+}
+
+#[proc_macro_attribute]
+pub fn atmosphere(attr: TokenStream, item: TokenStream) -> TokenStream {
+    println!("attr: \"{}\"", attr.to_string());
+    println!("item: \"{}\"", item.to_string());
+    item
 }
