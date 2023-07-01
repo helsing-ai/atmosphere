@@ -1,8 +1,6 @@
 [package]
-name = "atmosphere"
-readme = "README.md"
-description = "Atmosphere for sustainable growth of sqlx projects"
-documentation = "https://docs.rs/atmosphere"
+name = "atmosphere-core"
+description = ""
 version.workspace = true
 license.workspace = true
 edition.workspace = true
@@ -21,11 +19,6 @@ postgres = ["sqlx/postgres"]
 sqlite = ["sqlx/sqlite"]
 
 [dependencies]
-async-trait = "0.1"
-futures = "0.3"
-sqlx = { version = "0.6", features = ["chrono"] }
-thiserror = "1"
-
-[dev-dependencies]
-sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "postgres"] }
-tokio-test = "0"
+async-trait.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true

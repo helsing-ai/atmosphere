@@ -1,8 +1,8 @@
 [workspace]
 members = [
-    "atmosphere",
-    #"atmosphere-core",
+    ".",
     "atmosphere-macros",
+    "atmosphere-core",
 ]
 
 [workspace.package]
@@ -12,6 +12,28 @@ edition = "2021"
 authors = ["Mara Schulke <mara@hemisphere.studio>"]
 repository = "https://github.com/hemisphere-studio/atmosphere"
 keywords = ["sqlx", "postgres", "database", "orm", "backend"]
+
+[workspace.dependencies]
+atmosphere-core = { path = "./atmosphere-core" }
+atmosphere-macros = { path = "./atmosphere-macros" }
+async-trait = "0.1"
+sqlx = { version = "0.6", features = ["chrono"] }
+thiserror = "1"
+
+[package]
+name = "atmosphere"
+readme = "README.md"
+description = "Atmosphere for sustainable growth of sqlx projects"
+documentation = "https://docs.rs/atmosphere"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[[example]]
+name = "forest"
+path = "examples/forest/main.rs"
 
 [features]
 default = ["runtime-tokio-rustls", "postgres"]
@@ -25,11 +47,10 @@ postgres = ["sqlx/postgres"]
 sqlite = ["sqlx/sqlite"]
 
 [dependencies]
-async-trait = "0.1"
-futures = "0.3"
-sqlx = { version = "0.6", features = ["chrono"] }
-thiserror = "1"
+atmosphere-core.workspace = true
+atmosphere-macros.workspace = true
 
 [dev-dependencies]
 sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "postgres"] }
+tokio = { version = "1", features = ["macros"]}
 tokio-test = "0"

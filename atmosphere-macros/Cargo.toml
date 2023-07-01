@@ -11,8 +11,7 @@ repository.workspace = true
 proc-macro = true
 
 [dependencies]
-atmosphere = { workspace = true }
-
+atmosphere-core.workspace = true
 proc-macro2 = { version = "1.0.36", default-features = false }
 syn = { version = "1.0.84", default-features = false, features = ["parsing", "proc-macro"] }
 quote = { version = "1.0.14", default-features = false }

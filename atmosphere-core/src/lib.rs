@@ -120,7 +120,7 @@ pub enum ColType {
 //}
 //}
 
-type Result<T> = std::result::Result<T, ()>;
+pub type Result<T> = std::result::Result<T, ()>;
 
 #[cfg(test)]
 mod tests {
