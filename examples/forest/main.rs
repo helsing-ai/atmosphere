@@ -1,9 +1,8 @@
 use atmosphere::prelude::*;
 
 #[derive(Debug, Model)]
-#[atmosphere(table = "forest")]
 struct Forest {
-    #[key]
+    #[id]
     id: i8,
     name: String,
     location: String,
@@ -26,7 +25,7 @@ async fn main() -> Result<()> {
     dbg!(
         Forest::SCHEMA,
         Forest::TABLE,
-        Forest::KEY,
+        Forest::ID,
         Forest::REFS,
         Forest::DATA
     );

@@ -3,20 +3,20 @@ use std::marker::PhantomData;
 
 pub trait Model: Sized + Send + 'static
 where
-    Self::Key: for<'q> sqlx::Encode<'q, sqlx::Postgres> + sqlx::Type<sqlx::Postgres> + Send,
+    Self::Id: for<'q> sqlx::Encode<'q, sqlx::Postgres> + sqlx::Type<sqlx::Postgres> + Send,
 {
-    type Key: Sized + 'static;
+    type Id: Sized + 'static;
 
     const SCHEMA: &'static str;
     const TABLE: &'static str;
-    const KEY: Column<Self>;
+    const ID: Column<Self>;
     const REFS: &'static [Column<Self>];
     const DATA: &'static [Column<Self>];
 }
 
 #[async_trait]
 pub trait Read: Model {
-    async fn by(key: &Self::Key) -> Result<Self>;
+    async fn by(key: &Self::Id) -> Result<Self>;
     async fn all() -> Result<Vec<Self>>;
     // async fn select(filter: Vec<Filter<Self>>) -> Result<Vec<Self>>;
 }
@@ -50,6 +50,7 @@ impl<M: Model> Column<M> {
 /// All possible types for postgres
 #[derive(Debug)]
 pub enum DataType {
+    Unknown,
     Text,
     Number,
 }

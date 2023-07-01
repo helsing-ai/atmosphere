@@ -10,7 +10,7 @@ use syn::{
     FieldsNamed, Ident, Lifetime, Lit, LitStr, Meta, MetaNameValue,
 };
 
-#[proc_macro_derive(Model, attributes(key))]
+#[proc_macro_derive(Model, attributes(id))]
 pub fn model(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
@@ -24,172 +24,141 @@ pub fn model(input: TokenStream) -> TokenStream {
         panic!("only named structs can derive the model trait");
     };
 
-    let model_impl = model_impl(&input, &columns).unwrap();
+    let model = Model::parse(&input, &columns);
 
-    //dbg!(&model_impl);
+    let model_trait_impl = model.quote_trait_impl();
 
-    //dbg!(&attrs.get(0).unwrap().tokens);
-
-    //let config = Config::new(&attrs, &ident, &named);
-    //let static_model_schema = build_static_model_schema(&config);
-    //let sqlx_crud_impl = build_sqlx_crud_impl(&config);
-
-    quote! { #model_impl }.into()
-}
-
-fn model_impl(input: &DeriveInput, fields: &Punctuated<Field, Comma>) -> syn::Result<TokenStream2> {
-    let ident = &input.ident;
-
-    let columns = fields.iter().map(Column::parse);
-
-    let (key, data): (Vec<Column>, Vec<Column>) = columns.partition(|c| c.key);
-
-    let key = {
-        if key.len() == 0 {
-            panic!("missing primary key column (#[key]) on model {}", ident);
-        }
-        if key.len() > 1 {
-            panic!(
-                "found more than one primary key column (#[key]) on model {}",
-                ident
-            );
-        }
-        key[0].clone()
-    };
-
-    dbg!(key.name);
-
-    for data in data {
-        dbg!(data.name);
-    }
-
-    //let container_attributes = parse_container_attributes(&input.attrs)?;
-
-    //let reads: Vec<Stmt> = fields
-    //.iter()
-    //.filter_map(|field| -> Option<Stmt> {
-    //let id = &field.ident.as_ref()?;
-    //let attributes = parse_child_attributes(&field.attrs).unwrap();
-    //let ty = &field.ty;
-
-    //if attributes.skip {
-    //return Some(parse_quote!(
-    //let #id: #ty = Default::default();
-    //));
-    //}
-
-    //let expr: Expr = match (attributes.flatten, attributes.try_from) {
-    //(true, None) => {
-    //predicates.push(parse_quote!(#ty: ::sqlx::FromRow<#lifetime, R>));
-    //parse_quote!(<#ty as ::sqlx::FromRow<#lifetime, R>>::from_row(row))
-    //}
-    //(false, None) => {
-    //predicates
-    //.push(parse_quote!(#ty: ::sqlx::decode::Decode<#lifetime, R::Database>));
-    //predicates.push(parse_quote!(#ty: ::sqlx::types::Type<R::Database>));
-
-    //let id_s = attributes
-    //.rename
-    //.or_else(|| Some(id.to_string().trim_start_matches("r#").to_owned()))
-    //.map(|s| match container_attributes.rename_all {
-    //Some(pattern) => rename_all(&s, pattern),
-    //None => s,
-    //})
-    //.unwrap();
-    //parse_quote!(row.try_get(#id_s))
-    //}
-    //(true,Some(try_from)) => {
-    //predicates.push(parse_quote!(#try_from: ::sqlx::FromRow<#lifetime, R>));
-    //parse_quote!(<#try_from as ::sqlx::FromRow<#lifetime, R>>::from_row(row).and_then(|v| <#ty as ::std::convert::TryFrom::<#try_from>>::try_from(v).map_err(|e| ::sqlx::Error::ColumnNotFound("FromRow: try_from failed".to_string()))))
-    //}
-    //(false,Some(try_from)) => {
-    //predicates
-    //.push(parse_quote!(#try_from: ::sqlx::decode::Decode<#lifetime, R::Database>));
-    //predicates.push(parse_quote!(#try_from: ::sqlx::types::Type<R::Database>));
-
-    //let id_s = attributes
-    //.rename
-    //.or_else(|| Some(id.to_string().trim_start_matches("r#").to_owned()))
-    //.map(|s| match container_attributes.rename_all {
-    //Some(pattern) => rename_all(&s, pattern),
-    //None => s,
-    //})
-    //.unwrap();
-    //parse_quote!(row.try_get(#id_s).and_then(|v| <#ty as ::std::convert::TryFrom::<#try_from>>::try_from(v).map_err(|e| ::sqlx::Error::ColumnNotFound("FromRow: try_from failed".to_string()))))
-    //}
-    //};
-
-    //if attributes.default {
-    //Some(parse_quote!(let #id: #ty = #expr.or_else(|e| match e {
-    //::sqlx::Error::ColumnNotFound(_) => {
-    //::std::result::Result::Ok(Default::default())
-    //},
-    //e => ::std::result::Result::Err(e)
-    //})?;))
-    //} else {
-    //Some(parse_quote!(
-    //let #id: #ty = #expr?;
-    //))
-    //}
-    //})
-    //.collect();
-
-    Ok(quote!(
-        #[automatically_derived]
-        impl ::atmosphere::Model for #ident {
-            type Key = i8;
-
-            const KEY: ::atmosphere::Column<#ident> = Column::new(
-                "hi",
-                ::atmosphere_core::DataType::Number,
-                ::atmosphere_core::ColType::PrimaryKey
-            );
-
-            const SCHEMA: &'static str = "public";
-            const TABLE: &'static str = "forest";
-
-            const REFS: &'static [::atmosphere::Column<#ident>] = &[];
-            const DATA: &'static [::atmosphere::Column<#ident>] = &[];
-
-            //fn from_row(row: &#lifetime R) -> ::sqlx::Result<Self> {
-                //#(#reads)*
-
-                //::std::result::Result::Ok(#ident {
-                    //#(#names),*
-                //})
-            //}
-        }
-    ))
+    quote! { #model_trait_impl }.into()
 }
 
 #[derive(Clone)]
 struct Model {
+    ident: Ident,
     schema: String,
     table: String,
-    key: Column,
+    id: Column,
     refs: Vec<Reference>,
     data: Vec<Column>,
 }
 
+impl Model {
+    fn parse(input: &DeriveInput, fields: &Punctuated<Field, Comma>) -> Self {
+        let ident = &input.ident;
+
+        let columns = fields.iter().map(Column::parse);
+
+        let (id, data): (Vec<Column>, Vec<Column>) = columns.partition(|c| c.id);
+
+        let id = {
+            if id.len() == 0 {
+                panic!("missing primary id column (#[id]) on model {}", ident);
+            }
+            if id.len() > 1 {
+                panic!(
+                    "found more than one primary id column (#[id]) on model {}",
+                    ident
+                );
+            }
+            id[0].clone()
+        };
+
+        Self {
+            ident: ident.to_owned(),
+            schema: "public".to_owned(),
+            table: ident.to_string().to_lowercase(),
+            id,
+            refs: vec![],
+            data,
+        }
+    }
+
+    fn quote_trait_impl(&self) -> TokenStream2 {
+        let Self {
+            ident,
+            schema,
+            table,
+            id,
+            refs,
+            data,
+        } = self;
+
+        let id = self.id.quote();
+        let data = self.data.iter().map(|d| d.quote());
+
+        quote!(
+            #[automatically_derived]
+            impl ::atmosphere::Model for #ident {
+                type Id = i8;
+
+                const ID: ::atmosphere::Column<#ident> = #id;
+
+                const SCHEMA: &'static str = #schema;
+                const TABLE: &'static str = #table;
+
+                const REFS: &'static [::atmosphere::Column<#ident>] = &[];
+                const DATA: &'static [::atmosphere::Column<#ident>] = &[
+                    #(#data),*
+                ];
+            }
+        )
+    }
+}
+
 #[derive(Clone)]
 struct Column {
-    key: bool,
+    id: bool,
+    fk: bool,
     name: Ident,
     ty: syn::Type,
 }
 
 impl Column {
     fn parse(field: &Field) -> Self {
-        let key = field
+        let id = field
             .attrs
             .iter()
-            .any(|a| a.path.get_ident().unwrap().to_string() == "key");
+            .any(|a| a.path.get_ident().unwrap().to_string() == "id");
+
+        let fk = field
+            .attrs
+            .iter()
+            .any(|a| a.path.get_ident().unwrap().to_string() == "fk");
+
+        if id && fk {
+            panic!(
+                "{} can not be primary key and foreign key at the same time",
+                field.ident.as_ref().unwrap()
+            );
+        }
 
         Self {
-            key,
+            id,
+            fk,
             name: field.ident.clone().unwrap(),
             ty: field.ty.clone(),
         }
+    }
+
+    fn quote(&self) -> TokenStream2 {
+        let Column { id, fk, name, ty } = self;
+
+        let name = name.to_string();
+
+        let col_type = if *id {
+            quote!(::atmosphere_core::ColType::PrimaryKey)
+        } else if *fk {
+            quote!(::atmosphere_core::ColType::ForeignKey)
+        } else {
+            quote!(::atmosphere_core::ColType::Value)
+        };
+
+        quote!(
+            ::atmosphere_core::Column::new(
+                #name,
+                ::atmosphere_core::DataType::Unknown,
+                #col_type
+            )
+        )
     }
 }
 
@@ -221,10 +190,3 @@ struct Reference;
 //};
 //}
 //}
-
-#[proc_macro_attribute]
-pub fn atmosphere(attr: TokenStream, item: TokenStream) -> TokenStream {
-    println!("attr: \"{}\"", attr.to_string());
-    println!("item: \"{}\"", item.to_string());
-    item
-}
