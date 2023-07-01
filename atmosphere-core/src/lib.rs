@@ -16,8 +16,8 @@ where
 
 #[async_trait]
 pub trait Read: Model {
-    async fn by(key: &Self::Id) -> Result<Self>;
-    async fn all() -> Result<Vec<Self>>;
+    async fn find(id: &Self::Id, pool: &sqlx::PgPool) -> Result<Self>;
+    async fn all(pool: &sqlx::PgPool) -> Result<Vec<Self>>;
     // async fn select(filter: Vec<Filter<Self>>) -> Result<Vec<Self>>;
 }
 

@@ -27,8 +27,13 @@ pub fn model(input: TokenStream) -> TokenStream {
     let model = Model::parse(&input, &columns);
 
     let model_trait_impl = model.quote_trait_impl();
+    let read_impl = model.quote_read_impl();
 
-    quote! { #model_trait_impl }.into()
+    quote! {
+        #model_trait_impl
+        #read_impl
+    }
+    .into()
 }
 
 #[derive(Clone)]
@@ -62,6 +67,7 @@ impl Model {
             id[0].clone()
         };
 
+        let data = data.into_iter().filter(|d| !d.fk).collect();
         let refs: Vec<Reference> = fields.iter().filter_map(Reference::parse).collect();
 
         Self {
@@ -104,6 +110,71 @@ impl Model {
                 const DATA: &'static [::atmosphere::Column<#ident>] = &[
                     #(#data),*
                 ];
+            }
+        )
+    }
+
+    fn quote_read_impl(&self) -> TokenStream2 {
+        let Self {
+            ident,
+            schema,
+            table,
+            id,
+            refs,
+            data,
+        } = self;
+
+        let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new("SELECT\n");
+
+        let mut separated = query.separated(",\n  ");
+
+        separated.push(format!("  {} as \"{}: _\"", id.name, id.name));
+
+        for r in refs {
+            separated.push(format!("{} as \"{}: _\"", r.column.name, r.column.name));
+        }
+
+        for data in data {
+            separated.push(format!("{} as \"{}: _\"", data.name, data.name));
+        }
+
+        drop(separated);
+
+        query.push("\nFROM\n");
+        query.push(format!("  \"{schema}\".\"{table}\"\n"));
+
+        let fetch_all = query.sql().to_owned();
+
+        query.push(format!("WHERE\n  {} = $1", id.name));
+
+        let fetch_by_id = query.sql().to_owned();
+
+        println!("{}", query.sql());
+
+        quote!(
+            #[automatically_derived]
+            #[::atmosphere::prelude::async_trait]
+            impl ::atmosphere::Read for #ident {
+                async fn find(id: &Self::Id, pool: &::sqlx::PgPool) -> ::atmosphere_core::Result<Self> {
+                    ::sqlx::query_as!(
+                        Self,
+                        #fetch_by_id,
+                        id
+                    )
+                    .fetch_one(pool)
+                    .await
+                    .map_err(|_| ())
+                }
+
+                async fn all(pool: &::sqlx::PgPool) -> ::atmosphere_core::Result<Vec<Self>> {
+                    ::sqlx::query_as!(
+                        Self,
+                        #fetch_all
+                    )
+                    .fetch_all(pool)
+                    .await
+                    .map_err(|_| ())
+                }
             }
         )
     }
@@ -186,29 +257,3 @@ impl Reference {
         })
     }
 }
-
-//fn build_static_model_schema(config: &Config) -> TokenStream2 {
-//let crate_name = &config.crate_name;
-//let model_schema_ident = &config.model_schema_ident;
-//let table_name = &config.table_name;
-
-//let id_column = config.id_column_ident.to_string();
-//let columns_len = config.named.iter().count();
-//let columns = config
-//.named
-//.iter()
-//.flat_map(|f| &f.ident)
-//.map(|f| LitStr::new(format!("{}", f).as_str(), f.span()));
-
-//let sql_queries = build_sql_queries(config);
-
-//quote! {
-//#[automatically_derived]
-//static #model_schema_ident: #crate_name::schema::Metadata<'static, #columns_len> = #crate_name::schema::Metadata {
-//table_name: #table_name,
-//id_column: #id_column,
-//columns: [#(#columns),*],
-//#sql_queries
-//};
-//}
-//}

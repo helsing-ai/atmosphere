@@ -49,6 +49,7 @@ sqlite = ["sqlx/sqlite"]
 [dependencies]
 atmosphere-core.workspace = true
 atmosphere-macros.workspace = true
+async-trait.workspace = true
 
 [dev-dependencies]
 sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "postgres"] }

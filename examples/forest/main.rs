@@ -1,6 +1,7 @@
 use atmosphere::prelude::*;
+use sqlx::FromRow;
 
-#[derive(Debug, Model)]
+#[derive(Debug, FromRow, Model)]
 struct Forest {
     #[id]
     id: i8,
@@ -18,7 +19,7 @@ impl Forest {
     }
 }
 
-#[derive(Debug, Model)]
+#[derive(Debug, FromRow, Model)]
 struct Tree {
     #[id]
     id: i8,
