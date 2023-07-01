@@ -12,4 +12,5 @@ readme = "README.md"
 license = "Apache-2.0"
 
 [dependencies]
+sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "postgres", "chrono"] }
 async-trait = "0.1"
