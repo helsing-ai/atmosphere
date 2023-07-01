@@ -1,7 +1,15 @@
 [package]
 name = "atmosphere"
-version = "0.1.0"
+version = "0.0.1-alpha.1"
 edition = "2021"
+description = "Atmosphere for sustainable growth of sqlx projects"
+authors = ["Mara Schulke <mara@hemisphere.studio>"]
+repository = "https://github.com/hemisphere-studio/atmosphere"
+documentation = "https://docs.rs/atmosphere"
+keywords = ["sqlx", "postgres", "database", "orm", "backend"]
+categories = ["asynchronous", "database", "web-programming"]
+readme = "README.md"
+license = "Apache-2.0"
 
 [dependencies]
 async-trait = "*"
