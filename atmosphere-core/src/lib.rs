@@ -28,6 +28,7 @@ pub trait Write: Model {
     async fn delete(&self) -> Result<()>;
 }
 
+#[derive(Debug)]
 pub struct Column<M: Model> {
     pub name: &'static str,
     pub data_type: DataType,
@@ -47,11 +48,13 @@ impl<M: Model> Column<M> {
 }
 
 /// All possible types for postgres
+#[derive(Debug)]
 pub enum DataType {
     Text,
     Number,
 }
 
+#[derive(Debug)]
 pub enum ColType {
     Value,
     PrimaryKey,
