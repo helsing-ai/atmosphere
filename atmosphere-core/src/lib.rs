@@ -23,9 +23,9 @@ pub trait Read: Model {
 
 #[async_trait]
 pub trait Write: Model {
-    async fn save(&self) -> Result<()>;
-    async fn update(&self) -> Result<()>;
-    async fn delete(&self) -> Result<()>;
+    async fn save(&self, pool: &sqlx::PgPool) -> Result<()>;
+    async fn update(&self, pool: &sqlx::PgPool) -> Result<()>;
+    async fn delete(&self, pool: &sqlx::PgPool) -> Result<()>;
 }
 
 #[derive(Debug)]

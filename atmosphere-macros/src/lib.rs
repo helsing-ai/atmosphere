@@ -3,6 +3,7 @@
 use proc_macro::{self, TokenStream};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote, ToTokens};
+use sqlx::{Postgres, QueryBuilder};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 use syn::{
@@ -28,10 +29,12 @@ pub fn model(input: TokenStream) -> TokenStream {
 
     let model_trait_impl = model.quote_trait_impl();
     let read_impl = model.quote_read_impl();
+    let write_impl = model.quote_write_impl();
 
     quote! {
         #model_trait_impl
         #read_impl
+        #write_impl
     }
     .into()
 }
@@ -125,6 +128,151 @@ impl Model {
             data,
         } = self;
 
+        let all = self.select().into_sql();
+
+        let find = {
+            let mut query = self.select();
+            query.push(format!("WHERE\n  {} = $1", id.name));
+            query.into_sql()
+        };
+
+        quote!(
+            #[automatically_derived]
+            #[::atmosphere::prelude::async_trait]
+            impl ::atmosphere::Read for #ident {
+                async fn find(id: &Self::Id, pool: &::sqlx::PgPool) -> ::atmosphere_core::Result<Self> {
+                    ::sqlx::query_as!(
+                        Self,
+                        #find,
+                        id
+                    )
+                    .fetch_one(pool)
+                    .await
+                    .map_err(|_| ())
+                }
+
+                async fn all(pool: &::sqlx::PgPool) -> ::atmosphere_core::Result<Vec<Self>> {
+                    ::sqlx::query_as!(
+                        Self,
+                        #all
+                    )
+                    .fetch_all(pool)
+                    .await
+                    .map_err(|_| ())
+                }
+            }
+        )
+    }
+
+    fn quote_write_impl(&self) -> TokenStream2 {
+        let Self {
+            ident,
+            schema,
+            table,
+            id,
+            refs,
+            data,
+        } = self;
+
+        let field_bindings = {
+            let mut fields = vec![];
+
+            let name = &id.name;
+            fields.push(quote!(&self.#name as _));
+
+            for r in refs {
+                let name = &r.column.name;
+                fields.push(quote!(&self.#name as _));
+            }
+
+            for d in data {
+                let name = &d.name;
+                fields.push(quote!(&self.#name as _));
+            }
+
+            fields
+        };
+
+        let save = self.insert().into_sql();
+
+        let update = {
+            let mut query = self.update();
+            query.push(format!("\nWHERE\n  {} = $1", id.name));
+            query.into_sql()
+        };
+
+        let delete = {
+            let mut query = self.delete();
+            query.push(format!("\nWHERE\n  {} = $1", id.name));
+            query.into_sql()
+        };
+
+        let delete_field = {
+            let name = &id.name;
+
+            quote!(&self.#name)
+        };
+
+        dbg!(&save, &update, &delete);
+
+        quote!(
+            #[automatically_derived]
+            #[::atmosphere::prelude::async_trait]
+            impl ::atmosphere::Write for #ident {
+                async fn save(&self, pool: &::sqlx::PgPool) -> ::atmosphere_core::Result<()> {
+                    ::sqlx::query!(
+                        #save,
+                        #(#field_bindings),*
+                    )
+                    .execute(pool)
+                    .await
+                    .map(|_| ())
+                    .map_err(|_| ())
+                }
+
+                async fn update(&self, pool: &::sqlx::PgPool) -> ::atmosphere_core::Result<()> {
+                    ::sqlx::query!(
+                        #update,
+                        #(#field_bindings),*
+                    )
+                    .execute(pool)
+                    .await
+                    .map(|_| ())
+                    .map_err(|_| ())
+                }
+
+                async fn delete(&self, pool: &::sqlx::PgPool) -> ::atmosphere_core::Result<()> {
+                    ::sqlx::query!(
+                        #delete,
+                        #delete_field
+                    )
+                    .execute(pool)
+                    .await
+                    .map(|_| ())
+                    .map_err(|_| ())
+                }
+            }
+        )
+    }
+}
+
+/// Query Building Related Operations
+impl Model {
+    fn escaped_table(&self) -> String {
+        format!("\"{}\".\"{}\"", self.schema, self.table)
+    }
+
+    /// Generate the base select statement
+    fn select(&self) -> sqlx::QueryBuilder<sqlx::Postgres> {
+        let Self {
+            ident,
+            schema,
+            table,
+            id,
+            refs,
+            data,
+        } = self;
+
         let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new("SELECT\n");
 
         let mut separated = query.separated(",\n  ");
@@ -139,45 +287,86 @@ impl Model {
             separated.push(format!("{} as \"{}: _\"", data.name, data.name));
         }
 
-        drop(separated);
+        query.push(format!("\nFROM\n  {}\n", self.escaped_table()));
 
-        query.push("\nFROM\n");
-        query.push(format!("  \"{schema}\".\"{table}\"\n"));
+        query
+    }
 
-        let fetch_all = query.sql().to_owned();
+    /// Generate the update statement
+    fn update(&self) -> QueryBuilder<Postgres> {
+        let Self {
+            ident,
+            schema,
+            table,
+            id,
+            refs,
+            data,
+        } = self;
 
-        query.push(format!("WHERE\n  {} = $1", id.name));
+        let mut query =
+            QueryBuilder::<Postgres>::new(format!("UPDATE {} SET\n  ", self.escaped_table()));
 
-        let fetch_by_id = query.sql().to_owned();
+        let mut separated = query.separated(",\n  ");
 
-        println!("{}", query.sql());
+        let mut col = 2;
 
-        quote!(
-            #[automatically_derived]
-            #[::atmosphere::prelude::async_trait]
-            impl ::atmosphere::Read for #ident {
-                async fn find(id: &Self::Id, pool: &::sqlx::PgPool) -> ::atmosphere_core::Result<Self> {
-                    ::sqlx::query_as!(
-                        Self,
-                        #fetch_by_id,
-                        id
-                    )
-                    .fetch_one(pool)
-                    .await
-                    .map_err(|_| ())
-                }
+        for r in refs {
+            separated.push(format!("{} = ${col}", r.column.name));
+            col += 1;
+        }
 
-                async fn all(pool: &::sqlx::PgPool) -> ::atmosphere_core::Result<Vec<Self>> {
-                    ::sqlx::query_as!(
-                        Self,
-                        #fetch_all
-                    )
-                    .fetch_all(pool)
-                    .await
-                    .map_err(|_| ())
-                }
-            }
-        )
+        for data in data {
+            separated.push(format!("{} = ${col}", data.name));
+            col += 1;
+        }
+
+        query
+    }
+
+    /// Generate the insert statement
+    fn insert(&self) -> QueryBuilder<Postgres> {
+        let Self {
+            ident,
+            schema,
+            table,
+            id,
+            refs,
+            data,
+        } = self;
+
+        let mut query =
+            QueryBuilder::<Postgres>::new(format!("INSERT INTO {} (\n  ", self.escaped_table()));
+
+        let mut separated = query.separated(",\n  ");
+
+        separated.push(id.name.to_string());
+
+        for r in refs {
+            separated.push(r.column.name.to_string());
+        }
+
+        for data in data {
+            separated.push(data.name.to_string());
+        }
+
+        separated.push_unseparated("\n) VALUES (\n");
+
+        separated.push_unseparated("  $1");
+
+        let cols = 1 + refs.len() + data.len();
+
+        for c in 2..=cols {
+            separated.push(format!("${c}"));
+        }
+
+        separated.push_unseparated(")");
+
+        query
+    }
+
+    /// Generate the delete statement without where clause
+    fn delete(&self) -> QueryBuilder<Postgres> {
+        QueryBuilder::<Postgres>::new(format!("DELETE FROM {}", self.escaped_table()))
     }
 }
 
