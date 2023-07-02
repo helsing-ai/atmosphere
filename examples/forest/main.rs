@@ -1,5 +1,5 @@
 use atmosphere::prelude::*;
-use sqlx::FromRow;
+use sqlx::{FromRow, PgPool};
 
 #[derive(Debug, FromRow, Model)]
 struct Forest {
@@ -10,9 +10,9 @@ struct Forest {
 }
 
 impl Forest {
-    pub fn new(name: impl AsRef<str>, location: impl AsRef<str>) -> Self {
+    pub fn new(id: i32, name: impl AsRef<str>, location: impl AsRef<str>) -> Self {
         Self {
-            id: 0,
+            id,
             name: name.as_ref().to_owned(),
             location: location.as_ref().to_owned(),
         }
@@ -29,18 +29,19 @@ struct Tree {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    use atmosphere::Model;
+    let pool = PgPool::connect(&std::env::var("DATABASE_URL").unwrap())
+        .await
+        .unwrap();
 
-    dbg!(
-        Forest::SCHEMA,
-        Forest::TABLE,
-        Forest::ID,
-        Forest::REFS,
-        Forest::DATA
-    );
+    let grunewald = Forest::new(0, "Grunewald", "Berlin");
+    grunewald.delete(&pool).await?;
+    grunewald.save(&pool).await?;
 
-    dbg!(Tree::SCHEMA, Tree::TABLE, Tree::ID, Tree::REFS, Tree::DATA);
+    let redwood = Forest::new(1, "Redwood", "USA");
+    redwood.delete(&pool).await?;
+    redwood.save(&pool).await?;
 
-    dbg!(Forest::new("Grunewald", "Berlin"));
+    dbg!(Forest::all(&pool).await?);
+
     Ok(())
 }
