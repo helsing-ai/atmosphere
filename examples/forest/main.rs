@@ -1,7 +1,7 @@
 use atmosphere::prelude::*;
 use sqlx::{FromRow, PgPool};
 
-#[derive(Debug, FromRow, Model)]
+#[derive(Debug, PartialEq, FromRow, Model)]
 struct Forest {
     #[id]
     id: i32,
@@ -33,15 +33,29 @@ async fn main() -> Result<()> {
         .await
         .unwrap();
 
-    let grunewald = Forest::new(0, "Grunewald", "Berlin");
-    grunewald.delete(&pool).await?;
-    grunewald.save(&pool).await?;
+    let grunewald = match Forest::find(&0, &pool).await {
+        Ok(forest) => forest,
+        Err(_) => {
+            let grunewald = Forest::new(0, "Grunewald", "Berlin");
+            grunewald.save(&pool).await?;
+            grunewald
+        }
+    };
 
-    let redwood = Forest::new(1, "Redwood", "USA");
-    redwood.delete(&pool).await?;
-    redwood.save(&pool).await?;
+    let redwood = match Forest::find(&1, &pool).await {
+        Ok(forest) => forest,
+        Err(_) => {
+            let grunewald = Forest::new(0, "Redwood", "USA");
+            grunewald.save(&pool).await?;
+            grunewald
+        }
+    };
 
-    dbg!(Forest::all(&pool).await?);
+    let forests = Forest::all(&pool).await?;
+
+    dbg!(&forests);
+
+    assert_eq!(forests, vec![grunewald, redwood]);
 
     Ok(())
 }
