@@ -17,6 +17,14 @@ impl Forest {
             location: location.as_ref().to_owned(),
         }
     }
+
+    #[query]
+    pub async fn by_name(name: &str) -> Result<Self> {
+        select! {
+            WHERE name = $name
+            ORDER BY name
+        }
+    }
 }
 
 #[derive(Debug, FromRow, Model)]
@@ -52,10 +60,11 @@ async fn main() -> Result<()> {
     };
 
     let forests = Forest::all(&pool).await?;
+    assert_eq!(forests[0], grunewald);
+    assert_eq!(forests[1], redwood);
 
-    dbg!(&forests);
-
-    assert_eq!(forests, vec![grunewald, redwood]);
+    assert_eq!(Forest::by_name("Grunewald", &pool).await?, grunewald);
+    assert_eq!(Forest::by_name("Redwood", &pool).await?, redwood);
 
     Ok(())
 }

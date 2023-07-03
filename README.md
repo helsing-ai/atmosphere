@@ -16,19 +16,19 @@
 - [x] Derive Macro (`Model`)
 - [x] Field Attributes (`#[id]`, and so on)
 - [x] Query Generation
+- [x] Compile Time Verification
 
 ### Beta Release
-- [ ] Implement all standard queries (`find`, `store`, `update`)
+- [ ] Transaction Support
+- [ ] Filtering and `where` macro
+- [ ] Support `created_at` and `updated_at` fields
 
 ### Stable Release
 - [ ] Stabilize Traits
-- [ ] Filtering and `where` macro
 - [ ] Model Views (subsets)
 
 ### Advanced
-- [ ] Compile Time Verification
 - [ ] Postgres Composite Types
-- [ ] Support `updated_at` fields
 - [ ] Support custom types
 - [ ] Runtime Inspection
 - [ ] Generate Graphs
@@ -67,16 +67,20 @@ use atmosphere::prelude::*;
 struct Recipe {
     #[id]
     pub id: Uuid,
+
     pub name: String,
+
+    #[timestamp(create)]
     pub created_at: DateTime<Utc>
+    #[timestamp(update)]
+    pub updated_at: DateTime<Utc>
 }
 
 impl Recipe {
-    pub fn new(name: String) -> Self {
-        Self {
-            id: Uuid::new(),
-            name,
-            created_at: Utc::now()
+    pub async fn by_name(name: &str) -> Query<Self> {
+        select! {
+            WHERE name = $name
+            ORDER BY name
         }
     }
 }
@@ -86,27 +90,33 @@ impl Recipe {
 struct Step {
     #[id]
     pub id: Uuid,
-    #[ref(Recipe)]
+
+    #[reference(Recipe)]
     pub recipe_id: Uuid,
+
     pub description: String,
     pub duration: Duration,
-    pub created_at: DateTime<Utc>
-}
 
-impl Step {
-    pub fn new(recipe: &Recipe, description: String, duration: Duration) -> Self {
-        Self {
-            id: Uuid::new(),
-            recipe_id: *recipe.id,
-            description,
-            duration,
-            created_at: Utc::now()
-        }
-    }
+    #[timestamp(create)]
+    pub created_at: DateTime<Utc>
+    #[timestamp(update)]
+    pub updated_at: DateTime<Utc>
 }
 ```
 
 ### Usage
+
+#### `new`
+
+```rust
+Recipe::new("name").save(&pool).await?;
+```
+
+#### Foreign Keys
+
+```rust
+step.recipe(&pool).await?;
+```
 
 ```rust
 use atmosphere::prelude::*;
@@ -146,9 +156,7 @@ async fn main() -> atmosphere::Result<()> {
     assert_eq!(all, vec![cheesecake, apple_pie]);
 
     // Filter
-    let filtered = Recipe::select(where! {
-            created_at > cheesecake.created_at
-        })
+    let filtered = Recipe::where_name("Apple Pie", &pool)
         .await?;
     assert_eq!(filtered, vec![apple_pie]);
 

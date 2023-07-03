@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use std::marker::PhantomData;
 
-pub trait Model: Sized + Send + 'static
+pub trait Model: Sized + Send + for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> + 'static
 where
     Self::Id: for<'q> sqlx::Encode<'q, sqlx::Postgres> + sqlx::Type<sqlx::Postgres> + Send,
 {
@@ -136,6 +136,31 @@ pub enum ColType {
 ////LessThan(Box<dyn sqlx::Encode<'static, Postgres>>),
 //NotNull,
 //IsNull,
+//}
+//}
+
+//type PgArgs<'q> = <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments;
+//type PgQuery<'q, F> = sqlx::query::Map<'q, sqlx::Postgres, F, PgArgs<'q>>;
+
+//pub struct Query<'q, F, M>
+//where
+//F: FnMut(<sqlx::Postgres as sqlx::Database>::Row) -> sqlx::Result<M>,
+//M: Model,
+//{
+//raw: PgQuery<'q, F>,
+//model: PhantomData<M>,
+//}
+
+//impl<'q, F, M> From<PgQuery<'q, F>> for Query<'q, F, M>
+//where
+//F: FnMut(<sqlx::Postgres as sqlx::Database>::Row) -> sqlx::Result<M>,
+//M: Model,
+//{
+//fn from(raw: PgQuery<'q, F>) -> Self {
+//Self {
+//raw,
+//model: PhantomData,
+//}
 //}
 //}
 
