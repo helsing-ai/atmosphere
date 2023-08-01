@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use std::marker::PhantomData;
 
-pub trait Model: Sized + Send + for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> + 'static
+pub trait Table: Sized + Send + for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> + 'static
 where
     Self::Id: for<'q> sqlx::Encode<'q, sqlx::Postgres> + sqlx::Type<sqlx::Postgres> + Send,
 {
@@ -15,28 +15,28 @@ where
 }
 
 #[async_trait]
-pub trait Read: Model {
+pub trait Read: Table {
     async fn find(id: &Self::Id, pool: &sqlx::PgPool) -> Result<Self>;
     async fn all(pool: &sqlx::PgPool) -> Result<Vec<Self>>;
     // async fn select(filter: Vec<Filter<Self>>) -> Result<Vec<Self>>;
 }
 
 #[async_trait]
-pub trait Write: Model {
+pub trait Write: Table {
     async fn save(&self, pool: &sqlx::PgPool) -> Result<()>;
     async fn update(&self, pool: &sqlx::PgPool) -> Result<()>;
     async fn delete(&self, pool: &sqlx::PgPool) -> Result<()>;
 }
 
 #[derive(Debug)]
-pub struct Column<M: Model> {
+pub struct Column<T: Table> {
     pub name: &'static str,
     pub data_type: DataType,
     pub col_type: ColType,
-    marker: PhantomData<M>,
+    marker: PhantomData<T>,
 }
 
-impl<M: Model> Column<M> {
+impl<T: Table> Column<T> {
     pub const fn new(name: &'static str, data_type: DataType, col_type: ColType) -> Self {
         Self {
             name,
@@ -48,12 +48,12 @@ impl<M: Model> Column<M> {
 }
 
 //#[derive(Debug)]
-//pub struct Reference<A: Model, B: Model> {
+//pub struct Reference<A: Table, B: Table> {
 //pub column: Column<A>,
 //marker: PhantomData<B>
 //}
 
-//impl<A: Model, B: Model> for Reference<A, B> {
+//impl<A: Table, B: Table> for Reference<A, B> {
 //pub const fn new(col: Column<A>) -> Self {
 //Self {
 //column,
@@ -80,17 +80,17 @@ pub enum ColType {
 //mod query {
 //use sqlx::Postgres;
 
-//use crate::{Column, Model};
+//use crate::{Column, Table};
 
-//pub(crate) trait Query<M: Model> {
+//pub(crate) trait Query<T: Table> {
 //fn build(&self) -> String;
 //}
 
-//pub struct Select<M: Model> {
+//pub struct Select<T: Table> {
 //filter: Vec<Filter<M>>,
 //}
 
-//impl<M: Model> Select<M> {
+//impl<T: Table> Select<M> {
 //pub(crate) fn new() -> Self {
 //Self { filter: vec![] }
 //}
@@ -102,12 +102,12 @@ pub enum ColType {
 //}
 //}
 
-//impl<M: Model> Query<M> for Select<M> {
+//impl<T: Table> Query<M> for Select<M> {
 //fn build(&self) -> String {
 //let mut builder = sqlx::QueryBuilder::<Postgres>::new(format!(
 //"SELECT * FROM {}.{}",
-//M::SCHEMA,
-//M::TABLE
+//T::SCHEMA,
+//T::TABLE
 //));
 
 //if !self.filter.is_empty() {
@@ -123,7 +123,7 @@ pub enum ColType {
 //}
 //}
 
-//pub struct Filter<M: Model> {
+//pub struct Filter<T: Table> {
 //pub column: Column<M>,
 //pub op: FilterOperation,
 //}
@@ -145,7 +145,7 @@ pub enum ColType {
 //pub struct Query<'q, F, M>
 //where
 //F: FnMut(<sqlx::Postgres as sqlx::Database>::Row) -> sqlx::Result<M>,
-//M: Model,
+//T: Table,
 //{
 //raw: PgQuery<'q, F>,
 //model: PhantomData<M>,
@@ -154,14 +154,14 @@ pub enum ColType {
 //impl<'q, F, M> From<PgQuery<'q, F>> for Query<'q, F, M>
 //where
 //F: FnMut(<sqlx::Postgres as sqlx::Database>::Row) -> sqlx::Result<M>,
-//M: Model,
+//T: Table,
 //{
 //fn from(raw: PgQuery<'q, F>) -> Self {
 //Self {
 //raw,
 //model: PhantomData,
 //}
-//}
+//c
 //}
 
 pub type Result<T> = std::result::Result<T, ()>;
@@ -177,7 +177,7 @@ mod tests {
         id: i8,
     }
 
-    impl Model for Foo {
+    impl Table for Foo {
         type Key = i8;
 
         const SCHEMA: &'static str = "public";
