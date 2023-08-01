@@ -1,7 +1,8 @@
 use atmosphere::prelude::*;
 use sqlx::{FromRow, PgPool};
 
-#[derive(Debug, PartialEq, FromRow, Model)]
+//#[table(name = "forest", schema = "public")]
+#[derive(Debug, PartialEq, FromRow, Table)]
 struct Forest {
     #[id]
     id: i32,
@@ -17,17 +18,40 @@ impl Forest {
             location: location.as_ref().to_owned(),
         }
     }
+}
 
+impl Forest {
+    /// Select a forest by its name
     #[query]
     pub async fn by_name(name: &str) -> Result<Self> {
-        select! {
+        sql! {
+            SELECT * FROM forest
             WHERE name = $name
             ORDER BY name
         }
     }
+
+    // Select all odd trees of this forest
+    //#[query]
+    //pub async fn trees(&self) -> Result<Tree> {
+    //sql! {
+    //SELECT * FROM tree
+    //WHERE forest_id = $self.id
+    //ORDER BY id
+    //}
+    //}
+
+    /// Burn down the forest
+    #[query]
+    pub async fn burn(&self) -> Result<()> {
+        sql! {
+            DELETE FROM tree WHERE forest_id = $self.id
+        }
+    }
 }
 
-#[derive(Debug, FromRow, Model)]
+//#[table(name = "tree", schema = "public")]
+#[derive(Debug, FromRow, Table)]
 struct Tree {
     #[id]
     id: i32,
@@ -60,11 +84,10 @@ async fn main() -> Result<()> {
     };
 
     let forests = Forest::all(&pool).await?;
-    assert_eq!(forests[0], grunewald);
-    assert_eq!(forests[1], redwood);
+    assert_eq!(&forests, &[grunewald, redwood]);
 
-    assert_eq!(Forest::by_name("Grunewald", &pool).await?, grunewald);
-    assert_eq!(Forest::by_name("Redwood", &pool).await?, redwood);
+    //assert_eq!(Forest::by_name("Grunewald", &pool).await?, grunewald);
+    //assert_eq!(Forest::by_name("Redwood", &pool).await?, redwood);
 
     Ok(())
 }
