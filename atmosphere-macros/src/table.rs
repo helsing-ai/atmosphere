@@ -110,11 +110,15 @@ impl Table {
             data,
         } = self;
 
-        let all = self.select().into_sql();
-
-        let find = {
+        let one = {
             let mut query = self.select();
-            query.push(format!("WHERE\n  {} = $1", primary_key.name));
+            query.push(format!("WHERE\n{} = $1", primary_key.name));
+            query.into_sql()
+        };
+
+        let many = {
+            let mut query = self.select();
+            query.push(format!("WHERE\n{} = ANY($1)", primary_key.name));
             query.into_sql()
         };
 
@@ -125,7 +129,7 @@ impl Table {
                 async fn find(pk: &Self::PrimaryKey, pool: &::sqlx::PgPool) -> ::atmosphere_core::Result<Self> {
                     ::sqlx::query_as!(
                         Self,
-                        #find,
+                        #one,
                         pk
                     )
                     .fetch_one(pool)
@@ -133,14 +137,16 @@ impl Table {
                     .map_err(|_| ())
                 }
 
-                async fn all(pool: &::sqlx::PgPool) -> ::atmosphere_core::Result<Vec<Self>> {
-                    ::sqlx::query_as!(
-                        Self,
-                        #all
-                    )
-                    .fetch_all(pool)
-                    .await
-                    .map_err(|_| ())
+                async fn find_many(pks: &[impl AsRef<Self::PrimaryKey>], pool: &::sqlx::PgPool) -> ::atmosphere_core::Result<Vec<Self>> {
+                    //::sqlx::query_as!(
+                        //Self,
+                        //#many,
+                        //&keys
+                    //)
+                    //.fetch_all(pool)
+                    //.await
+                    //.map_err(|_| ())
+                    Err(())
                 }
             }
         )

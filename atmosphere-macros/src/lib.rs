@@ -21,25 +21,9 @@ use table::Table;
 
 use crate::database::Schema;
 
-#[proc_macro_derive(Table, attributes(primary_key, foreign_key))]
-pub fn table_derive(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-
-    let Data::Struct(DataStruct {
-        fields: Fields::Named(FieldsNamed { named: columns, .. }),
-        ..
-    }) = &input.data
-    else {
-        panic!("Only named structs can derive the table trait");
-    };
-
-    let table = Table::parse(&input, &columns);
-
-    let tid = (Schema::Public, table.ident.to_string());
-
-    dbg!(table);
-
-    quote! {}.into()
+#[proc_macro_derive(Schema, attributes(primary_key, foreign_key))]
+pub fn schema(input: TokenStream) -> TokenStream {
+    quote!().into()
 }
 
 // ----------------------------------------------------------------------------
@@ -50,17 +34,28 @@ pub fn table_derive(input: TokenStream) -> TokenStream {
 pub fn table(attr: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
-    //let params = parse_macro_input!(attr as syn::AttributeArgs);
-
-    let struct_name = &input.ident;
-
-    dbg!(struct_name.to_string());
-
-    let expanded = quote! {
-        #input
+    let Data::Struct(DataStruct {
+        fields: Fields::Named(FieldsNamed { named: columns, .. }),
+        ..
+    }) = &input.data
+    else {
+        panic!("Only named structs can be tables");
     };
 
-    expanded.into()
+    let table = Table::parse(&input, &columns);
+
+    let tid = (Schema::Public, table.ident.to_string());
+
+    let table_impl = table.quote_table_impl();
+    let read_impl = table.quote_read_impl();
+
+    quote! {
+        #[derive(::atmosphere::prelude::sqlx::FromRow)]
+        #input
+        #table_impl
+        #read_impl
+    }
+    .into()
 }
 
 #[proc_macro_attribute]
@@ -70,8 +65,6 @@ pub fn relation(attr: TokenStream, input: TokenStream) -> TokenStream {
     //let params = parse_macro_input!(attr as syn::AttributeArgs);
 
     let struct_name = &input.ident;
-
-    dbg!("rel", struct_name.to_string());
 
     let expanded = quote! {
         #input
@@ -107,107 +100,3 @@ pub fn query(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     expanded.into()
 }
-
-//#[proc_macro_derive(Table, attributes(primary_key, foreign_key))]
-//pub fn table(input: TokenStream) -> TokenStream {
-//let input = parse_macro_input!(input as DeriveInput);
-
-//let Data::Struct(DataStruct {
-//fields: Fields::Named(FieldsNamed { named: columns, .. }),
-//..
-//}) = &input.data
-//else {
-//panic!("Only named structs can derive the table trait");
-//};
-
-//let table = Table::parse(&input, &columns);
-
-//let mut db = (*Database).lock().unwrap();
-
-//let tid = (Schema::Public, table.ident.to_string());
-
-//assert!(
-//db.contains_key(&tid) == false,
-//"Unable to define the table {}: already exists",
-//table.ident.to_string(),
-//);
-
-//db.insert(tid, table.clone());
-
-//drop(db);
-
-//let table_impl = table.quote_table_impl();
-//let read_impl = table.quote_read_impl();
-//let write_impl = table.quote_write_impl();
-
-//quote! {
-//#table_impl
-//#read_impl
-//#write_impl
-//}
-//.into()
-//}
-
-// Query Macros
-//#[proc_macro_attribute]
-//pub fn query(attr: TokenStream, item: TokenStream) -> TokenStream {
-//println!("attr: \"{}\"", attr.to_string());
-//println!("item: \"{}\"", item.to_string());
-
-//let mut query = parse_macro_input!(item as syn::ItemFn);
-
-//let pool: syn::FnArg = parse_quote!(pool: &::sqlx::PgPool);
-//query.sig.inputs.push(pool);
-
-//let (one, many): (syn::Type, syn::Type) = (parse_quote!(Self), parse_quote!(Vec<Self>));
-
-////let fetch = match query.sig.output {
-////syn::ReturnType::Type(_, ref o) if **o == one. => quote!(fetch_one(pool)),
-////syn::ReturnType::Type(_, ref m) if **m == many => quote!(fetch_many(pool)),
-////_ => panic!("unsupported return type found, only `Self` and `Vec<Self>` are supported"),
-////};
-
-//let block = query.block;
-
-//query.block = parse_quote!({
-//Ok(#block.fetch_one(pool).await.unwrap())
-//});
-
-//quote!(#query).into()
-//}
-
-//enum Statement {}
-
-//#[proc_macro]
-//pub fn sql(input: TokenStream) -> TokenStream {
-//let raw = input.to_string();
-
-//let sql = raw.split(" ");
-//let mut sanitized = String::new();
-//let mut args: Vec<String> = vec![];
-
-//for word in sql {
-//if word.starts_with("$") {
-//let arg: String = word.chars().skip(1).collect();
-
-//args.push(arg);
-
-//sanitized.push_str(&format!(" ${}", args.len()));
-
-//continue;
-//}
-
-//sanitized.push_str(&format!(" {word}"));
-//}
-
-//let query = format!("{sanitized}");
-
-//dbg!(&query);
-
-//quote!(::sqlx::query_as!(
-//Self,
-//#query,
-//#(&#args),*
-//))
-//.into()
-//}
