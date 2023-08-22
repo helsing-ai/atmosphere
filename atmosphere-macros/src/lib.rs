@@ -17,11 +17,28 @@ use syn::{
 mod database;
 mod table;
 
-use database::{Database, Schema};
 use table::Table;
 
-#[proc_macro_derive(Schema, attributes(primary_key, foreign_key))]
-pub fn schema(input: TokenStream) -> TokenStream {
+use crate::database::Schema;
+
+#[proc_macro_derive(Table, attributes(primary_key, foreign_key))]
+pub fn table_derive(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+
+    let Data::Struct(DataStruct {
+        fields: Fields::Named(FieldsNamed { named: columns, .. }),
+        ..
+    }) = &input.data
+    else {
+        panic!("Only named structs can derive the table trait");
+    };
+
+    let table = Table::parse(&input, &columns);
+
+    let tid = (Schema::Public, table.ident.to_string());
+
+    dbg!(table);
+
     quote! {}.into()
 }
 
@@ -68,12 +85,25 @@ pub fn relation(attr: TokenStream, input: TokenStream) -> TokenStream {
 // Query
 
 #[proc_macro_attribute]
-pub fn query(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    let item = parse_macro_input!(item as syn::Item);
+pub fn query(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let query = parse_macro_input!(item as syn::Item);
 
-    dbg!("query", item.clone().into_token_stream().to_string());
+    let params = parse_macro_input!(attr as syn::LitStr);
 
-    let expanded = quote! { fn hi(&self) {} };
+    dbg!(params.value().trim());
+
+    dbg!(query.clone().into_token_stream().to_string());
+
+    let expanded = quote! { fn query(&self) {} };
+
+    // 1. analyze signature and infer sqlx function
+    //      - fetch_one, execute and so on
+    // 2. pass sql string to handlebars and Bind:
+    //      - database tables (smh)
+    //      - function arguments
+    //      - replace "{*}" with concrete columns
+    // 3. modify signature to be generic over executor and add executor arg
+    // 4. populate function body / execute sql in body
 
     expanded.into()
 }

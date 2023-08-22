@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::Mutex;
 
 use proc_macro::{self, Span, TokenStream};
@@ -14,7 +15,7 @@ use syn::{
 
 use crate::database::Schema;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Table {
     pub ident: Ident,
     pub schema: Schema,
@@ -403,7 +404,18 @@ impl Column {
     }
 }
 
-#[derive(Clone)]
+impl fmt::Debug for Column {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Column")
+            .field("pk", &self.pk)
+            .field("fk", &self.fk)
+            .field("name", &self.name.to_string())
+            .field("type", &self.ty.to_token_stream().to_string())
+            .finish()
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct ForeignKey {
     pub table: Ident,
     pub column: Column,

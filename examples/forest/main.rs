@@ -1,7 +1,7 @@
 use atmosphere::prelude::*;
 use sqlx::{FromRow, PgPool};
 
-#[derive(Schema)]
+#[derive(Table)]
 #[table(name = "forest", schema = "public")]
 struct Forest {
     #[primary_key]
@@ -21,14 +21,16 @@ impl Forest {
 impl Forest {
     /// Select a forest by its name
     #[query(
-        SELECT * FROM {Forest}
-        WHERE name = {name}
-        ORDER BY name
+        r#"
+            SELECT {*} FROM {public.forest}
+            WHERE name = {name}
+            ORDER BY name
+        "#
     )]
     pub async fn by_name(name: &str) -> Result<Self>;
 }
 
-#[derive(Schema)]
+#[derive(Table)]
 #[table(name = "tree", schema = "public")]
 #[relation(grouped_by = Forest)]
 struct Tree {
