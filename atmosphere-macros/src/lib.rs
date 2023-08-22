@@ -18,7 +18,7 @@ mod table;
 use database::{Database, Schema};
 use table::Table;
 
-#[proc_macro_derive(Table, attributes(id, reference))]
+#[proc_macro_derive(Table, attributes(primary_key, foreign_key))]
 pub fn table(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
@@ -34,7 +34,7 @@ pub fn table(input: TokenStream) -> TokenStream {
 
     let mut db = (*Database).lock().unwrap();
 
-    let tid = (Schema::Default, table.ident.to_string());
+    let tid = (Schema::Public, table.ident.to_string());
 
     assert!(
         db.contains_key(&tid) == false,
@@ -59,63 +59,65 @@ pub fn table(input: TokenStream) -> TokenStream {
 }
 
 // Query Macros
-#[proc_macro_attribute]
-pub fn query(attr: TokenStream, item: TokenStream) -> TokenStream {
-    println!("attr: \"{}\"", attr.to_string());
-    println!("item: \"{}\"", item.to_string());
+//#[proc_macro_attribute]
+//pub fn query(attr: TokenStream, item: TokenStream) -> TokenStream {
+//println!("attr: \"{}\"", attr.to_string());
+//println!("item: \"{}\"", item.to_string());
 
-    let mut query = parse_macro_input!(item as syn::ItemFn);
+//let mut query = parse_macro_input!(item as syn::ItemFn);
 
-    let pool: syn::FnArg = parse_quote!(pool: &::sqlx::PgPool);
-    query.sig.inputs.push(pool);
+//let pool: syn::FnArg = parse_quote!(pool: &::sqlx::PgPool);
+//query.sig.inputs.push(pool);
 
-    let (one, many): (syn::Type, syn::Type) = (parse_quote!(Self), parse_quote!(Vec<Self>));
+//let (one, many): (syn::Type, syn::Type) = (parse_quote!(Self), parse_quote!(Vec<Self>));
 
-    //let fetch = match query.sig.output {
-    //syn::ReturnType::Type(_, ref o) if **o == one. => quote!(fetch_one(pool)),
-    //syn::ReturnType::Type(_, ref m) if **m == many => quote!(fetch_many(pool)),
-    //_ => panic!("unsupported return type found, only `Self` and `Vec<Self>` are supported"),
-    //};
+////let fetch = match query.sig.output {
+////syn::ReturnType::Type(_, ref o) if **o == one. => quote!(fetch_one(pool)),
+////syn::ReturnType::Type(_, ref m) if **m == many => quote!(fetch_many(pool)),
+////_ => panic!("unsupported return type found, only `Self` and `Vec<Self>` are supported"),
+////};
 
-    let block = query.block;
+//let block = query.block;
 
-    query.block = parse_quote!({
-        Ok(#block.fetch_one(pool).await.unwrap())
-    });
+//query.block = parse_quote!({
+//Ok(#block.fetch_one(pool).await.unwrap())
+//});
 
-    quote!(#query).into()
-}
+//quote!(#query).into()
+//}
 
-#[proc_macro]
-pub fn sql(input: TokenStream) -> TokenStream {
-    let raw = input.to_string();
+//enum Statement {}
 
-    let sql = raw.split(" ");
-    let mut sanitized = String::new();
-    let mut args: Vec<String> = vec![];
+//#[proc_macro]
+//pub fn sql(input: TokenStream) -> TokenStream {
+//let raw = input.to_string();
 
-    for word in sql {
-        if word.starts_with("$") {
-            let arg: String = word.chars().skip(1).collect();
+//let sql = raw.split(" ");
+//let mut sanitized = String::new();
+//let mut args: Vec<String> = vec![];
 
-            args.push(arg);
+//for word in sql {
+//if word.starts_with("$") {
+//let arg: String = word.chars().skip(1).collect();
 
-            sanitized.push_str(&format!(" ${}", args.len()));
+//args.push(arg);
 
-            continue;
-        }
+//sanitized.push_str(&format!(" ${}", args.len()));
 
-        sanitized.push_str(&format!(" {word}"));
-    }
+//continue;
+//}
 
-    let query = format!("{sanitized}");
+//sanitized.push_str(&format!(" {word}"));
+//}
 
-    dbg!(&query);
+//let query = format!("{sanitized}");
 
-    quote!(::sqlx::query_as!(
-        Self,
-        #query,
-        #(&#args),*
-    ))
-    .into()
-}
+//dbg!(&query);
+
+//quote!(::sqlx::query_as!(
+//Self,
+//#query,
+//#(&#args),*
+//))
+//.into()
+//}

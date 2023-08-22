@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::Mutex;
 
 use proc_macro::{self, Span, TokenStream};
@@ -25,8 +26,17 @@ pub type TableID = String;
 /// A database schema
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Schema {
-    Default,
+    Public,
     Custom(String),
+}
+
+impl fmt::Display for Schema {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Public => f.write_str("public"),
+            Self::Custom(c) => f.write_str(c.as_str()),
+        }
+    }
 }
 
 type SharedTableMap = Mutex<HashMap<QualifiedTableID, Table>>;

@@ -12,13 +12,15 @@ use syn::{
     Fields, FieldsNamed, Ident, Lifetime, Lit, LitStr, Meta, MetaNameValue, Stmt,
 };
 
+use crate::database::Schema;
+
 #[derive(Clone)]
 pub struct Table {
     pub ident: Ident,
-    pub schema: String,
+    pub schema: Schema,
     pub table: String,
-    pub id: Column,
-    pub refs: Vec<Reference>,
+    pub primary_key: Column,
+    pub foreign_keys: Vec<ForeignKey>,
     pub data: Vec<Column>,
 }
 
@@ -28,30 +30,35 @@ impl Table {
 
         let columns = fields.iter().map(Column::parse);
 
-        let (id, data): (Vec<Column>, Vec<Column>) = columns.partition(|c| c.id);
+        let (pk, data): (Vec<Column>, Vec<Column>) = columns.partition(|c| c.pk);
 
-        let id = {
-            if id.len() == 0 {
-                panic!("missing primary id column (#[id]) on table {}", ident);
-            }
-            if id.len() > 1 {
+        let pk = {
+            if pk.len() == 0 {
                 panic!(
-                    "found more than one primary id column (#[id]) on table {}",
+                    "missing primary key column (#[primary_key]) on table {}",
                     ident
                 );
             }
-            id[0].clone()
+
+            if pk.len() > 1 {
+                panic!(
+                    "found more than one primary key column (#[primary_key]) on table {}",
+                    ident
+                );
+            }
+
+            pk.first().take().cloned().expect("internal error")
         };
 
         let data = data.into_iter().filter(|d| !d.fk).collect();
-        let refs: Vec<Reference> = fields.iter().filter_map(Reference::parse).collect();
+        let foreign_keys: Vec<ForeignKey> = fields.iter().filter_map(ForeignKey::parse).collect();
 
         Self {
             ident: ident.to_owned(),
-            schema: "public".to_owned(),
+            schema: Schema::Public,
             table: ident.to_string().to_lowercase(),
-            id,
-            refs,
+            primary_key: pk,
+            foreign_keys,
             data,
         }
     }
@@ -61,28 +68,29 @@ impl Table {
             ident,
             schema,
             table,
-            id,
-            refs,
+            primary_key,
+            foreign_keys,
             data,
         } = self;
 
-        let id_ty = &self.id.ty;
-        let id = self.id.quote();
-        let refs = self.refs.iter().map(|r| r.column.quote());
+        let schema = schema.to_string();
+        let pk_ty = &self.primary_key.ty;
+        let primary_key = self.primary_key.quote();
+        let foreign_keys = self.foreign_keys.iter().map(|r| r.column.quote());
         let data = self.data.iter().map(|d| d.quote());
 
         quote!(
             #[automatically_derived]
             impl ::atmosphere::Table for #ident {
-                type Id = #id_ty;
+                type PrimaryKey = #pk_ty;
 
-                const ID: ::atmosphere::Column<#ident> = #id;
+                const PRIMARY_KEY: ::atmosphere::Column<#ident> = #primary_key;
 
                 const SCHEMA: &'static str = #schema;
                 const TABLE: &'static str = #table;
 
-                const REFS: &'static [::atmosphere::Column<#ident>] = &[
-                    #(#refs),*
+                const FOREIGN_KEYS: &'static [::atmosphere::Column<#ident>] = &[
+                    #(#foreign_keys),*
                 ];
                 const DATA: &'static [::atmosphere::Column<#ident>] = &[
                     #(#data),*
@@ -96,8 +104,8 @@ impl Table {
             ident,
             schema,
             table,
-            id,
-            refs,
+            primary_key,
+            foreign_keys,
             data,
         } = self;
 
@@ -105,7 +113,7 @@ impl Table {
 
         let find = {
             let mut query = self.select();
-            query.push(format!("WHERE\n  {} = $1", id.name));
+            query.push(format!("WHERE\n  {} = $1", primary_key.name));
             query.into_sql()
         };
 
@@ -113,11 +121,11 @@ impl Table {
             #[automatically_derived]
             #[::atmosphere::prelude::async_trait]
             impl ::atmosphere::Read for #ident {
-                async fn find(id: &Self::Id, pool: &::sqlx::PgPool) -> ::atmosphere_core::Result<Self> {
+                async fn find(pk: &Self::PrimaryKey, pool: &::sqlx::PgPool) -> ::atmosphere_core::Result<Self> {
                     ::sqlx::query_as!(
                         Self,
                         #find,
-                        id
+                        pk
                     )
                     .fetch_one(pool)
                     .await
@@ -142,18 +150,18 @@ impl Table {
             ident,
             schema,
             table,
-            id,
-            refs,
+            primary_key,
+            foreign_keys,
             data,
         } = self;
 
         let field_bindings = {
             let mut fields = vec![];
 
-            let name = &id.name;
+            let name = &primary_key.name;
             fields.push(quote!(&self.#name as _));
 
-            for r in refs {
+            for r in foreign_keys {
                 let name = &r.column.name;
                 fields.push(quote!(&self.#name as _));
             }
@@ -170,23 +178,21 @@ impl Table {
 
         let update = {
             let mut query = self.update();
-            query.push(format!("\nWHERE\n  {} = $1", id.name));
+            query.push(format!("\nWHERE\n  {} = $1", primary_key.name));
             query.into_sql()
         };
 
         let delete = {
             let mut query = self.delete();
-            query.push(format!("\nWHERE\n  {} = $1", id.name));
+            query.push(format!("\nWHERE\n  {} = $1", primary_key.name));
             query.into_sql()
         };
 
         let delete_field = {
-            let name = &id.name;
+            let name = &primary_key.name;
 
             quote!(&self.#name)
         };
-
-        dbg!(&save, &update, &delete);
 
         quote!(
             #[automatically_derived]
@@ -241,8 +247,8 @@ impl Table {
             ident,
             schema,
             table,
-            id,
-            refs,
+            primary_key,
+            foreign_keys,
             data,
         } = self;
 
@@ -250,9 +256,12 @@ impl Table {
 
         let mut separated = query.separated(",\n  ");
 
-        separated.push(format!("  {} as \"{}: _\"", id.name, id.name));
+        separated.push(format!(
+            "  {} as \"{}: _\"",
+            primary_key.name, primary_key.name
+        ));
 
-        for r in refs {
+        for r in foreign_keys {
             separated.push(format!("{} as \"{}: _\"", r.column.name, r.column.name));
         }
 
@@ -271,8 +280,8 @@ impl Table {
             ident,
             schema,
             table,
-            id,
-            refs,
+            primary_key,
+            foreign_keys,
             data,
         } = self;
 
@@ -283,7 +292,7 @@ impl Table {
 
         let mut col = 2;
 
-        for r in refs {
+        for r in foreign_keys {
             separated.push(format!("{} = ${col}", r.column.name));
             col += 1;
         }
@@ -302,8 +311,8 @@ impl Table {
             ident,
             schema,
             table,
-            id,
-            refs,
+            primary_key,
+            foreign_keys,
             data,
         } = self;
 
@@ -312,9 +321,9 @@ impl Table {
 
         let mut separated = query.separated(",\n  ");
 
-        separated.push(id.name.to_string());
+        separated.push(primary_key.name.to_string());
 
-        for r in refs {
+        for r in foreign_keys {
             separated.push(r.column.name.to_string());
         }
 
@@ -326,7 +335,7 @@ impl Table {
 
         separated.push_unseparated("  $1");
 
-        let cols = 1 + refs.len() + data.len();
+        let cols = 1 + foreign_keys.len() + data.len();
 
         for c in 2..=cols {
             separated.push(format!("${c}"));
@@ -345,7 +354,7 @@ impl Table {
 
 #[derive(Clone)]
 pub struct Column {
-    pub id: bool,
+    pub pk: bool,
     pub fk: bool,
     pub name: Ident,
     pub ty: syn::Type,
@@ -353,10 +362,10 @@ pub struct Column {
 
 impl Column {
     pub fn parse(field: &Field) -> Self {
-        let id = field.attrs.iter().any(|a| a.path.is_ident("id"));
-        let fk = field.attrs.iter().any(|a| a.path.is_ident("reference"));
+        let pk = field.attrs.iter().any(|a| a.path.is_ident("primary_key"));
+        let fk = field.attrs.iter().any(|a| a.path.is_ident("foreign_key"));
 
-        if id && fk {
+        if pk && fk {
             panic!(
                 "{} can not be primary key and foreign key at the same time",
                 field.ident.as_ref().unwrap()
@@ -364,7 +373,7 @@ impl Column {
         }
 
         Self {
-            id,
+            pk,
             fk,
             name: field.ident.clone().unwrap(),
             ty: field.ty.clone(),
@@ -372,11 +381,11 @@ impl Column {
     }
 
     pub fn quote(&self) -> TokenStream2 {
-        let Column { id, fk, name, ty } = self;
+        let Column { pk, fk, name, ty } = self;
 
         let name = name.to_string();
 
-        let col_type = if *id {
+        let col_type = if *pk {
             quote!(::atmosphere_core::ColType::PrimaryKey)
         } else if *fk {
             quote!(::atmosphere_core::ColType::ForeignKey)
@@ -395,17 +404,17 @@ impl Column {
 }
 
 #[derive(Clone)]
-pub struct Reference {
+pub struct ForeignKey {
     pub table: Ident,
     pub column: Column,
 }
 
-impl Reference {
+impl ForeignKey {
     pub fn parse(field: &Field) -> Option<Self> {
         let referenced = field
             .attrs
             .iter()
-            .filter(|a| a.path.is_ident("reference"))
+            .filter(|a| a.path.is_ident("foreign_key"))
             .map(|a| {
                 a.parse_args::<Ident>()
                     .expect("ref requires the table it refers to as parameter")
