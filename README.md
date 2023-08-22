@@ -73,17 +73,17 @@ Enables custom queries on the struct
 impl Forest {
     /// Select a forest by its name
     #[query(
-		SELECT * FROM ${Forest}
-		WHERE name = ${name}
-		ORDER BY name
+        SELECT * FROM ${Forest}
+        WHERE name = ${name}
+        ORDER BY name
     )]
     pub async fn by_name(name: &str) -> query::Result<Self>;
 
 	/// Select the newest forest
     #[query(
-		SELECT * FROM ${Forest}
-		ORDER BY created_at DESC
-		LIMIT 1
+        SELECT * FROM ${Forest}
+        ORDER BY created_at DESC
+        LIMIT 1
     )]
     pub async fn newest() -> query::Result<Self>;
 }
