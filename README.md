@@ -37,13 +37,13 @@
 - [ ] `validator` support
 
 ### Longterm
-- [ ] Generate HTTP, gRPC and GraphQL Bindings
+- [ ] Generate GraphQL Server
 
 ## Concept
 
 ## Macros
 
-###### `derive(Table)`
+###### `derive(Schema)`
 
 Builds compile time schema of struct and inserts into global database schema.
 This automatically derives the atmosphere base traits for the following common
@@ -81,7 +81,7 @@ impl Forest {
     )]
     pub async fn by_name(name: &str) -> query::Result<Self>;
 
-	/// Select the newest forest
+    /// Select the newest forest
     #[query(
         SELECT * FROM ${Forest}
         ORDER BY created_at DESC
@@ -95,11 +95,9 @@ impl Forest {
 
 ##### Advanced Macros
 
-###### `#[table(name = <name>)]`
+###### `#[table(schema = "public", name = <name>, id = (<a>, <b>))]`
 configures a table name and schema (`schema.table`)
-
-###### `#[table(id = (<a>, <b>))]`
-enables combined primary key support
+id optionally tells atmosphere to use combined primary keys
 
 ###### `#[relation(grouped_by = Forest)]` and `#[fk(Forest)]`
 enable `Tree::by_forest(&forest.id)`
@@ -107,8 +105,8 @@ enable `Tree::by_forest(&forest.id)`
 ###### `#[relation(groups = Tree)]` and `#[fk(Forest)]`  (on the Tree)
 enable `Forest::collect(&self)`
 
-###### `#[relation(links = Forest)]` and `#[fk(Forest)]`
-enable `Forest::find_linked_forest(&self)`
+###### `#[relation(links = Forest, as = neighbour)]` and `#[fk(Forest)]`
+enable `Tree::neighbour(&self)`
 
 ###### `#[virtual(<sql>)]`
 marks a virtual column
