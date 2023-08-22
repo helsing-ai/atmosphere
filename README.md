@@ -12,20 +12,22 @@
 ## Roadmap
 
 ### Alpha Release
-- [x] Trait System (`Model`, `Column`, `Reference` ..)
-- [x] Derive Macro (`Model`)
+- [x] Trait System (`Table`, `Column`, `Relation` ..)
+- [x] Derive Macro (`Schema`)
 - [x] Field Attributes (`#[id]`, and so on)
 - [x] Query Generation
 - [x] Compile Time Verification
+- [x] Attribute Macro (`#[table]`)
+- [ ] Attribute Macro (`#[relation]`)
+- [ ] Attribute Macro (`#[query]`)
 
 ### Beta Release
 - [ ] Transaction Support
-- [ ] Filtering and `where` macro
-- [ ] Support `created_at` and `updated_at` fields
+- [ ] Custom queries
 
 ### Stable Release
 - [ ] Stabilize Traits
-- [ ] Model Views (subsets)
+- [ ] Table Lenses (subsets)
 
 ### Advanced
 - [ ] Postgres Composite Types
