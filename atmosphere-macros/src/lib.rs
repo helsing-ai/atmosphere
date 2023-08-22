@@ -15,6 +15,7 @@ use syn::{
 };
 
 mod schema;
+mod sql;
 
 use schema::table::Table;
 

@@ -13,6 +13,8 @@ use syn::{
     Fields, FieldsNamed, Ident, Lifetime, Lit, LitStr, Meta, MetaNameValue, Stmt,
 };
 
+use crate::sql::query::SelectQuery;
+
 #[derive(Clone, Debug)]
 pub struct Table {
     pub ident: Ident,
@@ -257,24 +259,30 @@ impl Table {
             data,
         } = self;
 
-        let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new("SELECT\n");
+        let rendered = SelectQuery::new(self.clone()).render();
 
-        let mut separated = query.separated(",\n  ");
+        dbg!(&rendered);
 
-        separated.push(format!(
-            "  {} as \"{}: _\"",
-            primary_key.name, primary_key.name
-        ));
+        let query = sqlx::QueryBuilder::new(rendered);
 
-        for r in foreign_keys {
-            separated.push(format!("{} as \"{}: _\"", r.column.name, r.column.name));
-        }
+        //let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new("SELECT\n");
 
-        for data in data {
-            separated.push(format!("{} as \"{}: _\"", data.name, data.name));
-        }
+        //let mut separated = query.separated(",\n  ");
 
-        query.push(format!("\nFROM\n  {}\n", self.escaped_table()));
+        //separated.push(format!(
+        //"  {} as \"{}: _\"",
+        //primary_key.name, primary_key.name
+        //));
+
+        //for r in foreign_keys {
+        //separated.push(format!("{} as \"{}: _\"", r.column.name, r.column.name));
+        //}
+
+        //for data in data {
+        //separated.push(format!("{} as \"{}: _\"", data.name, data.name));
+        //}
+
+        //query.push(format!("\nFROM\n  {}\n", self.escaped_table()));
 
         query
     }
