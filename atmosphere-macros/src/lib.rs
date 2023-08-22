@@ -14,12 +14,9 @@ use syn::{
     Fields, FieldsNamed, Ident, Lifetime, Lit, LitStr, Meta, MetaNameValue, Stmt,
 };
 
-mod database;
-mod table;
+mod schema;
 
-use table::Table;
-
-use crate::database::Schema;
+use schema::table::Table;
 
 #[proc_macro_derive(Schema, attributes(primary_key, foreign_key))]
 pub fn schema(input: TokenStream) -> TokenStream {
@@ -44,7 +41,7 @@ pub fn table(attr: TokenStream, input: TokenStream) -> TokenStream {
 
     let table = Table::parse(&input, &columns);
 
-    let tid = (Schema::Public, table.ident.to_string());
+    let tid = ("public", table.ident.to_string());
 
     let table_impl = table.quote_table_impl();
     let read_impl = table.quote_read_impl();

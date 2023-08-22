@@ -13,12 +13,10 @@ use syn::{
     Fields, FieldsNamed, Ident, Lifetime, Lit, LitStr, Meta, MetaNameValue, Stmt,
 };
 
-use crate::database::Schema;
-
 #[derive(Clone, Debug)]
 pub struct Table {
     pub ident: Ident,
-    pub schema: Schema,
+    pub schema: String,
     pub table: String,
     pub primary_key: Column,
     pub foreign_keys: Vec<ForeignKey>,
@@ -56,7 +54,7 @@ impl Table {
 
         Self {
             ident: ident.to_owned(),
-            schema: Schema::Public,
+            schema: "public".to_owned(),
             table: ident.to_string().to_lowercase(),
             primary_key: pk,
             foreign_keys,
