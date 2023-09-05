@@ -75,26 +75,26 @@ pub fn relation(attr: TokenStream, input: TokenStream) -> TokenStream {
 
 // Query
 
-#[proc_macro_attribute]
-pub fn query(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let query = parse_macro_input!(item as syn::Item);
+//#[proc_macro_attribute]
+//pub fn query(attr: TokenStream, item: TokenStream) -> TokenStream {
+//let query = parse_macro_input!(item as syn::Item);
 
-    let params = parse_macro_input!(attr as syn::LitStr);
+//let params = parse_macro_input!(attr as syn::LitStr);
 
-    dbg!(params.value().trim());
+//dbg!(params.value().trim());
 
-    dbg!(query.clone().into_token_stream().to_string());
+//dbg!(query.clone().into_token_stream().to_string());
 
-    let expanded = quote! { fn query(&self) {} };
+//let expanded = quote! { fn query(&self) {} };
 
-    // 1. analyze signature and infer sqlx function
-    //      - fetch_one, execute and so on
-    // 2. pass sql string to handlebars and Bind:
-    //      - database tables (smh)
-    //      - function arguments
-    //      - replace "{*}" with concrete columns
-    // 3. modify signature to be generic over executor and add executor arg
-    // 4. populate function body / execute sql in body
+//// 1. analyze signature and infer sqlx function
+////      - fetch_one, execute and so on
+//// 2. pass sql string to handlebars and Bind:
+////      - database tables (smh)
+////      - function arguments
+////      - replace "{*}" with concrete columns
+//// 3. modify signature to be generic over executor and add executor arg
+//// 4. populate function body / execute sql in body
 
-    expanded.into()
-}
+//expanded.into()
+//}

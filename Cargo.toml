@@ -17,6 +17,7 @@ keywords = ["sqlx", "postgres", "database", "orm", "backend"]
 atmosphere-core = { version = "=0.0.1-alpha.2", path = "atmosphere-core" }
 atmosphere-macros = { version = "=0.0.1-alpha.2", path = "atmosphere-macros" }
 async-trait = "0.1"
+lazy_static = "1"
 sqlx = { version = "0.6", features = ["chrono"] }
 thiserror = "1"
 

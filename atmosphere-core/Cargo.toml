@@ -22,3 +22,4 @@ sqlite = ["sqlx/sqlite"]
 async-trait.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
+lazy_static.workspace = true

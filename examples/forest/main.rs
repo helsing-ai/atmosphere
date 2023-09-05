@@ -19,15 +19,15 @@ impl Forest {
 }
 
 impl Forest {
-    /// Select a forest by its name
-    #[query(
-        r#"
-            SELECT {*} FROM {public.forest}
-            WHERE name = {name}
-            ORDER BY name
-        "#
-    )]
-    pub async fn by_name(name: &str) -> Result<Self>;
+    //// Select a forest by its name
+    //#[query(
+    //r#"
+    //SELECT {*} FROM {public.forest}
+    //WHERE name = {name}
+    //ORDER BY name
+    //"#
+    //)]
+    //pub async fn by_name(name: &str) -> Result<Self>;
 }
 
 #[derive(Schema)]
