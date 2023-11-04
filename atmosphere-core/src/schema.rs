@@ -252,15 +252,16 @@ where
     }
 }
 
+/// Descriptor type of a sql column
 #[derive(Debug)]
 pub struct Column<T: Table> {
     pub name: &'static str,
-    pub ty: ColType,
+    pub ty: ColumnType,
     table: PhantomData<T>,
 }
 
 impl<T: Table> Column<T> {
-    pub const fn new(name: &'static str, ty: ColType) -> Self {
+    pub const fn new(name: &'static str, ty: ColumnType) -> Self {
         Self {
             name,
             ty,
@@ -269,11 +270,16 @@ impl<T: Table> Column<T> {
     }
 }
 
+/// Different column types in atmosphere
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum ColType {
+pub enum ColumnType {
     Value,
     PrimaryKey,
     ForeignKey,
 }
 
+/// A result type for atmosphere code
 pub type Result<T> = std::result::Result<T, ()>;
+
+/// A atmosphere error type
+pub enum Error {}

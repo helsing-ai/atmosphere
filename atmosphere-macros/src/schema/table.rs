@@ -226,11 +226,11 @@ impl Column {
         let name = name.to_string();
 
         let col_type = if *pk {
-            quote!(::atmosphere_core::ColType::PrimaryKey)
+            quote!(::atmosphere_core::ColumnType::PrimaryKey)
         } else if *fk {
-            quote!(::atmosphere_core::ColType::ForeignKey)
+            quote!(::atmosphere_core::ColumnType::ForeignKey)
         } else {
-            quote!(::atmosphere_core::ColType::Value)
+            quote!(::atmosphere_core::ColumnType::Value)
         };
 
         quote!(
