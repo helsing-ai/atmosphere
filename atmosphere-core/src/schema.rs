@@ -15,15 +15,34 @@ where
     const DATA: &'static [Column<Self>];
 }
 
+/// Bind columns to SQL Queries
+pub trait Bind: Table {
+    fn bind(c: impl AsRef<Column<Self>>, query: &mut sqlx::query::Query);
+
+    fn bind_all(&self, query: &mut sqlx::query::Query) {
+        Self::bind(Self::PRIMARY_KEY, query);
+
+        for fk in Self::FOREIGN_KEYS {
+            Self::bind(fk, query);
+        }
+
+        for data in Self::FOREIGN_KEYS {
+            Self::bind(data, query);
+        }
+    }
+}
+
 /// Reference a full entity
 pub trait Entity: Create + Read + Update + Delete {}
 
 impl<E: Create + Read + Update + Delete> Entity for E {}
 
+/// Create a table
 #[async_trait]
 pub trait Create: Table {
     /// Insert a new row
     async fn insert(&self, pool: &sqlx::PgPool) -> Result<()>;
+
     /// Insert many new rows
     async fn insert_many(entities: &[impl AsRef<Self>], pool: &sqlx::PgPool) -> Result<()>;
 }
@@ -67,7 +86,7 @@ pub trait Delete: Table {
 pub struct Column<T: Table> {
     pub name: &'static str,
     pub ty: ColType,
-    marker: PhantomData<T>,
+    table: PhantomData<T>,
 }
 
 impl<T: Table> Column<T> {
@@ -75,7 +94,7 @@ impl<T: Table> Column<T> {
         Self {
             name,
             ty,
-            marker: PhantomData,
+            table: PhantomData,
         }
     }
 }
