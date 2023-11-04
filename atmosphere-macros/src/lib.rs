@@ -15,7 +15,6 @@ use syn::{
 };
 
 mod schema;
-mod sql;
 
 use schema::table::Table;
 
@@ -45,12 +44,13 @@ pub fn table(attr: TokenStream, input: TokenStream) -> TokenStream {
     let tid = ("public", table.ident.to_string());
 
     let table_impl = table.quote_table_impl();
-    let read_impl = table.quote_read_impl();
+    let bind_impl = table.quote_bind_impl();
 
     quote! {
         #[derive(::atmosphere::prelude::sqlx::FromRow)]
         #input
         #table_impl
+        #bind_impl
     }
     .into()
 }

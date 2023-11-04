@@ -13,8 +13,6 @@ use syn::{
     Fields, FieldsNamed, Ident, Lifetime, Lit, LitStr, Meta, MetaNameValue, Stmt,
 };
 
-use crate::sql::query::SelectQuery;
-
 #[derive(Clone, Debug)]
 pub struct Table {
     pub ident: Ident,
@@ -97,6 +95,92 @@ impl Table {
                     #(#data),*
                 ];
             }
+        )
+    }
+
+    pub fn quote_bind_impl(&self) -> TokenStream2 {
+        let Self {
+            ident,
+            schema,
+            table,
+            primary_key,
+            foreign_keys,
+            data,
+        } = self;
+
+        let databases: [TokenStream2; 4] = [
+            quote!(::sqlx::Any),
+            quote!(::sqlx::Postgres),
+            quote!(::sqlx::MySql),
+            quote!(::sqlx::Sqlite),
+        ];
+
+        let col = Ident::new("col", proc_macro2::Span::call_site());
+        let query = Ident::new("query", proc_macro2::Span::call_site());
+
+        let primary_key_bind = {
+            let name = &self.primary_key.name;
+
+            quote!(
+                if #col.name == Self::PRIMARY_KEY.name {
+                    return Ok(#query.bind(&self.#name));
+                }
+            )
+        };
+
+        let foreign_key_binds = {
+            let mut stream = TokenStream2::new();
+
+            for ref fk in &self.foreign_keys {
+                let ident = &fk.column.name;
+                let name = fk.column.name.to_string();
+
+                stream.extend(quote!(
+                    if #col.name == #name {
+                        return Ok(#query.bind(&self.#ident));
+                    }
+                ));
+            }
+
+            stream
+        };
+
+        let data_binds = {
+            let mut stream = TokenStream2::new();
+
+            for ref data in &self.data {
+                let ident = &data.name;
+                let name = data.name.to_string();
+
+                stream.extend(quote!(
+                    if #col.name == #name {
+                        return Ok(#query.bind(&self.#ident));
+                    }
+                ));
+            }
+
+            stream
+        };
+
+        quote!(
+            #(
+            #[automatically_derived]
+            impl ::atmosphere::Bind<#databases> for #ident {
+                fn bind<
+                    'q,
+                >(
+                    &'q self,
+                    #col: &'q ::atmosphere::Column<Self>,
+                    #query: ::sqlx::query::Query<'q, #databases, <#databases as ::sqlx::database::HasArguments<'q>>::Arguments>,
+                ) -> ::atmosphere::Result<::sqlx::query::Query<'q, #databases, <#databases as ::sqlx::database::HasArguments<'q>>::Arguments>> {
+                    #primary_key_bind
+                    #foreign_key_binds
+                    #data_binds
+
+                    Err(())
+                }
+            }
+            )*
         )
     }
 }
