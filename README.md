@@ -49,6 +49,19 @@ async fn main() -> sqlx::Result<()> {
 }
 ```
 
+Atmosphere introspects the `User` struct at compile time and generates `const` available type information
+about the schema into the `Table` trait:
+
+```rust
+impl Table for User {
+    const SCHEMA: &str = "public"
+    const TABLE: &str = "user"
+    const PRIMARY_KEY: Column = Column { name: "id", ty: PrimaryKey, .. };
+    const FOREIGN_KEYS: [Column; 0] = [];
+    const DATA: [Column; 2] = [Column { name: "name", ty: Value }, Column { name: "email", ty: Value, } ];
+}
+```
+
 ## Roadmap
 
 ### Alpha Release
