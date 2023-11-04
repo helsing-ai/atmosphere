@@ -26,13 +26,12 @@ impl<E: Create + Read + Update + Delete> Entity for E {}
 #[async_trait]
 pub trait Create: Table {
     /// Insert a new row
-    async fn insert<'e, E, DB>(&self, executor: E) -> Result<()>
+    async fn insert<'e, E>(&self, executor: E) -> Result<()>
     where
-        Self: Bind<DB> + Sync + 'static,
-        E: sqlx::Executor<'e, Database = DB>,
-        DB: sqlx::Database,
-        for<'q> <DB as sqlx::database::HasArguments<'q>>::Arguments:
-            Send + sqlx::IntoArguments<'q, DB>;
+        Self: Bind<sqlx::Postgres> + Sync + 'static,
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
+            Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
 
     // Insert many new rows
     //async fn insert_many(entities: &[impl AsRef<Self>], pool: &sqlx::PgPool) -> Result<()>;
@@ -43,17 +42,16 @@ impl<T> Create for T
 where
     T: Table,
 {
-    async fn insert<'e, E, DB>(&self, executor: E) -> Result<()>
+    async fn insert<'e, E>(&self, executor: E) -> Result<()>
     where
-        Self: Bind<DB> + Sync + 'static,
-        E: sqlx::Executor<'e, Database = DB>,
-        DB: sqlx::Database + 'static,
-        for<'q> <DB as sqlx::database::HasArguments<'q>>::Arguments:
-            Send + sqlx::IntoArguments<'q, DB>,
+        Self: Bind<sqlx::Postgres> + Sync + 'static,
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
+            Send + sqlx::IntoArguments<'q, sqlx::Postgres>,
     {
-        let query = crate::runtime::sql::SQL::<T, DB>::insert();
+        let query = crate::runtime::sql::SQL::<T, sqlx::Postgres>::insert();
 
-        self.bind_all(sqlx::query::<DB>(&query.into_sql()))?
+        self.bind_all(sqlx::query::<sqlx::Postgres>(&query.into_sql()))?
             .execute(executor)
             .await
             .unwrap();
