@@ -18,7 +18,7 @@ atmosphere-core = { version = "=0.0.1-alpha.2", path = "atmosphere-core" }
 atmosphere-macros = { version = "=0.0.1-alpha.2", path = "atmosphere-macros" }
 async-trait = "0.1"
 lazy_static = "1"
-sqlx = { version = "0.6", features = ["chrono"] }
+sqlx = { version = "0.7", features = ["chrono"] }
 thiserror = "1"
 
 [package]
@@ -37,13 +37,9 @@ name = "forest"
 path = "examples/forest/main.rs"
 
 [features]
-default = ["runtime-tokio-rustls", "postgres"]
-runtime-actix-native-tls = ["sqlx/runtime-actix-native-tls"]
-runtime-async-std-native-tls = ["sqlx/runtime-async-std-native-tls"]
-runtime-tokio-native-tls = ["sqlx/runtime-tokio-native-tls"]
-runtime-actix-rustls = ["sqlx/runtime-actix-rustls"]
-runtime-async-std-rustls = ["sqlx/runtime-async-std-rustls"]
-runtime-tokio-rustls = ["sqlx/runtime-tokio-rustls"]
+default = ["sqlite", "mysql", "postgres"]
+any = ["sqlx/any"]
+mysql = ["sqlx/mysql"]
 postgres = ["sqlx/postgres"]
 sqlite = ["sqlx/sqlite"]
 
@@ -54,6 +50,6 @@ async-trait.workspace = true
 sqlx.workspace = true
 
 [dev-dependencies]
-sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "postgres"] }
-tokio = { version = "1", features = ["macros"]}
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "any", "sqlite", "mysql", "postgres"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"]}
 tokio-test = "0"
