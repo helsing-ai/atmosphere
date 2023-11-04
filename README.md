@@ -9,37 +9,50 @@
 
 </div>
 
+## Concept
+
+Atmosphere allows you to derive the sql schema from your rust `struct` definitions into an advanced trait system.
+
+This allows you to:
+
+- Use atmosphere's trait system to generate queries
+- Test database code
+- Get ORM-like features through CRUD traits building ontop of the above
+- Use generics to reuse code across API-layers (e.g. implementing entitiy-generic update http endpoint handler)
+
 ## Roadmap
 
 ### Alpha Release
-- [x] Trait System (`Table`, `Column`, `Relation` ..)
+- [x] Advanced SQL Trait System (`Table`, `Column`, `Relation` ..)
 - [x] Derive Macro (`Schema`)
-- [x] Field Attributes (`#[id]`, and so on)
-- [x] Query Generation
-- [x] Compile Time Verification
+- [x] Field Attributes (`#[primary_key]`, `#[foreign_key]` and so on)
+- [x] SQL Query Generation
+- [x] Automated Integration Testing
 - [x] Attribute Macro (`#[table]`)
+
+### Beta Release
+- [x] Transaction Support
+- [ ] Custom queries
+- [ ] Getting Database Agnostic
+- [ ] Errors using `miette`
 - [ ] Attribute Macro (`#[relation]`)
 - [ ] Attribute Macro (`#[query]`)
 
-### Beta Release
-- [ ] Transaction Support
-- [ ] Custom queries
-
 ### Stable Release
 - [ ] Stabilize Traits
-- [ ] Table Lenses (subsets)
+- [ ] Provide Application Utils
+- [ ] Stabilize Query Generation
+- [ ] Table Lenses (subsets / views)
 
 ### Advanced
 - [ ] Postgres Composite Types
 - [ ] Support custom types
-- [ ] Runtime Inspection
+- [x] Runtime Inspection
 - [ ] Generate Graphs
 - [ ] `validator` support
 
 ### Longterm
-- [ ] Generate GraphQL Server
-
-## Concept
+- [ ] Generate GraphQL + HTTP Server?
 
 ## Macros
 
