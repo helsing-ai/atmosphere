@@ -8,13 +8,15 @@ pub mod sql {
     pub struct SQL<TABLE: Table, DB: Database>(PhantomData<TABLE>, PhantomData<DB>);
 
     impl<TABLE: Table, DB: Database> SQL<TABLE, DB> {
+        fn table() -> String {
+            format!("\"{}\".\"{}\"", TABLE::SCHEMA, TABLE::TABLE)
+        }
+
         /// Yields a sql insert statement
+        ///
+        /// Binds: `pk, ..fks, ..data`
         pub fn insert() -> QueryBuilder<'static, DB> {
-            let mut query = QueryBuilder::<DB>::new(format!(
-                "INSERT INTO \"{}\".\"{}\"\n  (",
-                TABLE::SCHEMA,
-                TABLE::TABLE
-            ));
+            let mut query = QueryBuilder::<DB>::new(format!("INSERT INTO {}\n  (", Self::table()));
 
             let mut separated = query.separated(", ");
 
@@ -39,6 +41,19 @@ pub mod sql {
             }
 
             separated.push_unseparated(")");
+
+            query
+        }
+
+        /// Yields a sql delete statement
+        ///
+        /// Binds: `pk`
+        pub fn delete() -> QueryBuilder<'static, DB> {
+            let mut query =
+                QueryBuilder::<DB>::new(format!("DELETE FROM {} WHERE ", Self::table()));
+
+            query.push(TABLE::PRIMARY_KEY.name);
+            query.push(" = $1");
 
             query
         }

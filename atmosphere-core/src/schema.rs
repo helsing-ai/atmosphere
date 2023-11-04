@@ -8,7 +8,7 @@ pub trait Table: Sized + Send + for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow>
 where
     Self::PrimaryKey: for<'q> sqlx::Encode<'q, sqlx::Postgres> + sqlx::Type<sqlx::Postgres> + Send,
 {
-    type PrimaryKey: Sized + 'static;
+    type PrimaryKey: Sync + Sized + 'static;
 
     const SCHEMA: &'static str;
     const TABLE: &'static str;
@@ -88,11 +88,69 @@ pub trait Update: Table {
 #[async_trait]
 pub trait Delete: Table {
     /// Delete row in database
-    async fn delete(&self, pool: &sqlx::PgPool) -> Result<()>;
+    async fn delete<'e, E>(&self, executor: E) -> Result<()>
+    where
+        Self: Bind<sqlx::Postgres> + Sync + 'static,
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
+            Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
+
     /// Delete row in database by primary key
-    async fn delete_by(pk: &Self::PrimaryKey, pool: &sqlx::PgPool) -> Result<()>;
-    /// Delete all rows in the list of primary keys
-    async fn delete_many(pks: &[impl AsRef<Self::PrimaryKey>], pool: &sqlx::PgPool) -> Result<()>;
+    async fn delete_by<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<()>
+    where
+        Self: Bind<sqlx::Postgres> + Sync + 'static,
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
+            Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
+
+    // Delete all rows in the list of primary keys
+    //async fn delete_many<'e, E>(pks: &[impl AsRef<Self::PrimaryKey>], executor: E) -> Result<()>
+    //where
+    //Self: Bind<sqlx::Postgres> + Sync + 'static,
+    //E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    //for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
+    //Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
+}
+
+#[async_trait]
+impl<T> Delete for T
+where
+    T: Table,
+{
+    async fn delete<'e, E>(&self, executor: E) -> Result<()>
+    where
+        Self: Bind<sqlx::Postgres> + Sync + 'static,
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
+            Send + sqlx::IntoArguments<'q, sqlx::Postgres>,
+    {
+        let query = crate::runtime::sql::SQL::<T, sqlx::Postgres>::delete();
+
+        self.bind_all(sqlx::query::<sqlx::Postgres>(&query.into_sql()))?
+            .execute(executor)
+            .await
+            .unwrap();
+
+        Ok(())
+    }
+
+    async fn delete_by<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<()>
+    where
+        Self: Bind<sqlx::Postgres> + Sync + 'static,
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
+            Send + sqlx::IntoArguments<'q, sqlx::Postgres>,
+    {
+        let query = crate::runtime::sql::SQL::<T, sqlx::Postgres>::delete();
+
+        sqlx::query::<sqlx::Postgres>(&query.into_sql())
+            .bind(pk)
+            .execute(executor)
+            .await
+            .unwrap();
+
+        Ok(())
+    }
 }
 
 #[derive(Debug)]

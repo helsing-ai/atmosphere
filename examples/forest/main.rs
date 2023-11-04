@@ -47,6 +47,7 @@ async fn main() -> Result<()> {
         location: "berlin".to_owned(),
     };
 
+    forest.delete(&pool).await?;
     forest.insert(&pool).await?;
 
     Ok(())
