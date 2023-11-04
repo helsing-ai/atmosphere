@@ -1,4 +1,5 @@
 pub use atmosphere_core::*;
+pub use atmosphere_macros::*;
 
 /// A prelude module for bringing commonly used types into scope
 pub mod prelude {

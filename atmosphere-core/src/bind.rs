@@ -6,6 +6,7 @@ use sqlx::{database::HasArguments, Database};
 
 type Query<'q, DB> = sqlx::query::Query<'q, DB, <DB as HasArguments<'q>>::Arguments>;
 
+/// Bindable query abstraction. Implementors are [`sqlx::query::Query`] & [`sqlx::query::QueryAs`];
 pub trait Bindable<'q, DB>
 where
     DB: Database + for<'a> HasArguments<'a>,

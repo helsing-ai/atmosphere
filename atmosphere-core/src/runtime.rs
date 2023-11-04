@@ -1,3 +1,4 @@
+/// Runtime sql code generator
 pub mod sql {
     use std::marker::PhantomData;
 
@@ -5,6 +6,7 @@ pub mod sql {
 
     use crate::Table;
 
+    /// Code generator utilizing rust's type / trait system
     pub struct SQL<TABLE: Table, DB: Database>(PhantomData<TABLE>, PhantomData<DB>);
 
     impl<TABLE: Table, DB: Database> SQL<TABLE, DB> {
