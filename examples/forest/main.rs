@@ -41,38 +41,13 @@ async fn main() -> Result<()> {
         .await
         .unwrap();
 
-    dbg!(Forest::SCHEMA);
-    dbg!(Forest::TABLE);
-    dbg!(Forest::PRIMARY_KEY);
-    dbg!(Forest::FOREIGN_KEYS);
-    dbg!(Forest::DATA);
+    let forest = Forest {
+        id: 1,
+        name: "grunewald".to_owned(),
+        location: "berlin".to_owned(),
+    };
 
-    let mut insert = atmosphere::runtime::sql::SQL::<Forest, Postgres>::insert();
-
-    println!("{}", insert.sql());
-
-    insert
-        .build()
-        .bind(1)
-        .bind("grunewald")
-        .bind("berlin")
-        .execute(&pool)
-        .await
-        .unwrap();
-
-    println!("");
-    println!("");
-    println!("");
-    println!("");
-    println!("");
-    println!("");
-    println!("");
-
-    dbg!(Tree::SCHEMA);
-    dbg!(Tree::TABLE);
-    dbg!(Tree::PRIMARY_KEY);
-    dbg!(Tree::FOREIGN_KEYS);
-    dbg!(Tree::DATA);
+    forest.insert(&pool).await?;
 
     Ok(())
 }

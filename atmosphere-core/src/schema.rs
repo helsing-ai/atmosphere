@@ -1,6 +1,8 @@
 use async_trait::async_trait;
 use std::marker::PhantomData;
 
+use crate::Bind;
+
 /// Associated an SQL Table
 pub trait Table: Sized + Send + for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> + 'static
 where
@@ -15,23 +17,6 @@ where
     const DATA: &'static [Column<Self>];
 }
 
-/// Bind columns to SQL Queries
-pub trait Bind: Table {
-    fn bind(c: impl AsRef<Column<Self>>, query: &mut sqlx::query::Query);
-
-    fn bind_all(&self, query: &mut sqlx::query::Query) {
-        Self::bind(Self::PRIMARY_KEY, query);
-
-        for fk in Self::FOREIGN_KEYS {
-            Self::bind(fk, query);
-        }
-
-        for data in Self::FOREIGN_KEYS {
-            Self::bind(data, query);
-        }
-    }
-}
-
 /// Reference a full entity
 pub trait Entity: Create + Read + Update + Delete {}
 
@@ -41,10 +26,40 @@ impl<E: Create + Read + Update + Delete> Entity for E {}
 #[async_trait]
 pub trait Create: Table {
     /// Insert a new row
-    async fn insert(&self, pool: &sqlx::PgPool) -> Result<()>;
+    async fn insert<'e, E, DB>(&self, executor: E) -> Result<()>
+    where
+        Self: Bind<DB> + Sync + 'static,
+        E: sqlx::Executor<'e, Database = DB>,
+        DB: sqlx::Database,
+        for<'q> <DB as sqlx::database::HasArguments<'q>>::Arguments:
+            Send + sqlx::IntoArguments<'q, DB>;
 
-    /// Insert many new rows
-    async fn insert_many(entities: &[impl AsRef<Self>], pool: &sqlx::PgPool) -> Result<()>;
+    // Insert many new rows
+    //async fn insert_many(entities: &[impl AsRef<Self>], pool: &sqlx::PgPool) -> Result<()>;
+}
+
+#[async_trait]
+impl<T> Create for T
+where
+    T: Table,
+{
+    async fn insert<'e, E, DB>(&self, executor: E) -> Result<()>
+    where
+        Self: Bind<DB> + Sync + 'static,
+        E: sqlx::Executor<'e, Database = DB>,
+        DB: sqlx::Database + 'static,
+        for<'q> <DB as sqlx::database::HasArguments<'q>>::Arguments:
+            Send + sqlx::IntoArguments<'q, DB>,
+    {
+        let query = crate::runtime::sql::SQL::<T, DB>::insert();
+
+        self.bind_all(sqlx::query::<DB>(&query.into_sql()))?
+            .execute(executor)
+            .await
+            .unwrap();
+
+        Ok(())
+    }
 }
 
 #[async_trait]
