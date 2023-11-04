@@ -51,7 +51,6 @@ pub fn table(attr: TokenStream, input: TokenStream) -> TokenStream {
         #[derive(::atmosphere::prelude::sqlx::FromRow)]
         #input
         #table_impl
-        #read_impl
     }
     .into()
 }
