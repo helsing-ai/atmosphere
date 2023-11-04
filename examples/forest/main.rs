@@ -36,19 +36,24 @@ struct Tree {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
-    let pool = PgPool::connect(&std::env::var("DATABASE_URL").unwrap())
-        .await
-        .unwrap();
+async fn main() -> sqlx::Result<()> {
+    let pool = PgPool::connect(&std::env::var("DATABASE_URL").unwrap()).await?;
 
-    let forest = Forest {
+    let mut forest = Forest {
         id: 1,
         name: "grunewald".to_owned(),
         location: "berlin".to_owned(),
     };
 
     forest.delete(&pool).await?;
-    forest.insert(&pool).await?;
+    forest.create(&pool).await?;
+
+    dbg!(Forest::find(&1i32, &pool).await?);
+
+    forest.name = "test".to_owned();
+    forest.save(&pool).await?;
+
+    dbg!(Forest::find(&1i32, &pool).await?);
 
     Ok(())
 }

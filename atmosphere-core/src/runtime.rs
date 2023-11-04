@@ -12,7 +12,30 @@ pub mod sql {
             format!("\"{}\".\"{}\"", TABLE::SCHEMA, TABLE::TABLE)
         }
 
-        /// Yields a sql insert statement
+        /// Yields a sql `select` statement
+        ///
+        /// Binds: `pk`
+        pub fn select() -> QueryBuilder<'static, DB> {
+            let mut query = QueryBuilder::<DB>::new("SELECT\n  ");
+
+            let mut separated = query.separated(",\n  ");
+
+            separated.push(TABLE::PRIMARY_KEY.name);
+
+            for ref fk in TABLE::FOREIGN_KEYS {
+                separated.push(fk.name);
+            }
+
+            for ref data in TABLE::DATA {
+                separated.push(data.name);
+            }
+
+            query.push(format!("\nFROM\n  {}\n", Self::table()));
+
+            query
+        }
+
+        /// Yields a sql `insert` statement
         ///
         /// Binds: `pk, ..fks, ..data`
         pub fn insert() -> QueryBuilder<'static, DB> {
@@ -45,7 +68,57 @@ pub mod sql {
             query
         }
 
-        /// Yields a sql delete statement
+        /// Yields a sql `update` statement
+        ///
+        /// Binds: `pk`
+        pub fn update() -> QueryBuilder<'static, DB> {
+            let mut query = QueryBuilder::<DB>::new(format!("UPDATE {} SET\n  ", Self::table()));
+
+            let mut separated = query.separated(",\n  ");
+
+            let mut col = 2;
+
+            separated.push(format!("{} = $1", TABLE::PRIMARY_KEY.name));
+
+            for ref fk in TABLE::FOREIGN_KEYS {
+                separated.push(format!("{} = ${col}", fk.name));
+                col += 1;
+            }
+
+            for ref data in TABLE::DATA {
+                separated.push(format!("{} = ${col}", data.name));
+                col += 1;
+            }
+
+            query.push(format!("\nWHERE\n  {} = $1", TABLE::PRIMARY_KEY.name));
+
+            query
+        }
+
+        /// Yields a sql `update .. on conflict insert` statement
+        ///
+        /// Binds: `pk, ..fks, ..data`
+        pub fn upsert() -> QueryBuilder<'static, DB> {
+            let mut query = Self::insert();
+
+            query.push("\nON CONFLICT(");
+            query.push(TABLE::PRIMARY_KEY.name);
+            query.push(")\nDO UPDATE SET\n  ");
+
+            let mut separated = query.separated(",\n  ");
+
+            for ref fk in TABLE::FOREIGN_KEYS {
+                separated.push(format!("{} = EXCLUDED.{}", fk.name, fk.name));
+            }
+
+            for ref data in TABLE::DATA {
+                separated.push(format!("{} = EXCLUDED.{}", data.name, data.name));
+            }
+
+            query
+        }
+
+        /// Yields a sql `delete` statement
         ///
         /// Binds: `pk`
         pub fn delete() -> QueryBuilder<'static, DB> {
