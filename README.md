@@ -18,7 +18,7 @@ This allows you to:
 - Use atmosphere's trait system to generate queries
 - Get automated database code tests through `atmosphere::testing`
 - Get ORM-like features through CRUD traits building ontop of the above
-- Use generics to reuse code across API-layers (e.g. implementing entitiy-generic update http endpoint handler)
+- Use generics to reuse code across API-layers (e.g. implementing entitiy-generic update http endpoint handlers)
 
 ```rust
 use atmosphere::prelude::*;
