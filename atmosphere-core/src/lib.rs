@@ -7,5 +7,5 @@ pub mod schema;
 /// Automated testing of SQL interactions
 pub mod testing;
 
-pub use bind::Bind;
+pub use bind::*;
 pub use schema::*;

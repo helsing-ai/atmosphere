@@ -123,7 +123,9 @@ impl Table {
 
             quote!(
                 if #col.name == Self::PRIMARY_KEY.name {
-                    return Ok(#query.bind(&self.#name));
+                    use ::atmosphere_core::Bindable;
+
+                    return Ok(#query.dyn_bind(&self.#name));
                 }
             )
         };
@@ -137,7 +139,9 @@ impl Table {
 
                 stream.extend(quote!(
                     if #col.name == #name {
-                        return Ok(#query.bind(&self.#ident));
+                        use ::atmosphere_core::Bindable;
+
+                        return Ok(#query.dyn_bind(&self.#ident));
                     }
                 ));
             }
@@ -154,7 +158,9 @@ impl Table {
 
                 stream.extend(quote!(
                     if #col.name == #name {
-                        return Ok(#query.bind(&self.#ident));
+                        use ::atmosphere_core::Bindable;
+
+                        return Ok(#query.dyn_bind(&self.#ident));
                     }
                 ));
             }
@@ -168,11 +174,12 @@ impl Table {
             impl ::atmosphere::Bind<#databases> for #ident {
                 fn bind<
                     'q,
+                    Q: ::atmosphere::Bindable<'q, #databases>
                 >(
                     &'q self,
                     #col: &'q ::atmosphere::Column<Self>,
-                    #query: ::sqlx::query::Query<'q, #databases, <#databases as ::sqlx::database::HasArguments<'q>>::Arguments>,
-                ) -> ::atmosphere::Result<::sqlx::query::Query<'q, #databases, <#databases as ::sqlx::database::HasArguments<'q>>::Arguments>> {
+                    #query: Q
+                ) -> ::atmosphere::Result<Q> {
                     #primary_key_bind
                     #foreign_key_binds
                     #data_binds

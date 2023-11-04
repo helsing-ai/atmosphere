@@ -62,11 +62,19 @@ where
 }
 
 #[async_trait]
-pub trait Read: Table {
+pub trait Read: Table + Send + Sync + Unpin + 'static {
     /// Find a row by its primary key
     async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> sqlx::Result<Self>
     where
-        Self: Bind<sqlx::Postgres> + Sync + 'static + Unpin,
+        Self: Bind<sqlx::Postgres>,
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
+            Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
+
+    /// Reload from database
+    async fn reload<'e, E>(&mut self, executor: E) -> sqlx::Result<()>
+    where
+        Self: Bind<sqlx::Postgres>,
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
         for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
             Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
@@ -87,35 +95,48 @@ pub trait Read: Table {
 #[async_trait]
 impl<T> Read for T
 where
-    T: Table,
+    T: Table + Send + Sync + Unpin + 'static,
 {
     async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> sqlx::Result<Self>
     where
-        Self: Bind<sqlx::Postgres> + Sync + 'static + Unpin,
+        Self: Bind<sqlx::Postgres>,
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
         for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
             Send + sqlx::IntoArguments<'q, sqlx::Postgres>,
     {
         let query = crate::runtime::sql::SQL::<T, sqlx::Postgres>::select();
 
-        Ok(sqlx::query_as::<sqlx::Postgres, Self>(&query.into_sql())
+        sqlx::query_as::<sqlx::Postgres, Self>(&query.into_sql())
             .bind(pk)
             .fetch_one(executor)
             .await
-            .unwrap())
+    }
+
+    async fn reload<'e, E>(&mut self, executor: E) -> sqlx::Result<()>
+    where
+        Self: Bind<sqlx::Postgres> + Sync + Unpin + 'static,
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
+            Send + sqlx::IntoArguments<'q, sqlx::Postgres>,
+    {
+        let sql = crate::runtime::sql::SQL::<T, sqlx::Postgres>::select().into_sql();
+
+        let query = sqlx::query_as::<sqlx::Postgres, Self>(&sql);
+
+        let new = self
+            .bind_primary_key(query)
+            .unwrap()
+            .fetch_one(executor)
+            .await?;
+
+        *self = new;
+
+        Ok(())
     }
 }
 
 #[async_trait]
-pub trait Update: Table {
-    // Reload from database
-    //async fn reload<'e, E>(&mut self, executor: E) -> sqlx::Result<()>
-    //where
-    //Self: Bind<sqlx::Postgres> + Sync + 'static,
-    //E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-    //for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-    //Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
-
+pub trait Update: Table + Send + Sync + Unpin + 'static {
     /// Update the row in the database
     async fn update<'e, E>(&mut self, executor: E) -> sqlx::Result<PgQueryResult>
     where
@@ -136,26 +157,11 @@ pub trait Update: Table {
 #[async_trait]
 impl<T> Update for T
 where
-    T: Table,
+    T: Table + Send + Sync + Unpin + 'static,
 {
-    //async fn reload<'e, E>(&self, executor: E) -> Result<PgQueryResult>
-    //where
-    //Self: Bind<sqlx::Postgres> + Sync + 'static,
-    //E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-    //for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-    //Send + sqlx::IntoArguments<'q, sqlx::Postgres>,
-    //{
-    //let query = crate::runtime::sql::SQL::<T, sqlx::Postgres>::delete();
-
-    //self.bind_all(sqlx::query::<sqlx::Postgres>(&query.into_sql()))?
-    //.execute(executor)
-    //.await
-    //.map_err(|_| ())
-    //}
-
     async fn update<'e, E>(&mut self, executor: E) -> sqlx::Result<PgQueryResult>
     where
-        Self: Bind<sqlx::Postgres> + Sync + 'static,
+        Self: Bind<sqlx::Postgres>,
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
         for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
             Send + sqlx::IntoArguments<'q, sqlx::Postgres>,
@@ -168,7 +174,7 @@ where
 
     async fn save<'e, E>(&mut self, executor: E) -> sqlx::Result<PgQueryResult>
     where
-        Self: Bind<sqlx::Postgres> + Sync + 'static,
+        Self: Bind<sqlx::Postgres>,
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
         for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
             Send + sqlx::IntoArguments<'q, sqlx::Postgres>,
@@ -181,11 +187,11 @@ where
 }
 
 #[async_trait]
-pub trait Delete: Table {
+pub trait Delete: Table + Send + Sync + Unpin + 'static {
     /// Delete row in database
     async fn delete<'e, E>(&self, executor: E) -> sqlx::Result<PgQueryResult>
     where
-        Self: Bind<sqlx::Postgres> + Sync + 'static,
+        Self: Bind<sqlx::Postgres>,
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
         for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
             Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
@@ -193,7 +199,7 @@ pub trait Delete: Table {
     /// Delete row in database by primary key
     async fn delete_by<'e, E>(pk: &Self::PrimaryKey, executor: E) -> sqlx::Result<PgQueryResult>
     where
-        Self: Bind<sqlx::Postgres> + Sync + 'static,
+        Self: Bind<sqlx::Postgres>,
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
         for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
             Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
@@ -210,11 +216,11 @@ pub trait Delete: Table {
 #[async_trait]
 impl<T> Delete for T
 where
-    T: Table,
+    T: Table + Send + Sync + Unpin + 'static,
 {
     async fn delete<'e, E>(&self, executor: E) -> sqlx::Result<PgQueryResult>
     where
-        Self: Bind<sqlx::Postgres> + Sync + 'static,
+        Self: Bind<sqlx::Postgres>,
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
         for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
             Send + sqlx::IntoArguments<'q, sqlx::Postgres>,
@@ -229,7 +235,7 @@ where
 
     async fn delete_by<'e, E>(pk: &Self::PrimaryKey, executor: E) -> sqlx::Result<PgQueryResult>
     where
-        Self: Bind<sqlx::Postgres> + Sync + 'static,
+        Self: Bind<sqlx::Postgres>,
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
         for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
             Send + sqlx::IntoArguments<'q, sqlx::Postgres>,
