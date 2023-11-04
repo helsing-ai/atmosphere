@@ -20,6 +20,35 @@ This allows you to:
 - Get ORM-like features through CRUD traits building ontop of the above
 - Use generics to reuse code across API-layers (e.g. implementing entitiy-generic update http endpoint handler)
 
+```rust
+use atmosphere::prelude::*;
+use sqlx::PgPool;
+
+#[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[table(name = "user", schema = "public")]
+struct User {
+    #[primary_key]
+    id: i32,
+    name: String,
+    email: String,
+}
+
+#[tokio::main]
+async fn main() -> sqlx::Result<()> {
+    let pool = PgPool::connect(&std::env::var("DATABASE_URL").unwrap()).await?;
+
+    User {
+        id: 0,
+        name: "demo".to_owned(),
+        location: "some@email.com".to_owned(),
+    }
+    .save(&pool)
+    .await?;
+
+    Ok(())
+}
+```
+
 ## Roadmap
 
 ### Alpha Release
