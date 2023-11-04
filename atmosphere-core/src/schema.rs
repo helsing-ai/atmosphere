@@ -18,12 +18,12 @@ where
     const DATA: &'static [Column<Self>];
 }
 
-/// Reference a full entity
+/// A entity is a table that implements [`Create`], [`Read`], [`Update`] & [`Create`]
 pub trait Entity: Create + Read + Update + Delete {}
 
 impl<E: Create + Read + Update + Delete> Entity for E {}
 
-/// Create a table
+/// Create rows in a [`sqlx::Database`]
 #[async_trait]
 pub trait Create: Table {
     /// Create a new row
@@ -61,6 +61,7 @@ where
     }
 }
 
+/// Read rows from a [`sqlx::Database`]
 #[async_trait]
 pub trait Read: Table + Send + Sync + Unpin + 'static {
     /// Find a row by its primary key
@@ -135,6 +136,7 @@ where
     }
 }
 
+/// Update rows in a [`sqlx::Database`]
 #[async_trait]
 pub trait Update: Table + Send + Sync + Unpin + 'static {
     /// Update the row in the database
@@ -186,6 +188,7 @@ where
     }
 }
 
+/// Delete rows from a [`sqlx::Database`]
 #[async_trait]
 pub trait Delete: Table + Send + Sync + Unpin + 'static {
     /// Delete row in database
