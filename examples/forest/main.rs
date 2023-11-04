@@ -13,18 +13,6 @@ struct Forest {
     location: String,
 }
 
-//impl Forest {
-//// Select a forest by its name
-//#[query(
-//r#"
-//SELECT {*} FROM {public.forest}
-//WHERE name = {name}
-//ORDER BY name
-//"#
-//)]
-//pub async fn by_name(name: &str) -> Result<Self>;
-//}
-
 #[derive(Schema, Debug)]
 #[table(name = "tree", schema = "public")]
 #[relation(grouped_by = Forest)]
@@ -51,6 +39,11 @@ async fn main() -> sqlx::Result<()> {
     dbg!(Forest::find(&1i32, &pool).await?);
 
     forest.name = "test".to_owned();
+    forest.update(&pool).await?;
+
+    dbg!(Forest::find(&1i32, &pool).await?);
+
+    forest.name = "test-2".to_owned();
     forest.save(&pool).await?;
 
     dbg!(Forest::find(&1i32, &pool).await?);
