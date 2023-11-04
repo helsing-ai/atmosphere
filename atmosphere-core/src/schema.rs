@@ -16,6 +16,8 @@ where
     const PRIMARY_KEY: Column<Self>;
     const FOREIGN_KEYS: &'static [Column<Self>];
     const DATA: &'static [Column<Self>];
+
+    fn pk(&self) -> &Self::PrimaryKey;
 }
 
 /// A entity is a table that implements [`Create`], [`Read`], [`Update`] & [`Create`]
@@ -56,6 +58,7 @@ where
 
         self.bind_all(sqlx::query::<sqlx::Postgres>(&query.into_sql()))
             .unwrap()
+            .persistent(false)
             .execute(executor)
             .await
     }
@@ -140,7 +143,7 @@ where
 #[async_trait]
 pub trait Update: Table + Send + Sync + Unpin + 'static {
     /// Update the row in the database
-    async fn update<'e, E>(&mut self, executor: E) -> sqlx::Result<PgQueryResult>
+    async fn update<'e, E>(&self, executor: E) -> sqlx::Result<PgQueryResult>
     where
         Self: Bind<sqlx::Postgres> + Sync + 'static,
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
@@ -148,7 +151,7 @@ pub trait Update: Table + Send + Sync + Unpin + 'static {
             Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
 
     /// Save to the database
-    async fn save<'e, E>(&mut self, executor: E) -> sqlx::Result<PgQueryResult>
+    async fn save<'e, E>(&self, executor: E) -> sqlx::Result<PgQueryResult>
     where
         Self: Bind<sqlx::Postgres> + Sync + 'static,
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
@@ -161,7 +164,7 @@ impl<T> Update for T
 where
     T: Table + Send + Sync + Unpin + 'static,
 {
-    async fn update<'e, E>(&mut self, executor: E) -> sqlx::Result<PgQueryResult>
+    async fn update<'e, E>(&self, executor: E) -> sqlx::Result<PgQueryResult>
     where
         Self: Bind<sqlx::Postgres>,
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
@@ -171,10 +174,10 @@ where
         let query = crate::runtime::sql::SQL::<T, sqlx::Postgres>::update().into_sql();
         let mut query = sqlx::query::<sqlx::Postgres>(&query);
         query = self.bind_all(query).unwrap();
-        query.execute(executor).await
+        query.persistent(false).execute(executor).await
     }
 
-    async fn save<'e, E>(&mut self, executor: E) -> sqlx::Result<PgQueryResult>
+    async fn save<'e, E>(&self, executor: E) -> sqlx::Result<PgQueryResult>
     where
         Self: Bind<sqlx::Postgres>,
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
@@ -184,7 +187,7 @@ where
         let query = crate::runtime::sql::SQL::<T, sqlx::Postgres>::upsert().into_sql();
         let mut query = sqlx::query::<sqlx::Postgres>(&query);
         query = self.bind_all(query).unwrap();
-        query.execute(executor).await
+        query.persistent(false).execute(executor).await
     }
 }
 
@@ -232,6 +235,7 @@ where
 
         self.bind_all(sqlx::query::<sqlx::Postgres>(&query.into_sql()))
             .unwrap()
+            .persistent(false)
             .execute(executor)
             .await
     }
@@ -247,6 +251,7 @@ where
 
         sqlx::query::<sqlx::Postgres>(&query.into_sql())
             .bind(pk)
+            .persistent(false)
             .execute(executor)
             .await
     }

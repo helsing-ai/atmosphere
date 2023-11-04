@@ -74,6 +74,7 @@ impl Table {
 
         let schema = schema.to_string();
         let pk_ty = &self.primary_key.ty;
+        let pk_field = &self.primary_key.name;
         let primary_key = self.primary_key.quote();
         let foreign_keys = self.foreign_keys.iter().map(|r| r.column.quote());
         let data = self.data.iter().map(|d| d.quote());
@@ -94,6 +95,10 @@ impl Table {
                 const DATA: &'static [::atmosphere::Column<#ident>] = &[
                     #(#data),*
                 ];
+
+                fn pk(&self) -> &Self::PrimaryKey {
+                    &self.#pk_field
+                }
             }
         )
     }

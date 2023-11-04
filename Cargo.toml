@@ -36,6 +36,11 @@ repository.workspace = true
 name = "forest"
 path = "examples/forest/main.rs"
 
+[[test]]
+name = "integration"
+path = "tests/lib.rs"
+test = true
+
 [features]
 default = ["sqlite", "mysql", "postgres"]
 any = ["sqlx/any"]

@@ -1,10 +1,8 @@
-#![allow(unused)]
-
 use atmosphere::prelude::*;
 use atmosphere_core::Table;
-use sqlx::{FromRow, PgPool, Postgres};
+use sqlx::PgPool;
 
-#[derive(Schema, Debug)]
+#[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(name = "forest", schema = "public")]
 struct Forest {
     #[primary_key]
@@ -13,7 +11,7 @@ struct Forest {
     location: String,
 }
 
-#[derive(Schema, Debug)]
+#[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(name = "tree", schema = "public")]
 #[relation(grouped_by = Forest)]
 struct Tree {
@@ -27,26 +25,13 @@ struct Tree {
 async fn main() -> sqlx::Result<()> {
     let pool = PgPool::connect(&std::env::var("DATABASE_URL").unwrap()).await?;
 
-    let mut forest = Forest {
-        id: 1,
-        name: "grunewald".to_owned(),
-        location: "berlin".to_owned(),
-    };
-
-    forest.delete(&pool).await?;
-    forest.create(&pool).await?;
-
-    dbg!(Forest::find(&1i32, &pool).await?);
-
-    forest.name = "test".to_owned();
-    forest.update(&pool).await?;
-
-    dbg!(Forest::find(&1i32, &pool).await?);
-
-    forest.name = "test-2".to_owned();
-    forest.save(&pool).await?;
-
-    dbg!(Forest::find(&1i32, &pool).await?);
+    Forest {
+        id: 0,
+        name: "test".to_owned(),
+        location: "germany".to_owned(),
+    }
+    .save(&pool)
+    .await?;
 
     Ok(())
 }
