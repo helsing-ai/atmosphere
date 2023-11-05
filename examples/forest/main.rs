@@ -1,5 +1,4 @@
 use atmosphere::prelude::*;
-use atmosphere_core::Table;
 use sqlx::PgPool;
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -32,6 +31,12 @@ async fn main() -> sqlx::Result<()> {
     }
     .save(&pool)
     .await?;
+
+    dbg!(Forest::SCHEMA);
+    dbg!(Forest::TABLE);
+    dbg!(Forest::PRIMARY_KEY);
+    dbg!(Forest::FOREIGN_KEYS);
+    dbg!(Forest::DATA);
 
     Ok(())
 }

@@ -107,6 +107,8 @@ pub mod sql {
             query.push(TABLE::PRIMARY_KEY.name);
             query.push(")\nDO UPDATE SET\n  ");
 
+            //query.push
+
             let mut separated = query.separated(",\n  ");
 
             for ref fk in TABLE::FOREIGN_KEYS {
@@ -133,52 +135,74 @@ pub mod sql {
             query
         }
     }
+
+    #[cfg(test)]
+    mod tests {
+        use crate::{Column, Table};
+
+        #[derive(sqlx::FromRow)]
+        #[allow(unused)]
+        struct TestTable {
+            id: i32,
+            fk: i32,
+            data: bool,
+        }
+
+        impl Table for TestTable {
+            type PrimaryKey = i32;
+
+            const SCHEMA: &'static str = "public";
+            const TABLE: &'static str = "test";
+            const PRIMARY_KEY: Column<Self> = Column::new("id", crate::ColumnType::PrimaryKey);
+            const FOREIGN_KEYS: &'static [Column<Self>] =
+                &[Column::new("fk", crate::ColumnType::ForeignKey)];
+            const DATA: &'static [Column<Self>] = &[Column::new("data", crate::ColumnType::Value)];
+
+            fn pk(&self) -> &Self::PrimaryKey {
+                &self.id
+            }
+        }
+
+        type SQL = super::SQL<TestTable, sqlx::Postgres>;
+
+        #[test]
+        fn select() {
+            assert_eq!(
+                SQL::select().sql(),
+                "SELECT\n  id,\n  fk,\n  data\nFROM\n  \"public\".\"test\"\n"
+            );
+        }
+
+        #[test]
+        fn insert() {
+            assert_eq!(
+                SQL::insert().sql(),
+                "INSERT INTO \"public\".\"test\"\n  (id, fk, data)\nVALUES\n  ($1, $2, $3)"
+            );
+        }
+
+        #[test]
+        fn update() {
+            assert_eq!(
+                SQL::update().sql(),
+                "UPDATE \"public\".\"test\" SET\n  id = $1,\n  fk = $2,\n  data = $3\nWHERE\n  id = $1"
+            );
+        }
+
+        #[test]
+        fn upsert() {
+            assert_eq!(
+                SQL::upsert().sql(),
+                "INSERT INTO \"public\".\"test\"\n  (id, fk, data)\nVALUES\n  ($1, $2, $3)\nON CONFLICT(id)\nDO UPDATE SET\n  fk = EXCLUDED.fk,\n  data = EXCLUDED.data"
+            );
+        }
+
+        #[test]
+        fn delete() {
+            assert_eq!(
+                SQL::delete().sql(),
+                "DELETE FROM \"public\".\"test\" WHERE id = $1"
+            );
+        }
+    }
 }
-
-//use std::{collections::HashSet, hash::Hash};
-
-//use crate::ColType;
-
-//#[derive(Debug, PartialOrd, Ord, PartialEq, Eq)]
-//pub enum DataType {}
-
-//lazy_static::lazy_static! {
-//pub static ref DESCRIPTORS: Descriptors = Descriptors::default();
-//}
-
-//#[derive(Debug, Default)]
-//pub struct Descriptors {
-//pub tables: HashSet<TableDescriptor>,
-//}
-
-//impl Descriptors {
-//pub fn register(&mut self, table: TableDescriptor) {
-////assert!(
-////self.tables.insert(table),
-////"encountered coliding table descriptors {table:?}"
-////);
-//}
-//}
-
-//#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-//pub struct TableDescriptor {
-//pub schema: &'static str,
-//pub table: &'static str,
-//pub primary_key: ColumnDescriptor,
-//pub foreign_keys: &'static [ColumnDescriptor],
-//pub data: &'static [ColumnDescriptor],
-//}
-
-//impl Hash for TableDescriptor {
-//fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-//self.schema.hash(state);
-//self.table.hash(state);
-//}
-//}
-
-//#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-//pub struct ColumnDescriptor {
-//pub name: &'static str,
-//pub data_type: DataType,
-//pub col_type: ColType,
-//}
