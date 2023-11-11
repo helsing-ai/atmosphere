@@ -8,8 +8,8 @@
 
 [![SQLx](https://img.shields.io/badge/sqlx-orm-blueviolet.svg)]()
 [![Crate](https://img.shields.io/crates/v/atmosphere.svg)](https://crates.io/crates/atmosphere)
-[![Book](https://img.shields.io/badge/book-latest-blueviolet.svg)](https://mara-schulke.github.io/atmosphere)
-[![Docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://docs.rs/buffrs)
+[![Book](https://img.shields.io/badge/book-latest-013d11.svg)](https://mara-schulke.github.io/atmosphere)
+[![Docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://docs.rs/atmosphere)
 
 </div>
 
