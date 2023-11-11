@@ -6,23 +6,30 @@
 
 ** A lightweight sql framework for sustainable database reliant systems**
 
-[![SQLx](https://img.shields.io/badge/sqlx-orm-blueviolet.svg)]()
+[![SQLx](https://img.shields.io/badge/sqlx-framework-blueviolet.svg)]()
 [![Crate](https://img.shields.io/crates/v/atmosphere.svg)](https://crates.io/crates/atmosphere)
 [![Book](https://img.shields.io/badge/book-latest-0f5225.svg)](https://mara-schulke.github.io/atmosphere)
 [![Docs](https://img.shields.io/badge/docs-latest-153f66.svg)](https://docs.rs/atmosphere)
 
 </div>
 
-## Concept
+## Overview
 
-Atmosphere allows you to derive the sql schema from your rust `struct` definitions into an advanced trait system.
+Atmosphere is a lightweight SQL framework designed for sustainable,
+database-reliant systems. It leverages Rust's powerful type and macro systems
+to derive SQL schemas from your rust struct definitions into an advanced trait
+system.
 
-This allows you to:
+## Key Features
 
-- Use atmosphere's trait system to generate queries
-- Get automated database code tests through `atmosphere::testing`
-- Get ORM-like features through CRUD traits building ontop of the above
-- Use generics to reuse code across API-layers (e.g. implementing entitiy-generic update http endpoint handlers)
+- SQL schema derivation from Rust structs.
+- Advanced trait system for query generation.
+- Automated database code testing with `atmosphere::testing`
+- ORM-like CRUD traits.
+- Code reusability across API layers using generics.
+- Compile-time introspection for type-safe schema generation.
+
+## Quickstart
 
 ```rust
 use atmosphere::prelude::*;
@@ -98,7 +105,10 @@ impl Table for User {
 - [ ] `validator` support
 
 ### Longterm
-- [ ] Generate GraphQL + HTTP Server?
+- [ ] Generate GraphQL + HTTP Servers?
+
+
+<!--
 
 ## Macros
 
@@ -175,3 +185,13 @@ data lenses on big structs
 
 ###### `#[form(Forest)]`
 data forms for mutating tables
+
+-->
+
+## Contribution
+
+We welcome contributions! Please see our contribution guidelines for more details.
+
+## License
+
+Atmosphere is licensed under Apache 2.0.
