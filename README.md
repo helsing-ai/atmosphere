@@ -4,7 +4,7 @@
 
 # `🌍 Atmosphere`
 
-** A lightweight sql framework for sustainable database reliant systems**
+**A lightweight sql framework for sustainable database reliant systems**
 
 [![SQLx](https://img.shields.io/badge/sqlx-framework-blueviolet.svg)]()
 [![Crate](https://img.shields.io/crates/v/atmosphere.svg)](https://crates.io/crates/atmosphere)
