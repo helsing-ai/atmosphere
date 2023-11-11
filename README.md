@@ -1,5 +1,7 @@
 <div align="center">
 
+![Atmosphere](./docs/assets/banner.png)
+
 # `🌍 Atmosphere`
 
 **A lightweight sqlx framework for safe and fast postgres interactions**
