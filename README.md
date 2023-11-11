@@ -11,37 +11,92 @@
 
 </div>
 
+## Concept
+
+Atmosphere allows you to derive the sql schema from your rust `struct` definitions into an advanced trait system.
+
+This allows you to:
+
+- Use atmosphere's trait system to generate queries
+- Get automated database code tests through `atmosphere::testing`
+- Get ORM-like features through CRUD traits building ontop of the above
+- Use generics to reuse code across API-layers (e.g. implementing entitiy-generic update http endpoint handlers)
+
+```rust
+use atmosphere::prelude::*;
+use sqlx::PgPool;
+
+#[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[table(name = "user", schema = "public")]
+struct User {
+    #[primary_key]
+    id: i32,
+    name: String,
+    email: String,
+}
+
+#[tokio::main]
+async fn main() -> sqlx::Result<()> {
+    let pool = PgPool::connect(&std::env::var("DATABASE_URL").unwrap()).await?;
+
+    User {
+        id: 0,
+        name: "demo".to_owned(),
+        location: "some@email.com".to_owned(),
+    }
+    .save(&pool)
+    .await?;
+
+    Ok(())
+}
+```
+
+Atmosphere introspects the `User` struct at compile time and generates `const` available type information
+about the schema into the `Table` trait:
+
+```rust
+impl Table for User {
+    const SCHEMA: &str = "public"
+    const TABLE: &str = "user"
+    const PRIMARY_KEY: Column = Column { name: "id", ty: PrimaryKey, .. };
+    const FOREIGN_KEYS: [Column; 0] = [];
+    const DATA: [Column; 2] = [Column { name: "name", ty: Value }, Column { name: "email", ty: Value, } ];
+}
+```
+
 ## Roadmap
 
 ### Alpha Release
-- [x] Trait System (`Table`, `Column`, `Relation` ..)
+- [x] Advanced SQL Trait System (`Table`, `Column`, `Relation` ..)
 - [x] Derive Macro (`Schema`)
-- [x] Field Attributes (`#[id]`, and so on)
-- [x] Query Generation
-- [x] Compile Time Verification
+- [x] Field Attributes (`#[primary_key]`, `#[foreign_key]` and so on)
+- [x] SQL Query Generation
+- [x] Automated Integration Testing
 - [x] Attribute Macro (`#[table]`)
+
+### Beta Release
+- [x] Transaction Support
+- [ ] Custom queries
+- [ ] Getting Database Agnostic
+- [ ] Errors using `miette`
 - [ ] Attribute Macro (`#[relation]`)
 - [ ] Attribute Macro (`#[query]`)
 
-### Beta Release
-- [ ] Transaction Support
-- [ ] Custom queries
-
 ### Stable Release
 - [ ] Stabilize Traits
-- [ ] Table Lenses (subsets)
+- [ ] Provide Application Utils
+- [ ] Stabilize Query Generation
+- [ ] Table Lenses (subsets / views)
 
 ### Advanced
 - [ ] Postgres Composite Types
 - [ ] Support custom types
-- [ ] Runtime Inspection
+- [x] Runtime Inspection
 - [ ] Generate Graphs
 - [ ] `validator` support
 
 ### Longterm
-- [ ] Generate GraphQL Server
-
-## Concept
+- [ ] Generate GraphQL + HTTP Server?
 
 ## Macros
 
