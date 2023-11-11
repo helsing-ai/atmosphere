@@ -4,10 +4,12 @@
 
 # `🌍 Atmosphere`
 
-**A lightweight sqlx framework for safe and fast postgres interactions**
+** A lightweight sql framework for sustainable database reliant systems**
 
-[![Hemisphere](https://img.shields.io/badge/hemisphere-open%20source-blueviolet.svg)](https://hemisphere.studio)
-[![Hemisphere](https://img.shields.io/badge/postgresql-orm-blue.svg)]()
+[![SQLx](https://img.shields.io/badge/sqlx-orm-blueviolet.svg)]()
+[![Crate](https://img.shields.io/crates/v/atmosphere.svg)](https://crates.io/crates/atmosphere)
+[![Book](https://img.shields.io/badge/book-latest-blueviolet.svg)](https://mara-schulke.github.io/atmosphere)
+[![Docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://docs.rs/buffrs)
 
 </div>
 
