@@ -1,6 +1,6 @@
 /// Bind entities to queries
 pub mod bind;
-/// Runtime database schema registry + helpers
+/// Runtime environment
 pub mod runtime;
 /// Compile time generated SQL schema traits
 pub mod schema;

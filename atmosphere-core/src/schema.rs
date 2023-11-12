@@ -63,7 +63,7 @@ where
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
             IntoArguments<'q, Self::Database> + Send,
     {
-        let Query(builder, bindings) = crate::runtime::sql::SQL::<T>::insert();
+        let Query(builder, bindings) = crate::runtime::sql::insert::<T>();
 
         let mut query = sqlx::query(builder.sql());
 
@@ -116,7 +116,7 @@ where
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
             IntoArguments<'q, Self::Database> + Send,
     {
-        let Query(builder, bindings) = crate::runtime::sql::SQL::<T>::select();
+        let Query(builder, bindings) = crate::runtime::sql::select::<T>();
 
         dbg!(&bindings);
 
@@ -134,7 +134,7 @@ where
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
             IntoArguments<'q, Self::Database> + Send,
     {
-        let Query(builder, bindings) = crate::runtime::sql::SQL::<T>::select();
+        let Query(builder, bindings) = crate::runtime::sql::select::<T>();
 
         let mut query = sqlx::query_as(builder.sql());
 
@@ -186,7 +186,7 @@ where
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
             IntoArguments<'q, Self::Database> + Send,
     {
-        let Query(builder, bindings) = crate::runtime::sql::SQL::<T>::update();
+        let Query(builder, bindings) = crate::runtime::sql::update::<T>();
 
         let mut query = sqlx::query(builder.sql());
 
@@ -206,7 +206,7 @@ where
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
             IntoArguments<'q, Self::Database> + Send,
     {
-        let Query(builder, bindings) = crate::runtime::sql::SQL::<T>::upsert();
+        let Query(builder, bindings) = crate::runtime::sql::upsert::<T>();
 
         let mut query = sqlx::query(builder.sql());
 
@@ -264,7 +264,7 @@ where
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
             IntoArguments<'q, Self::Database> + Send,
     {
-        let Query(builder, bindings) = crate::runtime::sql::SQL::<T>::delete();
+        let Query(builder, bindings) = crate::runtime::sql::delete::<T>();
 
         let mut query = sqlx::query(builder.sql());
 
@@ -284,7 +284,7 @@ where
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
             IntoArguments<'q, Self::Database> + Send,
     {
-        let Query(builder, bindings) = crate::runtime::sql::SQL::<T>::delete();
+        let Query(builder, bindings) = crate::runtime::sql::delete::<T>();
 
         assert!(bindings.columns().len() == 1);
         assert!(bindings.columns()[0].name == Self::PRIMARY_KEY.name);
