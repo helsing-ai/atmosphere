@@ -1,18 +1,22 @@
-use crate::{Bind, Create, Entity, Read, Update};
+use crate::Entity;
 use sqlx::PgPool;
 use std::fmt::Debug;
 
 /// Verify creating of entities
 pub async fn create<E>(instance: E, pool: &PgPool)
 where
-    E: Create + Read + Bind<sqlx::Postgres> + Clone + Debug + Eq + Send,
+    E: Entity<Database = sqlx::Postgres> + Clone + Debug + Eq + Send,
 {
-    assert!(E::find(&instance.pk(), pool).await.is_err());
+    assert!(
+        E::find(&instance.pk(), pool).await.unwrap().is_none(),
+        "instance was found before it was created"
+    );
 
     instance.create(pool).await.expect("insertion did not work");
 
     let retrieved = E::find(&instance.pk(), pool)
         .await
+        .unwrap()
         .expect("instance not found after insertion");
 
     assert_eq!(instance, retrieved);
@@ -21,14 +25,18 @@ where
 /// Verify read operations
 pub async fn read<E>(instance: E, pool: &PgPool)
 where
-    E: Create + Read + Bind<sqlx::Postgres> + Clone + Debug + Eq + Send,
+    E: Entity<Database = sqlx::Postgres> + Clone + Debug + Eq + Send,
 {
-    assert!(E::find(&instance.pk(), pool).await.is_err());
+    assert!(
+        E::find(&instance.pk(), pool).await.unwrap().is_none(),
+        "instance was found after deletion"
+    );
 
     instance.create(pool).await.expect("insertion did not work");
 
     let retrieved = E::find(&instance.pk(), pool)
         .await
+        .unwrap()
         .expect("instance not found after insertion");
 
     assert_eq!(instance, retrieved);
@@ -37,7 +45,7 @@ where
 /// Verify update operations
 pub async fn update<E>(mut instance: E, updates: Vec<E>, pool: &PgPool)
 where
-    E: Read + Update + Bind<sqlx::Postgres> + Clone + Debug + Eq + Send,
+    E: Entity<Database = sqlx::Postgres> + Clone + Debug + Eq + Send,
 {
     instance.save(pool).await.expect("insertion did not work");
 
@@ -56,6 +64,7 @@ where
 
         let retrieved = E::find(&instance.pk(), pool)
             .await
+            .unwrap()
             .expect("instance not found after update");
 
         assert_eq!(instance, retrieved);
@@ -65,7 +74,7 @@ where
 /// Verify delete operations
 pub async fn delete<E>(mut instance: E, pool: &PgPool)
 where
-    E: Entity + Bind<sqlx::Postgres> + Clone + Debug + Eq + Send,
+    E: Entity<Database = sqlx::Postgres> + Clone + Debug + Eq + Send,
 {
     instance.create(pool).await.expect("insertion did not work");
 
@@ -76,21 +85,16 @@ where
         .await
         .expect_err("instance could be reloaded from db after deletion");
 
-    println!("until assert");
-
-    assert!(E::find(&instance.pk(), pool).await.is_err());
-
-    println!("after assert");
+    assert!(
+        E::find(&instance.pk(), pool).await.unwrap().is_none(),
+        "instance was found after deletion"
+    );
 
     instance.create(pool).await.expect("insertion did not work");
-
-    println!("pre db");
 
     E::delete_by(instance.pk(), pool)
         .await
         .expect("deletion did not work");
-
-    println!("post db");
 
     instance
         .reload(pool)

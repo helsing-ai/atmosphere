@@ -96,7 +96,7 @@ pub mod sql {
 
             query.push(format!("\nFROM\n  {}\n", Self::table()));
 
-            Query(query, Bindings::empty())
+            Query(query, Bindings(vec![&TABLE::PRIMARY_KEY]))
         }
 
         /// Yields a sql `insert` statement

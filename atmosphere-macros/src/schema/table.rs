@@ -83,6 +83,7 @@ impl Table {
             #[automatically_derived]
             impl ::atmosphere::Table for #ident {
                 type PrimaryKey = #pk_ty;
+                type Database = ::sqlx::Postgres;
 
                 const PRIMARY_KEY: ::atmosphere::Column<#ident> = #primary_key;
 
@@ -174,12 +175,11 @@ impl Table {
         };
 
         quote!(
-            #(
             #[automatically_derived]
-            impl ::atmosphere::Bind<#databases> for #ident {
+            impl ::atmosphere::Bind for #ident {
                 fn bind<
                     'q,
-                    Q: ::atmosphere::Bindable<'q, #databases>
+                    Q: ::atmosphere::Bindable<'q, Self::Database>
                 >(
                     &'q self,
                     #col: &'q ::atmosphere::Column<Self>,
@@ -192,7 +192,6 @@ impl Table {
                     Err(())
                 }
             }
-            )*
         )
     }
 }
