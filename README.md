@@ -85,21 +85,23 @@ impl Table for User {
 
 ### Beta Release
 - [x] Transaction Support
-- [ ] Custom queries
+- [ ] Hook into query execution using `atmosphere::hooks`
+- [ ] Virtual Columns using (`#[virtual = "<sql>"]`)
 - [ ] Getting Database Agnostic
 - [ ] Errors using `miette`
 - [ ] Attribute Macro (`#[relation]`)
 - [ ] Attribute Macro (`#[query]`)
 
 ### Stable Release
+- [ ] Custom queries
 - [ ] Stabilize Traits
 - [ ] Provide Application Utils
 - [ ] Stabilize Query Generation
 - [ ] Table Lenses (subsets / views)
 
 ### Advanced
-- [ ] Postgres Composite Types
-- [ ] Support custom types
+- [x] Postgres Composite Types
+- [x] Support custom types
 - [x] Runtime Inspection
 - [ ] Generate Graphs
 - [ ] `validator` support
