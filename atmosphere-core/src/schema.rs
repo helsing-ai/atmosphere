@@ -1,14 +1,19 @@
 use async_trait::async_trait;
-use sqlx::postgres::PgQueryResult;
+use sqlx::{
+    database::{HasArguments, HasStatementCache},
+    Database, Encode, Executor, FromRow, IntoArguments, Type,
+};
 use std::marker::PhantomData;
 
-use crate::Bind;
+use crate::{runtime::sql::Query, Bind};
 
-/// Associated an SQL Table
-pub trait Table: Sized + Send + for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> + 'static
+/// SQL Table Definition
+pub trait Table
 where
-    Self::PrimaryKey: for<'q> sqlx::Encode<'q, sqlx::Postgres> + sqlx::Type<sqlx::Postgres> + Send,
+    Self: Sized + Send + for<'r> FromRow<'r, <Self::Database as Database>::Row> + 'static,
+    Self::PrimaryKey: for<'q> Encode<'q, Self::Database> + Type<Self::Database> + Send,
 {
+    type Database: Database + HasStatementCache + for<'q> HasArguments<'q>;
     type PrimaryKey: Sync + Sized + 'static;
 
     const SCHEMA: &'static str;
@@ -27,14 +32,16 @@ impl<E: Create + Read + Update + Delete> Entity for E {}
 
 /// Create rows in a [`sqlx::Database`]
 #[async_trait]
-pub trait Create: Table {
+pub trait Create: Table + Bind + Sync + 'static {
     /// Create a new row
-    async fn create<'e, E>(&self, executor: E) -> sqlx::Result<PgQueryResult>
+    async fn create<'e, E>(
+        &self,
+        executor: E,
+    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
     where
-        Self: Bind<sqlx::Postgres> + Sync + 'static,
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-            Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
+        E: Executor<'e, Database = Self::Database>,
+        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, Self::Database> + Send;
 
     // Create many new rows
     //async fn create_many(entities: &[impl AsRef<Self>], pool: &sqlx::PgPool) -> Result<()> {
@@ -45,43 +52,45 @@ pub trait Create: Table {
 #[async_trait]
 impl<T> Create for T
 where
-    T: Table,
+    T: Table + Bind + Sync + 'static,
 {
-    async fn create<'e, E>(&self, executor: E) -> sqlx::Result<PgQueryResult>
+    async fn create<'e, E>(
+        &self,
+        executor: E,
+    ) -> sqlx::Result<<T::Database as sqlx::Database>::QueryResult>
     where
-        Self: Bind<sqlx::Postgres> + Sync + 'static,
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-            Send + sqlx::IntoArguments<'q, sqlx::Postgres>,
+        E: Executor<'e, Database = Self::Database>,
+        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, Self::Database> + Send,
     {
-        let query = crate::runtime::sql::SQL::<T, sqlx::Postgres>::insert();
+        let Query(builder, bindings) = crate::runtime::sql::SQL::<T>::insert();
 
-        self.bind_all(sqlx::query::<sqlx::Postgres>(&query.into_sql()))
-            .unwrap()
-            .persistent(false)
-            .execute(executor)
-            .await
+        let mut query = sqlx::query(builder.sql());
+
+        for c in bindings.columns() {
+            query = self.bind(c, query).unwrap();
+        }
+
+        query.persistent(false).execute(executor).await
     }
 }
 
 /// Read rows from a [`sqlx::Database`]
 #[async_trait]
-pub trait Read: Table + Send + Sync + Unpin + 'static {
+pub trait Read: Table + Bind + Send + Sync + Unpin + 'static {
     /// Find a row by its primary key
-    async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> sqlx::Result<Self>
+    async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> sqlx::Result<Option<Self>>
     where
-        Self: Bind<sqlx::Postgres>,
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-            Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
+        E: Executor<'e, Database = Self::Database>,
+        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, Self::Database> + Send;
 
     /// Reload from database
     async fn reload<'e, E>(&mut self, executor: E) -> sqlx::Result<()>
     where
-        Self: Bind<sqlx::Postgres>,
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-            Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
+        E: Executor<'e, Database = Self::Database>,
+        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, Self::Database> + Send;
 
     // Find all rows in the list of primary keys
     //async fn find_many<'e, E>(pks: &[impl AsRef<Self::PrimaryKey>], executor: E) -> Result<Vec<Self>>
@@ -99,41 +108,41 @@ pub trait Read: Table + Send + Sync + Unpin + 'static {
 #[async_trait]
 impl<T> Read for T
 where
-    T: Table + Send + Sync + Unpin + 'static,
+    T: Table + Bind + Send + Sync + Unpin + 'static,
 {
-    async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> sqlx::Result<Self>
+    async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> sqlx::Result<Option<Self>>
     where
-        Self: Bind<sqlx::Postgres>,
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-            Send + sqlx::IntoArguments<'q, sqlx::Postgres>,
+        E: Executor<'e, Database = Self::Database>,
+        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, Self::Database> + Send,
     {
-        let query = crate::runtime::sql::SQL::<T, sqlx::Postgres>::select();
+        let Query(builder, bindings) = crate::runtime::sql::SQL::<T>::select();
 
-        sqlx::query_as::<sqlx::Postgres, Self>(&query.into_sql())
-            .bind(pk)
-            .fetch_one(executor)
-            .await
+        dbg!(&bindings);
+
+        assert!(bindings.columns().len() == 1);
+        assert!(bindings.columns()[0].name == Self::PRIMARY_KEY.name);
+
+        let query = sqlx::query_as(builder.sql()).bind(pk).persistent(false);
+
+        query.fetch_optional(executor).await
     }
 
     async fn reload<'e, E>(&mut self, executor: E) -> sqlx::Result<()>
     where
-        Self: Bind<sqlx::Postgres> + Sync + Unpin + 'static,
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-            Send + sqlx::IntoArguments<'q, sqlx::Postgres>,
+        E: Executor<'e, Database = Self::Database>,
+        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, Self::Database> + Send,
     {
-        let sql = crate::runtime::sql::SQL::<T, sqlx::Postgres>::select().into_sql();
+        let Query(builder, bindings) = crate::runtime::sql::SQL::<T>::select();
 
-        let query = sqlx::query_as::<sqlx::Postgres, Self>(&sql);
+        let mut query = sqlx::query_as(builder.sql());
 
-        let new = self
-            .bind_primary_key(query)
-            .unwrap()
-            .fetch_one(executor)
-            .await?;
+        for c in bindings.columns() {
+            query = self.bind(c, query).unwrap();
+        }
 
-        *self = new;
+        *self = query.persistent(false).fetch_one(executor).await?;
 
         Ok(())
     }
@@ -141,74 +150,96 @@ where
 
 /// Update rows in a [`sqlx::Database`]
 #[async_trait]
-pub trait Update: Table + Send + Sync + Unpin + 'static {
+pub trait Update: Table + Bind + Send + Sync + Unpin + 'static {
     /// Update the row in the database
-    async fn update<'e, E>(&self, executor: E) -> sqlx::Result<PgQueryResult>
+    async fn update<'e, E>(
+        &self,
+        executor: E,
+    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
     where
-        Self: Bind<sqlx::Postgres> + Sync + 'static,
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-            Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
+        E: Executor<'e, Database = Self::Database>,
+        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, Self::Database> + Send;
 
     /// Save to the database
-    async fn save<'e, E>(&self, executor: E) -> sqlx::Result<PgQueryResult>
+    async fn save<'e, E>(
+        &self,
+        executor: E,
+    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
     where
-        Self: Bind<sqlx::Postgres> + Sync + 'static,
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-            Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
+        E: Executor<'e, Database = Self::Database>,
+        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, Self::Database> + Send;
 }
 
 #[async_trait]
 impl<T> Update for T
 where
-    T: Table + Send + Sync + Unpin + 'static,
+    T: Table + Bind + Send + Sync + Unpin + 'static,
 {
-    async fn update<'e, E>(&self, executor: E) -> sqlx::Result<PgQueryResult>
+    async fn update<'e, E>(
+        &self,
+        executor: E,
+    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
     where
-        Self: Bind<sqlx::Postgres>,
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-            Send + sqlx::IntoArguments<'q, sqlx::Postgres>,
+        E: Executor<'e, Database = Self::Database>,
+        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, Self::Database> + Send,
     {
-        let query = crate::runtime::sql::SQL::<T, sqlx::Postgres>::update().into_sql();
-        let mut query = sqlx::query::<sqlx::Postgres>(&query);
-        query = self.bind_all(query).unwrap();
+        let Query(builder, bindings) = crate::runtime::sql::SQL::<T>::update();
+
+        let mut query = sqlx::query(builder.sql());
+
+        for c in bindings.columns() {
+            query = self.bind(c, query).unwrap();
+        }
+
         query.persistent(false).execute(executor).await
     }
 
-    async fn save<'e, E>(&self, executor: E) -> sqlx::Result<PgQueryResult>
+    async fn save<'e, E>(
+        &self,
+        executor: E,
+    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
     where
-        Self: Bind<sqlx::Postgres>,
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-            Send + sqlx::IntoArguments<'q, sqlx::Postgres>,
+        E: Executor<'e, Database = Self::Database>,
+        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, Self::Database> + Send,
     {
-        let query = crate::runtime::sql::SQL::<T, sqlx::Postgres>::upsert().into_sql();
-        let mut query = sqlx::query::<sqlx::Postgres>(&query);
-        query = self.bind_all(query).unwrap();
+        let Query(builder, bindings) = crate::runtime::sql::SQL::<T>::upsert();
+
+        let mut query = sqlx::query(builder.sql());
+
+        for c in bindings.columns() {
+            query = self.bind(c, query).unwrap();
+        }
+
         query.persistent(false).execute(executor).await
     }
 }
 
 /// Delete rows from a [`sqlx::Database`]
 #[async_trait]
-pub trait Delete: Table + Send + Sync + Unpin + 'static {
+pub trait Delete: Table + Bind + Send + Sync + Unpin + 'static {
     /// Delete row in database
-    async fn delete<'e, E>(&self, executor: E) -> sqlx::Result<PgQueryResult>
+    async fn delete<'e, E>(
+        &self,
+        executor: E,
+    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
     where
-        Self: Bind<sqlx::Postgres>,
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-            Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
+        E: Executor<'e, Database = Self::Database>,
+        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, Self::Database> + Send;
 
     /// Delete row in database by primary key
-    async fn delete_by<'e, E>(pk: &Self::PrimaryKey, executor: E) -> sqlx::Result<PgQueryResult>
+    async fn delete_by<'e, E>(
+        pk: &Self::PrimaryKey,
+        executor: E,
+    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
     where
-        Self: Bind<sqlx::Postgres>,
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-            Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
+        E: Executor<'e, Database = Self::Database>,
+        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, Self::Database> + Send;
 
     // Delete all rows in the list of primary keys
     //async fn delete_many<'e, E>(pks: &[impl AsRef<Self::PrimaryKey>], executor: E) -> Result<()>
@@ -222,43 +253,50 @@ pub trait Delete: Table + Send + Sync + Unpin + 'static {
 #[async_trait]
 impl<T> Delete for T
 where
-    T: Table + Send + Sync + Unpin + 'static,
+    T: Table + Bind + Send + Sync + Unpin + 'static,
 {
-    async fn delete<'e, E>(&self, executor: E) -> sqlx::Result<PgQueryResult>
+    async fn delete<'e, E>(
+        &self,
+        executor: E,
+    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
     where
-        Self: Bind<sqlx::Postgres>,
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-            Send + sqlx::IntoArguments<'q, sqlx::Postgres>,
+        E: Executor<'e, Database = Self::Database>,
+        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, Self::Database> + Send,
     {
-        let query = crate::runtime::sql::SQL::<T, sqlx::Postgres>::delete();
+        let Query(builder, bindings) = crate::runtime::sql::SQL::<T>::delete();
 
-        self.bind_all(sqlx::query::<sqlx::Postgres>(&query.into_sql()))
-            .unwrap()
-            .persistent(false)
-            .execute(executor)
-            .await
+        let mut query = sqlx::query(builder.sql());
+
+        for c in bindings.columns() {
+            query = self.bind(c, query).unwrap();
+        }
+
+        query.persistent(false).execute(executor).await
     }
 
-    async fn delete_by<'e, E>(pk: &Self::PrimaryKey, executor: E) -> sqlx::Result<PgQueryResult>
+    async fn delete_by<'e, E>(
+        pk: &Self::PrimaryKey,
+        executor: E,
+    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
     where
-        Self: Bind<sqlx::Postgres>,
-        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-        for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-            Send + sqlx::IntoArguments<'q, sqlx::Postgres>,
+        E: Executor<'e, Database = Self::Database>,
+        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, Self::Database> + Send,
     {
-        let query = crate::runtime::sql::SQL::<T, sqlx::Postgres>::delete();
+        let Query(builder, bindings) = crate::runtime::sql::SQL::<T>::delete();
 
-        sqlx::query::<sqlx::Postgres>(&query.into_sql())
-            .bind(pk)
-            .persistent(false)
-            .execute(executor)
-            .await
+        assert!(bindings.columns().len() == 1);
+        assert!(bindings.columns()[0].name == Self::PRIMARY_KEY.name);
+
+        let query = sqlx::query(builder.sql()).bind(pk).persistent(false);
+
+        query.execute(executor).await
     }
 }
 
 /// Descriptor type of a sql column
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Column<T: Table> {
     pub name: &'static str,
     pub ty: ColumnType,
@@ -287,4 +325,6 @@ pub enum ColumnType {
 pub type Result<T> = std::result::Result<T, ()>;
 
 /// A atmosphere error type
-pub enum Error {}
+pub enum Error {
+    Internal,
+}
