@@ -189,7 +189,9 @@ impl Table {
                     #foreign_key_binds
                     #data_binds
 
-                    Err(())
+                    Err(::atmosphere::Error::Bind(
+                        ::atmosphere::bind::BindError::Unknown(#col.name)
+                    ))
                 }
             }
         )

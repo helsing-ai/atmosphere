@@ -2,6 +2,15 @@ use crate::{Column, Result, Table};
 use sqlx::database::HasArguments;
 use sqlx::query::QueryAs;
 use sqlx::{Database, Encode, QueryBuilder, Type};
+use thiserror::Error;
+
+/// An error that occured while binding values
+#[derive(Debug, Error)]
+#[non_exhaustive]
+pub enum BindError {
+    #[error("unknown column: {0}")]
+    Unknown(&'static str),
+}
 
 type Query<'q, DB> = sqlx::query::Query<'q, DB, <DB as HasArguments<'q>>::Arguments>;
 

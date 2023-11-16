@@ -1,5 +1,9 @@
 /// Bind entities to queries
 pub mod bind;
+/// High level database error types
+pub mod error;
+/// Query abstraction
+pub mod query;
 /// Runtime environment
 pub mod runtime;
 /// Compile time generated SQL schema traits
@@ -9,3 +13,5 @@ pub mod testing;
 
 pub use bind::*;
 pub use schema::*;
+
+pub use error::*;
