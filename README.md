@@ -68,8 +68,11 @@ impl Table for User {
     const SCHEMA: &str = "public"
     const TABLE: &str = "user"
     const PRIMARY_KEY: Column = Column { name: "id", ty: PrimaryKey, .. };
-    const FOREIGN_KEYS: [Column; 0] = [];
-    const DATA: [Column; 2] = [Column { name: "name", ty: Value }, Column { name: "email", ty: Value, } ];
+    const FOREIGN_KEYS: &'static [Column; 0] = &[];
+    const DATA: &'static [Column; 2] = &[
+        Column { name: "name", ty: Value, .. },
+        Column { name: "email", ty: Value, .. }
+    ];
 }
 ```
 
