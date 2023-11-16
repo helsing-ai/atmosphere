@@ -21,8 +21,10 @@ struct Tree {
 }
 
 #[tokio::main]
-async fn main() -> sqlx::Result<()> {
-    let pool = PgPool::connect(&std::env::var("DATABASE_URL").unwrap()).await?;
+async fn main() -> atmosphere::Result<()> {
+    let pool = PgPool::connect(&std::env::var("DATABASE_URL").unwrap())
+        .await
+        .unwrap();
 
     Forest {
         id: 0,

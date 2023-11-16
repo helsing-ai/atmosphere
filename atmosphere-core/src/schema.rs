@@ -5,7 +5,10 @@ use sqlx::{
 };
 use std::marker::PhantomData;
 
-use crate::{runtime::sql::Query, Bind};
+use crate::{
+    query::{Query, QueryError},
+    Bind, Error, Result,
+};
 
 /// SQL Table Definition
 pub trait Table
@@ -34,10 +37,7 @@ impl<E: Create + Read + Update + Delete> Entity for E {}
 #[async_trait]
 pub trait Create: Table + Bind + Sync + 'static {
     /// Create a new row
-    async fn create<'e, E>(
-        &self,
-        executor: E,
-    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
+    async fn create<'e, E>(&self, executor: E) -> Result<<Self::Database as Database>::QueryResult>
     where
         E: Executor<'e, Database = Self::Database>,
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
@@ -57,13 +57,15 @@ where
     async fn create<'e, E>(
         &self,
         executor: E,
-    ) -> sqlx::Result<<T::Database as sqlx::Database>::QueryResult>
+    ) -> Result<<T::Database as sqlx::Database>::QueryResult>
     where
         E: Executor<'e, Database = Self::Database>,
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
             IntoArguments<'q, Self::Database> + Send,
     {
-        let Query(builder, bindings) = crate::runtime::sql::insert::<T>();
+        let Query {
+            builder, bindings, ..
+        } = crate::runtime::sql::insert::<T>();
 
         let mut query = sqlx::query(builder.sql());
 
@@ -71,7 +73,12 @@ where
             query = self.bind(c, query).unwrap();
         }
 
-        query.persistent(false).execute(executor).await
+        query
+            .persistent(false)
+            .execute(executor)
+            .await
+            .map_err(QueryError::from)
+            .map_err(Error::Query)
     }
 }
 
@@ -79,14 +86,14 @@ where
 #[async_trait]
 pub trait Read: Table + Bind + Send + Sync + Unpin + 'static {
     /// Find a row by its primary key
-    async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> sqlx::Result<Option<Self>>
+    async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Option<Self>>
     where
         E: Executor<'e, Database = Self::Database>,
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
             IntoArguments<'q, Self::Database> + Send;
 
     /// Reload from database
-    async fn reload<'e, E>(&mut self, executor: E) -> sqlx::Result<()>
+    async fn reload<'e, E>(&mut self, executor: E) -> Result<()>
     where
         E: Executor<'e, Database = Self::Database>,
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
@@ -110,13 +117,15 @@ impl<T> Read for T
 where
     T: Table + Bind + Send + Sync + Unpin + 'static,
 {
-    async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> sqlx::Result<Option<Self>>
+    async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Option<Self>>
     where
         E: Executor<'e, Database = Self::Database>,
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
             IntoArguments<'q, Self::Database> + Send,
     {
-        let Query(builder, bindings) = crate::runtime::sql::select::<T>();
+        let Query {
+            builder, bindings, ..
+        } = crate::runtime::sql::select::<T>();
 
         dbg!(&bindings);
 
@@ -125,16 +134,22 @@ where
 
         let query = sqlx::query_as(builder.sql()).bind(pk).persistent(false);
 
-        query.fetch_optional(executor).await
+        query
+            .fetch_optional(executor)
+            .await
+            .map_err(QueryError::from)
+            .map_err(Error::Query)
     }
 
-    async fn reload<'e, E>(&mut self, executor: E) -> sqlx::Result<()>
+    async fn reload<'e, E>(&mut self, executor: E) -> Result<()>
     where
         E: Executor<'e, Database = Self::Database>,
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
             IntoArguments<'q, Self::Database> + Send,
     {
-        let Query(builder, bindings) = crate::runtime::sql::select::<T>();
+        let Query {
+            builder, bindings, ..
+        } = crate::runtime::sql::select::<T>();
 
         let mut query = sqlx::query_as(builder.sql());
 
@@ -142,7 +157,12 @@ where
             query = self.bind(c, query).unwrap();
         }
 
-        *self = query.persistent(false).fetch_one(executor).await?;
+        *self = query
+            .persistent(false)
+            .fetch_one(executor)
+            .await
+            .map_err(QueryError::from)
+            .map_err(Error::Query)?;
 
         Ok(())
     }
@@ -152,20 +172,14 @@ where
 #[async_trait]
 pub trait Update: Table + Bind + Send + Sync + Unpin + 'static {
     /// Update the row in the database
-    async fn update<'e, E>(
-        &self,
-        executor: E,
-    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
+    async fn update<'e, E>(&self, executor: E) -> Result<<Self::Database as Database>::QueryResult>
     where
         E: Executor<'e, Database = Self::Database>,
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
             IntoArguments<'q, Self::Database> + Send;
 
     /// Save to the database
-    async fn save<'e, E>(
-        &self,
-        executor: E,
-    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
+    async fn save<'e, E>(&self, executor: E) -> Result<<Self::Database as Database>::QueryResult>
     where
         E: Executor<'e, Database = Self::Database>,
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
@@ -177,16 +191,15 @@ impl<T> Update for T
 where
     T: Table + Bind + Send + Sync + Unpin + 'static,
 {
-    async fn update<'e, E>(
-        &self,
-        executor: E,
-    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
+    async fn update<'e, E>(&self, executor: E) -> Result<<Self::Database as Database>::QueryResult>
     where
         E: Executor<'e, Database = Self::Database>,
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
             IntoArguments<'q, Self::Database> + Send,
     {
-        let Query(builder, bindings) = crate::runtime::sql::update::<T>();
+        let Query {
+            builder, bindings, ..
+        } = crate::runtime::sql::update::<T>();
 
         let mut query = sqlx::query(builder.sql());
 
@@ -194,19 +207,23 @@ where
             query = self.bind(c, query).unwrap();
         }
 
-        query.persistent(false).execute(executor).await
+        query
+            .persistent(false)
+            .execute(executor)
+            .await
+            .map_err(QueryError::from)
+            .map_err(Error::Query)
     }
 
-    async fn save<'e, E>(
-        &self,
-        executor: E,
-    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
+    async fn save<'e, E>(&self, executor: E) -> Result<<Self::Database as Database>::QueryResult>
     where
         E: Executor<'e, Database = Self::Database>,
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
             IntoArguments<'q, Self::Database> + Send,
     {
-        let Query(builder, bindings) = crate::runtime::sql::upsert::<T>();
+        let Query {
+            builder, bindings, ..
+        } = crate::runtime::sql::upsert::<T>();
 
         let mut query = sqlx::query(builder.sql());
 
@@ -214,7 +231,12 @@ where
             query = self.bind(c, query).unwrap();
         }
 
-        query.persistent(false).execute(executor).await
+        query
+            .persistent(false)
+            .execute(executor)
+            .await
+            .map_err(QueryError::from)
+            .map_err(Error::Query)
     }
 }
 
@@ -222,10 +244,7 @@ where
 #[async_trait]
 pub trait Delete: Table + Bind + Send + Sync + Unpin + 'static {
     /// Delete row in database
-    async fn delete<'e, E>(
-        &self,
-        executor: E,
-    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
+    async fn delete<'e, E>(&self, executor: E) -> Result<<Self::Database as Database>::QueryResult>
     where
         E: Executor<'e, Database = Self::Database>,
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
@@ -235,7 +254,7 @@ pub trait Delete: Table + Bind + Send + Sync + Unpin + 'static {
     async fn delete_by<'e, E>(
         pk: &Self::PrimaryKey,
         executor: E,
-    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
+    ) -> Result<<Self::Database as Database>::QueryResult>
     where
         E: Executor<'e, Database = Self::Database>,
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
@@ -255,16 +274,15 @@ impl<T> Delete for T
 where
     T: Table + Bind + Send + Sync + Unpin + 'static,
 {
-    async fn delete<'e, E>(
-        &self,
-        executor: E,
-    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
+    async fn delete<'e, E>(&self, executor: E) -> Result<<Self::Database as Database>::QueryResult>
     where
         E: Executor<'e, Database = Self::Database>,
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
             IntoArguments<'q, Self::Database> + Send,
     {
-        let Query(builder, bindings) = crate::runtime::sql::delete::<T>();
+        let Query {
+            builder, bindings, ..
+        } = crate::runtime::sql::delete::<T>();
 
         let mut query = sqlx::query(builder.sql());
 
@@ -272,26 +290,37 @@ where
             query = self.bind(c, query).unwrap();
         }
 
-        query.persistent(false).execute(executor).await
+        query
+            .persistent(false)
+            .execute(executor)
+            .await
+            .map_err(QueryError::from)
+            .map_err(Error::Query)
     }
 
     async fn delete_by<'e, E>(
         pk: &Self::PrimaryKey,
         executor: E,
-    ) -> sqlx::Result<<Self::Database as Database>::QueryResult>
+    ) -> Result<<Self::Database as Database>::QueryResult>
     where
         E: Executor<'e, Database = Self::Database>,
         for<'q> <Self::Database as HasArguments<'q>>::Arguments:
             IntoArguments<'q, Self::Database> + Send,
     {
-        let Query(builder, bindings) = crate::runtime::sql::delete::<T>();
+        let Query {
+            builder, bindings, ..
+        } = crate::runtime::sql::delete::<T>();
 
         assert!(bindings.columns().len() == 1);
         assert!(bindings.columns()[0].name == Self::PRIMARY_KEY.name);
 
         let query = sqlx::query(builder.sql()).bind(pk).persistent(false);
 
-        query.execute(executor).await
+        query
+            .execute(executor)
+            .await
+            .map_err(QueryError::from)
+            .map_err(Error::Query)
     }
 }
 
@@ -319,12 +348,4 @@ pub enum ColumnType {
     Value,
     PrimaryKey,
     ForeignKey,
-}
-
-/// A result type for atmosphere code
-pub type Result<T> = std::result::Result<T, ()>;
-
-/// A atmosphere error type
-pub enum Error {
-    Internal,
 }

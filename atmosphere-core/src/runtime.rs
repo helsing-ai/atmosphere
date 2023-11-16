@@ -4,7 +4,10 @@ pub mod sql {
 
     use sqlx::QueryBuilder;
 
-    use crate::{Bind, Column};
+    use crate::{
+        query::{self, Query},
+        Bind, Column,
+    };
 
     pub struct Bindings<T: Bind>(Vec<&'static Column<T>>);
 
@@ -52,22 +55,6 @@ pub mod sql {
         }
     }
 
-    pub struct Query<T: Bind>(
-        pub(crate) QueryBuilder<'static, T::Database>,
-        pub(crate) Bindings<T>,
-    );
-
-    impl<T: Bind> Query<T> {
-        pub fn sql(&self) -> &str {
-            self.0.sql()
-        }
-
-        #[cfg(test)]
-        pub const fn bindings(&self) -> &Bindings<T> {
-            &self.1
-        }
-    }
-
     fn table<T: Bind>() -> String {
         format!("\"{}\".\"{}\"", T::SCHEMA, T::TABLE)
     }
@@ -91,17 +78,22 @@ pub mod sql {
         query.push(format!("\nFROM\n  {}\n", table::<T>()));
         query.push(format!("WHERE {} = $1", T::PRIMARY_KEY.name));
 
-        Query(query, Bindings(vec![&T::PRIMARY_KEY]))
+        Query::new(
+            query::Operation::Select,
+            query::Cardinality::One,
+            query,
+            Bindings(vec![&T::PRIMARY_KEY]),
+        )
     }
 
     /// Yields a sql `insert` statement
     pub fn insert<T: Bind>() -> Query<T> {
-        let mut query =
+        let mut builder =
             QueryBuilder::<'static, T::Database>::new(format!("INSERT INTO {}\n  (", table::<T>()));
 
         let mut bindings = vec![];
 
-        let mut separated = query.separated(", ");
+        let mut separated = builder.separated(", ");
 
         separated.push(T::PRIMARY_KEY.name.to_string());
         bindings.push(&T::PRIMARY_KEY);
@@ -126,18 +118,23 @@ pub mod sql {
             separated.push(format!("${c}"));
         }
 
-        query.push(")");
+        builder.push(")");
 
-        Query(query, Bindings(bindings))
+        Query::new(
+            query::Operation::Insert,
+            query::Cardinality::One,
+            builder,
+            Bindings(bindings),
+        )
     }
 
     /// Yields a sql `update` statement
     pub fn update<T: Bind>() -> Query<T> {
-        let mut query =
+        let mut builder =
             QueryBuilder::<T::Database>::new(format!("UPDATE {} SET\n  ", table::<T>()));
         let mut bindings = vec![];
 
-        let mut separated = query.separated(",\n  ");
+        let mut separated = builder.separated(",\n  ");
 
         let mut col = 2;
 
@@ -156,20 +153,29 @@ pub mod sql {
             col += 1;
         }
 
-        query.push(format!("\nWHERE\n  {} = $1", T::PRIMARY_KEY.name));
+        builder.push(format!("\nWHERE\n  {} = $1", T::PRIMARY_KEY.name));
 
-        Query(query, Bindings(bindings))
+        Query::new(
+            query::Operation::Update,
+            query::Cardinality::One,
+            builder,
+            Bindings(bindings),
+        )
     }
 
     /// Yields a sql `update .. on conflict insert` statement
     pub fn upsert<T: Bind>() -> Query<T> {
-        let Query(mut query, bindings) = insert::<T>();
+        let Query {
+            mut builder,
+            bindings,
+            ..
+        } = insert::<T>();
 
-        query.push("\nON CONFLICT(");
-        query.push(T::PRIMARY_KEY.name);
-        query.push(")\nDO UPDATE SET\n  ");
+        builder.push("\nON CONFLICT(");
+        builder.push(T::PRIMARY_KEY.name);
+        builder.push(")\nDO UPDATE SET\n  ");
 
-        let mut separated = query.separated(",\n  ");
+        let mut separated = builder.separated(",\n  ");
 
         for ref fk in T::FOREIGN_KEYS {
             separated.push(format!("{} = EXCLUDED.{}", fk.name, fk.name));
@@ -179,20 +185,30 @@ pub mod sql {
             separated.push(format!("{} = EXCLUDED.{}", data.name, data.name));
         }
 
-        Query(query, bindings)
+        Query::new(
+            query::Operation::Upsert,
+            query::Cardinality::One,
+            builder,
+            bindings,
+        )
     }
 
     /// Yields a sql `delete` statement
     ///
     /// Binds: `pk`
     pub fn delete<T: Bind>() -> Query<T> {
-        let mut query =
+        let mut builder =
             QueryBuilder::<T::Database>::new(format!("DELETE FROM {} WHERE ", table::<T>()));
 
-        query.push(T::PRIMARY_KEY.name);
-        query.push(" = $1");
+        builder.push(T::PRIMARY_KEY.name);
+        builder.push(" = $1");
 
-        Query(query, Bindings(vec![&T::PRIMARY_KEY]))
+        Query::new(
+            query::Operation::Delete,
+            query::Cardinality::One,
+            builder,
+            Bindings(vec![&T::PRIMARY_KEY]),
+        )
     }
 
     #[cfg(test)]
@@ -249,27 +265,31 @@ pub mod sql {
 
         #[test]
         fn select() {
-            let sql::Query(q, b) = sql::select::<TestTable>();
+            let sql::Query {
+                builder, bindings, ..
+            } = sql::select::<TestTable>();
 
             assert_eq!(
-                q.sql(),
+                builder.sql(),
                 "SELECT\n  id,\n  fk,\n  data\nFROM\n  \"public\".\"test\"\n"
             );
 
-            assert_eq!(b, Bindings(vec![&TestTable::PRIMARY_KEY]));
+            assert_eq!(bindings, Bindings(vec![&TestTable::PRIMARY_KEY]));
         }
 
         #[test]
         fn insert() {
-            let sql::Query(q, b) = sql::insert::<TestTable>();
+            let sql::Query {
+                builder, bindings, ..
+            } = sql::insert::<TestTable>();
 
             assert_eq!(
-                q.sql(),
+                builder.sql(),
                 "INSERT INTO \"public\".\"test\"\n  (id, fk, data)\nVALUES\n  ($1, $2, $3)"
             );
 
             assert_eq!(
-                b,
+                bindings,
                 Bindings(vec![
                     &TestTable::PRIMARY_KEY,
                     &TestTable::FOREIGN_KEYS[0],
@@ -280,15 +300,17 @@ pub mod sql {
 
         #[test]
         fn update() {
-            let sql::Query(q, b) = sql::update::<TestTable>();
+            let sql::Query {
+                builder, bindings, ..
+            } = sql::update::<TestTable>();
 
             assert_eq!(
-                q.sql(),
+                builder.sql(),
                 "UPDATE \"public\".\"test\" SET\n  id = $1,\n  fk = $2,\n  data = $3\nWHERE\n  id = $1"
             );
 
             assert_eq!(
-                b,
+                bindings,
                 Bindings(vec![
                     &TestTable::PRIMARY_KEY,
                     &TestTable::FOREIGN_KEYS[0],
@@ -299,15 +321,17 @@ pub mod sql {
 
         #[test]
         fn upsert() {
-            let sql::Query(q, b) = sql::upsert::<TestTable>();
+            let sql::Query {
+                builder, bindings, ..
+            } = sql::upsert::<TestTable>();
 
             assert_eq!(
-                q.sql(),
+                builder.sql(),
                 "INSERT INTO \"public\".\"test\"\n  (id, fk, data)\nVALUES\n  ($1, $2, $3)\nON CONFLICT(id)\nDO UPDATE SET\n  fk = EXCLUDED.fk,\n  data = EXCLUDED.data"
             );
 
             assert_eq!(
-                b,
+                bindings,
                 Bindings(vec![
                     &TestTable::PRIMARY_KEY,
                     &TestTable::FOREIGN_KEYS[0],
@@ -318,10 +342,15 @@ pub mod sql {
 
         #[test]
         fn delete() {
-            let sql::Query(q, b) = sql::delete::<TestTable>();
+            let sql::Query {
+                builder, bindings, ..
+            } = sql::delete::<TestTable>();
 
-            assert_eq!(q.sql(), "DELETE FROM \"public\".\"test\" WHERE id = $1");
-            assert_eq!(b, Bindings(vec![&TestTable::PRIMARY_KEY]));
+            assert_eq!(
+                builder.sql(),
+                "DELETE FROM \"public\".\"test\" WHERE id = $1"
+            );
+            assert_eq!(bindings, Bindings(vec![&TestTable::PRIMARY_KEY]));
         }
     }
 }
