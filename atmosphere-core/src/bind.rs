@@ -1,7 +1,7 @@
 use crate::{Column, Result, Table};
 use sqlx::database::HasArguments;
 use sqlx::query::QueryAs;
-use sqlx::{Database, Encode, QueryBuilder, Type};
+use sqlx::{Encode, QueryBuilder, Type};
 use thiserror::Error;
 
 /// An error that occured while binding values
@@ -15,36 +15,38 @@ pub enum BindError {
 type Query<'q, DB> = sqlx::query::Query<'q, DB, <DB as HasArguments<'q>>::Arguments>;
 
 /// Bindable query abstraction. Implementors are [`sqlx::query::Query`] & [`sqlx::query::QueryAs`];
-pub trait Bindable<'q, DB>
-where
-    DB: Database + for<'a> HasArguments<'a>,
-{
-    fn dyn_bind<T: 'q + Send + Encode<'q, DB> + Type<DB>>(self, value: T) -> Self;
+pub trait Bindable<'q> {
+    fn dyn_bind<T: 'q + Send + Encode<'q, crate::Driver> + Type<crate::Driver>>(
+        self,
+        value: T,
+    ) -> Self;
 }
 
-impl<'q, DB> Bindable<'q, DB> for Query<'q, DB>
-where
-    DB: Database + for<'a> HasArguments<'a>,
-{
-    fn dyn_bind<T: 'q + Send + Encode<'q, DB> + Type<DB>>(self, value: T) -> Self {
+impl<'q> Bindable<'q> for Query<'q, crate::Driver> {
+    fn dyn_bind<T: 'q + Send + Encode<'q, crate::Driver> + Type<crate::Driver>>(
+        self,
+        value: T,
+    ) -> Self {
         self.bind(value)
     }
 }
 
-impl<'q, E, DB> Bindable<'q, DB> for QueryAs<'q, DB, E, <DB as HasArguments<'q>>::Arguments>
-where
-    DB: Database + for<'a> HasArguments<'a>,
+impl<'q, E> Bindable<'q>
+    for QueryAs<'q, crate::Driver, E, <crate::Driver as HasArguments<'q>>::Arguments>
 {
-    fn dyn_bind<T: 'q + Send + Encode<'q, DB> + Type<DB>>(self, value: T) -> Self {
+    fn dyn_bind<T: 'q + Send + Encode<'q, crate::Driver> + Type<crate::Driver>>(
+        self,
+        value: T,
+    ) -> Self {
         self.bind(value)
     }
 }
 
-impl<'q, DB> Bindable<'q, DB> for QueryBuilder<'q, DB>
-where
-    DB: Database + for<'a> HasArguments<'a>,
-{
-    fn dyn_bind<T: 'q + Send + Encode<'q, DB> + Type<DB>>(mut self, value: T) -> Self {
+impl<'q> Bindable<'q> for QueryBuilder<'q, crate::Driver> {
+    fn dyn_bind<T: 'q + Send + Encode<'q, crate::Driver> + Type<crate::Driver>>(
+        mut self,
+        value: T,
+    ) -> Self {
         self.push_bind(value);
         self
     }
@@ -53,9 +55,5 @@ where
 /// Bind columns to SQL Queries
 pub trait Bind: Table {
     /// Bind a single column to the query
-    fn bind<'q, Q: Bindable<'q, Self::Database>>(
-        &'q self,
-        c: &'q Column<Self>,
-        query: Q,
-    ) -> Result<Q>;
+    fn bind<'q, Q: Bindable<'q>>(&'q self, c: &'q Column<Self>, query: Q) -> Result<Q>;
 }

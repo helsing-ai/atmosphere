@@ -1,7 +1,4 @@
-use sqlx::{
-    database::{HasArguments, HasStatementCache},
-    Database, Encode, FromRow, Type,
-};
+use sqlx::{Database, Encode, FromRow, Type};
 
 mod create;
 mod delete;
@@ -18,10 +15,9 @@ pub use self::column::{Column, DataColumn, DynamicForeignKey, ForeignKey, MetaCo
 /// SQL Table Definition
 pub trait Table
 where
-    Self: Sized + Send + for<'r> FromRow<'r, <Self::Database as Database>::Row> + 'static,
-    Self::PrimaryKey: for<'q> Encode<'q, Self::Database> + Type<Self::Database> + Send,
+    Self: Sized + Send + for<'r> FromRow<'r, <crate::Driver as Database>::Row> + 'static,
+    Self::PrimaryKey: for<'q> Encode<'q, crate::Driver> + Type<crate::Driver> + Send,
 {
-    type Database: Database + HasStatementCache + for<'q> HasArguments<'q>;
     type PrimaryKey: Sync + Sized + 'static;
 
     const SCHEMA: &'static str;
@@ -39,23 +35,6 @@ where
     fn pk(&self) -> &Self::PrimaryKey;
 }
 
-/// A `BelongsTo` Relationship
-pub trait BelongsTo<Other>
-where
-    Self: Table,
-    Other: Table,
-{
-    const FOREIGN_KEY: ForeignKey<Self, Other>;
-}
-
-/// A `Owns` Relationship
-pub trait Owns<Other>
-where
-    Self: Table,
-    Other: Table + BelongsTo<Self>,
-{
-}
-
 /// A entity is a table that implements [`Create`], [`Read`], [`Update`] & [`Create`]
 pub trait Entity: Create + Read + Update + Delete {}
 
@@ -67,14 +46,14 @@ pub mod column {
 
     /// Column Variants
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub enum Column<T: Table> {
-        PrimaryKey(&'static PrimaryKey<T>),
-        ForeignKey(&'static DynamicForeignKey<T>),
-        DataColumn(&'static DataColumn<T>),
-        MetaColumn(&'static MetaColumn<T>),
+    pub enum Column<'c, T: Table> {
+        PrimaryKey(&'c PrimaryKey<T>),
+        ForeignKey(&'c DynamicForeignKey<T>),
+        DataColumn(&'c DataColumn<T>),
+        MetaColumn(&'c MetaColumn<T>),
     }
 
-    impl<T: Table> Column<T> {
+    impl<'c, T: Table> Column<'c, T> {
         pub const fn name(&self) -> &'static str {
             match self {
                 Self::PrimaryKey(pk) => pk.name,

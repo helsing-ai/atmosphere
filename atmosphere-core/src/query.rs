@@ -134,7 +134,7 @@ pub enum Operation {
 pub struct Query<T: Bind> {
     pub op: Operation,
     pub cardinality: Cardinality,
-    pub(crate) builder: QueryBuilder<'static, T::Database>,
+    pub(crate) builder: QueryBuilder<'static, crate::Driver>,
     pub(crate) bindings: Bindings<T>,
 }
 
@@ -142,7 +142,7 @@ impl<T: Bind> Query<T> {
     pub(crate) fn new(
         op: Operation,
         cardinality: Cardinality,
-        builder: QueryBuilder<'static, T::Database>,
+        builder: QueryBuilder<'static, crate::Driver>,
         bindings: Bindings<T>,
     ) -> Self {
         Self {

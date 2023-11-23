@@ -7,7 +7,7 @@ use crate::{
     Bind, Column,
 };
 
-pub struct Bindings<T: Bind>(Vec<Column<T>>);
+pub struct Bindings<T: Bind>(Vec<Column<'static, T>>);
 
 impl<T: Bind> PartialEq for Bindings<T> {
     fn eq(&self, other: &Self) -> bool {
@@ -59,7 +59,7 @@ fn table<T: Bind>() -> String {
 
 /// Yields a sql `select` statement
 pub fn select<T: Bind>() -> Query<T> {
-    let mut query = QueryBuilder::<T::Database>::new("SELECT\n  ");
+    let mut query = QueryBuilder::new("SELECT\n  ");
 
     let mut separated = query.separated(",\n  ");
 
@@ -86,8 +86,7 @@ pub fn select<T: Bind>() -> Query<T> {
 
 /// Yields a sql `insert` statement
 pub fn insert<T: Bind>() -> Query<T> {
-    let mut builder =
-        QueryBuilder::<'static, T::Database>::new(format!("INSERT INTO {}\n  (", table::<T>()));
+    let mut builder = QueryBuilder::new(format!("INSERT INTO {}\n  (", table::<T>()));
 
     let mut bindings = vec![];
 
@@ -133,7 +132,7 @@ pub fn insert<T: Bind>() -> Query<T> {
 
 /// Yields a sql `update` statement
 pub fn update<T: Bind>() -> Query<T> {
-    let mut builder = QueryBuilder::<T::Database>::new(format!("UPDATE {} SET\n  ", table::<T>()));
+    let mut builder = QueryBuilder::new(format!("UPDATE {} SET\n  ", table::<T>()));
     let mut bindings = vec![];
 
     let mut separated = builder.separated(",\n  ");
@@ -209,8 +208,7 @@ pub fn upsert<T: Bind>() -> Query<T> {
 ///
 /// Binds: `pk`
 pub fn delete<T: Bind>() -> Query<T> {
-    let mut builder =
-        QueryBuilder::<T::Database>::new(format!("DELETE FROM {} WHERE ", table::<T>()));
+    let mut builder = QueryBuilder::new(format!("DELETE FROM {} WHERE ", table::<T>()));
 
     builder.push(T::PRIMARY_KEY.name);
     builder.push(" = $1");
@@ -239,7 +237,6 @@ mod tests {
     }
 
     impl Table for TestTable {
-        type Database = sqlx::Postgres;
         type PrimaryKey = i32;
 
         const SCHEMA: &'static str = "public";
@@ -256,11 +253,7 @@ mod tests {
     }
 
     impl Bind for TestTable {
-        fn bind<'q, Q: Bindable<'q, sqlx::Postgres>>(
-            &'q self,
-            c: &'q Column<Self>,
-            query: Q,
-        ) -> crate::Result<Q> {
+        fn bind<'q, Q: Bindable<'q>>(&'q self, c: &'q Column<Self>, query: Q) -> crate::Result<Q> {
             match c.name() {
                 "id" => {
                     return Ok(query.dyn_bind(&self.id));

@@ -10,10 +10,12 @@ use schema::table::Table;
 pub fn schema(input: TokenStream) -> TokenStream {
     let table = parse_macro_input!(input as Table);
     let table_impl = table.quote_table_impl();
+    let rel_impl = table.quote_relationship_impls();
     let bind_impl = table.quote_bind_impl();
 
     quote! {
         #table_impl
+        #rel_impl
         #bind_impl
     }
     .into()

@@ -1,11 +1,10 @@
 use crate::Entity;
-use sqlx::PgPool;
 use std::fmt::Debug;
 
 /// Verify creating of entities
-pub async fn create<E>(instance: E, pool: &PgPool)
+pub async fn create<E>(instance: E, pool: &crate::Pool)
 where
-    E: Entity<Database = sqlx::Postgres> + Clone + Debug + Eq + Send,
+    E: Entity + Clone + Debug + Eq + Send,
 {
     assert!(
         E::find(&instance.pk(), pool).await.unwrap().is_none(),
@@ -23,9 +22,9 @@ where
 }
 
 /// Verify read operations
-pub async fn read<E>(instance: E, pool: &PgPool)
+pub async fn read<E>(instance: E, pool: &crate::Pool)
 where
-    E: Entity<Database = sqlx::Postgres> + Clone + Debug + Eq + Send,
+    E: Entity + Clone + Debug + Eq + Send,
 {
     assert!(
         E::find(&instance.pk(), pool).await.unwrap().is_none(),
@@ -43,9 +42,9 @@ where
 }
 
 /// Verify update operations
-pub async fn update<E>(mut instance: E, updates: Vec<E>, pool: &PgPool)
+pub async fn update<E>(mut instance: E, updates: Vec<E>, pool: &crate::Pool)
 where
-    E: Entity<Database = sqlx::Postgres> + Clone + Debug + Eq + Send,
+    E: Entity + Clone + Debug + Eq + Send,
 {
     instance.save(pool).await.expect("insertion did not work");
 
@@ -72,9 +71,9 @@ where
 }
 
 /// Verify delete operations
-pub async fn delete<E>(mut instance: E, pool: &PgPool)
+pub async fn delete<E>(mut instance: E, pool: &crate::Pool)
 where
-    E: Entity<Database = sqlx::Postgres> + Clone + Debug + Eq + Send,
+    E: Entity + Clone + Debug + Eq + Send,
 {
     instance.create(pool).await.expect("insertion did not work");
 

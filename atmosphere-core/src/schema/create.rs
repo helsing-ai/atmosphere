@@ -5,17 +5,20 @@ use crate::{
 };
 
 use async_trait::async_trait;
-use sqlx::{database::HasArguments, Database, Executor, IntoArguments};
+use sqlx::{database::HasArguments, Executor, IntoArguments};
 
 /// Create rows in a [`sqlx::Database`]
 #[async_trait]
 pub trait Create: Table + Bind + Sync + 'static {
     /// Create a new row
-    async fn create<'e, E>(&self, executor: E) -> Result<<Self::Database as Database>::QueryResult>
+    async fn create<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<<crate::Driver as sqlx::Database>::QueryResult>
     where
-        E: Executor<'e, Database = Self::Database>,
-        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, Self::Database> + Send;
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send;
 
     // Create many new rows
     //async fn create_many(entities: &[impl AsRef<Self>], pool: &sqlx::PgPool) -> Result<()> {
@@ -31,11 +34,11 @@ where
     async fn create<'e, E>(
         &self,
         executor: E,
-    ) -> Result<<T::Database as sqlx::Database>::QueryResult>
+    ) -> Result<<crate::Driver as sqlx::Database>::QueryResult>
     where
-        E: Executor<'e, Database = Self::Database>,
-        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, Self::Database> + Send,
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send,
     {
         let Query {
             builder, bindings, ..

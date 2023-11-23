@@ -11,18 +11,18 @@ use sqlx::{database::HasArguments, Database, Executor, IntoArguments};
 #[async_trait]
 pub trait Update: Table + Bind + Send + Sync + Unpin + 'static {
     /// Update the row in the database
-    async fn update<'e, E>(&self, executor: E) -> Result<<Self::Database as Database>::QueryResult>
+    async fn update<'e, E>(&self, executor: E) -> Result<<crate::Driver as Database>::QueryResult>
     where
-        E: Executor<'e, Database = Self::Database>,
-        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, Self::Database> + Send;
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send;
 
     /// Save to the database
-    async fn save<'e, E>(&self, executor: E) -> Result<<Self::Database as Database>::QueryResult>
+    async fn save<'e, E>(&self, executor: E) -> Result<<crate::Driver as Database>::QueryResult>
     where
-        E: Executor<'e, Database = Self::Database>,
-        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, Self::Database> + Send;
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send;
 }
 
 #[async_trait]
@@ -30,11 +30,11 @@ impl<T> Update for T
 where
     T: Table + Bind + Send + Sync + Unpin + 'static,
 {
-    async fn update<'e, E>(&self, executor: E) -> Result<<Self::Database as Database>::QueryResult>
+    async fn update<'e, E>(&self, executor: E) -> Result<<crate::Driver as Database>::QueryResult>
     where
-        E: Executor<'e, Database = Self::Database>,
-        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, Self::Database> + Send,
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send,
     {
         let Query {
             builder, bindings, ..
@@ -54,11 +54,11 @@ where
             .map_err(Error::Query)
     }
 
-    async fn save<'e, E>(&self, executor: E) -> Result<<Self::Database as Database>::QueryResult>
+    async fn save<'e, E>(&self, executor: E) -> Result<<crate::Driver as Database>::QueryResult>
     where
-        E: Executor<'e, Database = Self::Database>,
-        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, Self::Database> + Send,
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send,
     {
         let Query {
             builder, bindings, ..

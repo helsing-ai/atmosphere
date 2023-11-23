@@ -1,5 +1,5 @@
 use atmosphere::prelude::*;
-use sqlx::PgPool;
+use atmosphere_core::relationships::ReferrsTo;
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "forest")]
@@ -12,7 +12,6 @@ struct Forest {
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "tree")]
-//#[relation(grouped_by = Forest)]
 struct Tree {
     #[primary_key]
     id: i32,
@@ -22,7 +21,7 @@ struct Tree {
 
 #[tokio::main]
 async fn main() -> atmosphere::Result<()> {
-    let pool = PgPool::connect(&std::env::var("DATABASE_URL").unwrap())
+    let pool = Pool::connect(&std::env::var("DATABASE_URL").unwrap())
         .await
         .unwrap();
 
@@ -40,6 +39,8 @@ async fn main() -> atmosphere::Result<()> {
     dbg!(Forest::FOREIGN_KEYS);
     dbg!(Forest::DATA_COLUMNS);
     dbg!(Forest::META_COLUMNS);
+
+    dbg!(<Tree as ReferrsTo<Forest>>::FOREIGN_KEY);
 
     Ok(())
 }

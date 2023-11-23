@@ -173,7 +173,6 @@ impl Table {
             #[automatically_derived]
             impl ::atmosphere::Table for #ident {
                 type PrimaryKey = #pk_ty;
-                type Database = ::sqlx::Postgres;
 
                 const SCHEMA: &'static str = #schema;
                 const TABLE: &'static str = #table;
@@ -188,6 +187,30 @@ impl Table {
                 }
             }
         )
+    }
+
+    pub fn quote_relationship_impls(&self) -> TokenStream {
+        let mut stream = TokenStream::new();
+
+        let ident = &self.ident;
+
+        for fk in self.foreign_keys.iter() {
+            let name = fk.name.to_string();
+            let other = &fk.foreign_table;
+
+            stream.extend(quote!(
+                #[automatically_derived]
+                impl ::atmosphere::relationships::ReferrsTo<#other> for #ident {
+                    const FOREIGN_KEY: ::atmosphere::ForeignKey<#ident, #other> =
+                        ::atmosphere::ForeignKey::new(#name);
+                }
+
+                #[automatically_derived]
+                impl ::atmosphere::relationships::ReferredBy<#ident> for #other {}
+            ));
+        }
+
+        stream
     }
 
     pub fn quote_bind_impl(&self) -> TokenStream {
@@ -251,7 +274,7 @@ impl Table {
             impl ::atmosphere::Bind for #ident {
                 fn bind<
                     'q,
-                    Q: ::atmosphere::Bindable<'q, Self::Database>
+                    Q: ::atmosphere::Bindable<'q>
                 >(
                     &'q self,
                     #col: &'q ::atmosphere::Column<Self>,

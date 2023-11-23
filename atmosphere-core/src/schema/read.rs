@@ -13,16 +13,16 @@ pub trait Read: Table + Bind + Send + Sync + Unpin + 'static {
     /// Find a row by its primary key
     async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Option<Self>>
     where
-        E: Executor<'e, Database = Self::Database>,
-        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, Self::Database> + Send;
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send;
 
     /// Reload from database
     async fn reload<'e, E>(&mut self, executor: E) -> Result<()>
     where
-        E: Executor<'e, Database = Self::Database>,
-        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, Self::Database> + Send;
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send;
 
     // Find all rows in the list of primary keys
     //async fn find_many<'e, E>(pks: &[impl AsRef<Self::PrimaryKey>], executor: E) -> Result<Vec<Self>>
@@ -44,9 +44,9 @@ where
 {
     async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Option<Self>>
     where
-        E: Executor<'e, Database = Self::Database>,
-        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, Self::Database> + Send,
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send,
     {
         let Query {
             builder, bindings, ..
@@ -66,9 +66,9 @@ where
 
     async fn reload<'e, E>(&mut self, executor: E) -> Result<()>
     where
-        E: Executor<'e, Database = Self::Database>,
-        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, Self::Database> + Send,
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send,
     {
         let Query {
             builder, bindings, ..

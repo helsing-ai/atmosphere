@@ -11,21 +11,21 @@ use sqlx::{database::HasArguments, Database, Executor, IntoArguments};
 #[async_trait]
 pub trait Delete: Table + Bind + Send + Sync + Unpin + 'static {
     /// Delete row in database
-    async fn delete<'e, E>(&self, executor: E) -> Result<<Self::Database as Database>::QueryResult>
+    async fn delete<'e, E>(&self, executor: E) -> Result<<crate::Driver as Database>::QueryResult>
     where
-        E: Executor<'e, Database = Self::Database>,
-        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, Self::Database> + Send;
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send;
 
     /// Delete row in database by primary key
     async fn delete_by<'e, E>(
         pk: &Self::PrimaryKey,
         executor: E,
-    ) -> Result<<Self::Database as Database>::QueryResult>
+    ) -> Result<<crate::Driver as Database>::QueryResult>
     where
-        E: Executor<'e, Database = Self::Database>,
-        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, Self::Database> + Send;
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send;
 
     // Delete all rows in the list of primary keys
     //async fn delete_many<'e, E>(pks: &[impl AsRef<Self::PrimaryKey>], executor: E) -> Result<()>
@@ -41,11 +41,11 @@ impl<T> Delete for T
 where
     T: Table + Bind + Send + Sync + Unpin + 'static,
 {
-    async fn delete<'e, E>(&self, executor: E) -> Result<<Self::Database as Database>::QueryResult>
+    async fn delete<'e, E>(&self, executor: E) -> Result<<crate::Driver as Database>::QueryResult>
     where
-        E: Executor<'e, Database = Self::Database>,
-        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, Self::Database> + Send,
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send,
     {
         let Query {
             builder, bindings, ..
@@ -68,11 +68,11 @@ where
     async fn delete_by<'e, E>(
         pk: &Self::PrimaryKey,
         executor: E,
-    ) -> Result<<Self::Database as Database>::QueryResult>
+    ) -> Result<<crate::Driver as Database>::QueryResult>
     where
-        E: Executor<'e, Database = Self::Database>,
-        for<'q> <Self::Database as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, Self::Database> + Send,
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send,
     {
         let Query {
             builder, bindings, ..
