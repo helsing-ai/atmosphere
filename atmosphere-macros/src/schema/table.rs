@@ -4,7 +4,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
-use syn::{Attribute, Ident, LitStr, Token};
+use syn::{Attribute, Error, Ident, LitStr, Token};
 
 use super::column::Column;
 
@@ -58,9 +58,11 @@ impl Parse for TableId {
 pub struct Table {
     pub ident: Ident,
     pub id: TableId,
+
     pub primary_key: Column,
-    //pub foreign_keys: Vec<ForeignKey>,
-    //pub data: Vec<Column>,
+
+    pub foreign_keys: HashSet<Column>,
+    pub data: HashSet<Column>,
 }
 
 impl Parse for Table {
@@ -76,8 +78,6 @@ impl Parse for Table {
             ))?
             .parse_args()?;
 
-        dbg!(id);
-
         let _: Token![struct] = input.parse()?;
 
         let ident: Ident = input.parse()?;
@@ -88,64 +88,57 @@ impl Parse for Table {
         let columns: Punctuated<Column, Token![,]> =
             content.parse_terminated(Column::parse, Token![,])?;
 
-        let colums: HashSet<Column> = columns.into_iter().collect();
+        let columns: HashSet<Column> = columns.into_iter().collect();
 
-        //dbg!(fields.into_token_stream());
+        let primary_key = columns.iter().find(|c| c.pk).cloned().ok_or(Error::new(
+            input.span(),
+            format!(
+                "{} must declare one field as its primary key (using `#[primary_key]`",
+                ident.to_string()
+            ),
+        ))?;
 
-        //let inner: syn::DataStruct = input.parse()?;
+        // verify that there is only one primary key
+        if columns.iter().filter(|c| c.pk).count() > 1 {
+            return Err(Error::new(
+                input.span(),
+                format!(
+                    "{} declares more than one column as its primary key – only one is allowed",
+                    ident.to_string()
+                ),
+            ));
+        }
 
-        unimplemented!()
+        let foreign_keys = columns
+            .iter()
+            .filter(|c| c.pk == false && c.fk == true)
+            .cloned()
+            .collect();
+
+        let data = columns
+            .iter()
+            .filter(|c| c.pk == false && c.fk == false)
+            .cloned()
+            .collect();
+
+        Ok(Self {
+            ident,
+            id,
+            primary_key,
+            foreign_keys,
+            data,
+        })
     }
 }
 
 impl Table {
-    //pub fn parse(input: &DeriveInput, fields: &Punctuated<Field, Comma>) -> Self {
-    //let ident = &input.ident;
-
-    ////let columns = fields.iter().map(Column::parse);
-
-    //let (pk, data): (Vec<Column>, Vec<Column>) = columns.partition(|c| c.pk);
-
-    //let pk = {
-    //if pk.len() == 0 {
-    //panic!(
-    //"missing primary key column (#[primary_key]) on table {}",
-    //ident
-    //);
-    //}
-
-    //if pk.len() > 1 {
-    //panic!(
-    //"found more than one primary key column (#[primary_key]) on table {}",
-    //ident
-    //);
-    //}
-
-    //pk.first().take().cloned().expect("internal error")
-    //};
-
-    //let data = data.into_iter().filter(|d| !d.fk).collect();
-    //let foreign_keys: Vec<ForeignKey> = fields.iter().filter_map(ForeignKey::parse).collect();
-
-    //Self {
-    //ident: ident.to_owned(),
-    //id: TableId {
-    //schema: "hi".to_owned(),
-    //table: "hi".to_owned(),
-    //},
-    //primary_key: pk,
-    //foreign_keys,
-    //data,
-    //}
-    //}
-
     pub fn quote_table_impl(&self) -> TokenStream {
         let Self {
             ident,
             id,
             primary_key,
-            //foreign_keys,
-            //data,
+            foreign_keys,
+            data,
         } = self;
 
         let schema = id.schema.to_string();
@@ -153,8 +146,8 @@ impl Table {
         let pk_ty = &self.primary_key.ty;
         let pk_field = &self.primary_key.name;
         let primary_key = self.primary_key.quote();
-        //let foreign_keys = self.foreign_keys.iter().map(|r| r.column.quote());
-        //let data = self.data.iter().map(|d| d.quote());
+        let foreign_keys = self.foreign_keys.iter().map(|r| r.quote());
+        let data = self.data.iter().map(|d| d.quote());
 
         quote!(
             #[automatically_derived]
@@ -168,10 +161,10 @@ impl Table {
                 const TABLE: &'static str = #table;
 
                 const FOREIGN_KEYS: &'static [::atmosphere::Column<#ident>] = &[
-                    //#(#foreign_keys),*
+                    #(#foreign_keys),*
                 ];
                 const DATA: &'static [::atmosphere::Column<#ident>] = &[
-                    //#(#data),*
+                    #(#data),*
                 ];
 
                 fn pk(&self) -> &Self::PrimaryKey {
@@ -186,8 +179,8 @@ impl Table {
             ident,
             id,
             primary_key,
-            //foreign_keys,
-            //data,
+            foreign_keys,
+            data,
         } = self;
 
         let col = Ident::new("col", proc_macro2::Span::call_site());
@@ -198,50 +191,50 @@ impl Table {
 
             quote!(
                 if #col.name == Self::PRIMARY_KEY.name {
-                    use ::atmosphere_core::Bindable;
+                    use ::atmosphere::Bindable;
 
                     return Ok(#query.dyn_bind(&self.#name));
                 }
             )
         };
 
-        //let foreign_key_binds = {
-        //let mut stream = TokenStream2::new();
+        let foreign_key_binds = {
+            let mut stream = TokenStream::new();
 
-        //for ref fk in &self.foreign_keys {
-        //let ident = &fk.column.name;
-        //let name = fk.column.name.to_string();
+            for ref fk in &self.foreign_keys {
+                let ident = &fk.name;
+                let name = fk.name.to_string();
 
-        //stream.extend(quote!(
-        //if #col.name == #name {
-        //use ::atmosphere_core::Bindable;
+                stream.extend(quote!(
+                if #col.name == #name {
+                    use ::atmosphere::Bindable;
 
-        //return Ok(#query.dyn_bind(&self.#ident));
-        //}
-        //));
-        //}
+                    return Ok(#query.dyn_bind(&self.#ident));
+                }
+                ));
+            }
 
-        //stream
-        //};
+            stream
+        };
 
-        //let data_binds = {
-        //let mut stream = TokenStream2::new();
+        let data_binds = {
+            let mut stream = TokenStream::new();
 
-        //for ref data in &self.data {
-        //let ident = &data.name;
-        //let name = data.name.to_string();
+            for ref data in &self.data {
+                let ident = &data.name;
+                let name = data.name.to_string();
 
-        //stream.extend(quote!(
-        //if #col.name == #name {
-        //use ::atmosphere_core::Bindable;
+                stream.extend(quote!(
+                if #col.name == #name {
+                    use ::atmosphere::Bindable;
 
-        //return Ok(#query.dyn_bind(&self.#ident));
-        //}
-        //));
-        //}
+                    return Ok(#query.dyn_bind(&self.#ident));
+                }
+                ));
+            }
 
-        //stream
-        //};
+            stream
+        };
 
         quote!(
             #[automatically_derived]
@@ -255,8 +248,8 @@ impl Table {
                     #query: Q
                 ) -> ::atmosphere::Result<Q> {
                     #primary_key_bind
-                    //#foreign_key_binds
-                    //#data_binds
+                    #foreign_key_binds
+                    #data_binds
 
                     Err(::atmosphere::Error::Bind(
                         ::atmosphere::bind::BindError::Unknown(#col.name)

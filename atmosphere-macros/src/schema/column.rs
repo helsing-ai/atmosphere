@@ -54,20 +54,20 @@ impl Parse for Column {
 
 impl Column {
     pub fn quote(&self) -> TokenStream {
-        let Column { pk, fk, name, ty } = self;
+        let Column { pk, fk, name, .. } = self;
 
         let name = name.to_string();
 
         let col_type = if *pk {
-            quote!(::atmosphere_core::ColumnType::PrimaryKey)
+            quote!(::atmosphere::ColumnType::PrimaryKey)
         } else if *fk {
-            quote!(::atmosphere_core::ColumnType::ForeignKey)
+            quote!(::atmosphere::ColumnType::ForeignKey)
         } else {
-            quote!(::atmosphere_core::ColumnType::Value)
+            quote!(::atmosphere::ColumnType::Value)
         };
 
         quote!(
-            ::atmosphere_core::Column::new(
+            ::atmosphere::Column::new(
                 #name,
                 #col_type
             )

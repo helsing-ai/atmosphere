@@ -12,7 +12,7 @@ struct Forest {
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "tree")]
-#[relation(grouped_by = Forest)]
+//#[relation(grouped_by = Forest)]
 struct Tree {
     #[primary_key]
     id: i32,
@@ -22,17 +22,17 @@ struct Tree {
 
 #[tokio::main]
 async fn main() -> atmosphere::Result<()> {
-    let pool = PgPool::connect(&std::env::var("DATABASE_URL").unwrap())
-        .await
-        .unwrap();
+    //let pool = PgPool::connect(&std::env::var("DATABASE_URL").unwrap())
+    //.await
+    //.unwrap();
 
-    Forest {
-        id: 0,
-        name: "test".to_owned(),
-        location: "germany".to_owned(),
-    }
-    .save(&pool)
-    .await?;
+    //Forest {
+    //id: 0,
+    //name: "test".to_owned(),
+    //location: "germany".to_owned(),
+    //}
+    //.save(&pool)
+    //.await?;
 
     dbg!(Forest::SCHEMA);
     dbg!(Forest::TABLE);
