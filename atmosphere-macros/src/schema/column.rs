@@ -1,11 +1,8 @@
 use std::hash::Hash;
 
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{
-    parse::{Error, Parse, ParseStream},
-    Field, Ident, Type,
-};
+use syn::{parse::Error, Field, Ident, Type};
 
 use super::keys::{ForeignKey, PrimaryKey};
 
@@ -82,12 +79,12 @@ mod attributes {
     pub const META_DELETED_AT: &str = "deleted_at";
 }
 
-impl Parse for Column {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let field = input.call(Field::parse_named)?;
+impl TryFrom<Field> for Column {
+    type Error = syn::Error;
 
+    fn try_from(field: Field) -> syn::Result<Self> {
         let name = field.ident.ok_or(syn::Error::new(
-            input.span(),
+            Span::call_site(),
             "only named fields are supported",
         ))?;
 
@@ -125,7 +122,7 @@ impl Parse for Column {
 
         if primary_key.is_some() && foreign_key.is_some() {
             return Err(Error::new(
-                input.span(),
+                name.span(),
                 format!(
                     "{} can not be primary key and foreign key at the same time",
                     name.to_string()
@@ -135,7 +132,7 @@ impl Parse for Column {
 
         if primary_key.is_some() && unique.is_some() {
             return Err(Error::new(
-                input.span(),
+                name.span(),
                 format!(
                     "{} uniqueness is inhereted by marking a column as primary key",
                     name.to_string()
@@ -147,7 +144,7 @@ impl Parse for Column {
             && (meta_created.is_some() || meta_deleted.is_some() || meta_updated.is_some())
         {
             return Err(Error::new(
-                input.span(),
+                name.span(),
                 format!(
                     "{} can not be a key column and timestamp at the same time",
                     name.to_string()
@@ -191,7 +188,7 @@ impl Parse for Column {
             }
             _ => {
                 return Err(Error::new(
-                    input.span(),
+                    name.span(),
                     format!(
                         "{} has an invalid combination of atmosphere column attributes",
                         name.to_string()

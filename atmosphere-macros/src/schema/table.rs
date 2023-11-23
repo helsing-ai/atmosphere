@@ -3,8 +3,7 @@ use std::collections::HashSet;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
-use syn::punctuated::Punctuated;
-use syn::{Attribute, Error, Ident, LitStr, Token};
+use syn::{Error, Fields, Generics, Ident, LitStr, Token, Visibility};
 
 use crate::schema::keys::PrimaryKey;
 
@@ -59,7 +58,10 @@ impl Parse for TableId {
 
 #[derive(Clone, Debug)]
 pub struct Table {
+    pub vis: Visibility,
+    pub generics: Generics,
     pub ident: Ident,
+
     pub id: TableId,
 
     pub primary_key: PrimaryKey,
@@ -71,9 +73,10 @@ pub struct Table {
 
 impl Parse for Table {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let attrs: Vec<Attribute> = input.call(Attribute::parse_outer)?;
+        let item: syn::ItemStruct = input.parse()?;
 
-        let id: TableId = attrs
+        let id: TableId = item
+            .attrs
             .iter()
             .find(|attr| attr.path().is_ident("table"))
             .ok_or(syn::Error::new(
@@ -82,15 +85,26 @@ impl Parse for Table {
             ))?
             .parse_args()?;
 
-        let _: Token![struct] = input.parse()?;
+        let ident = item.ident;
 
-        let ident: Ident = input.parse()?;
+        let fields = match item.fields {
+            Fields::Named(n) => n,
+            Fields::Unnamed(_) | Fields::Unit => {
+                return Err(Error::new(
+                    ident.span(),
+                    format!(
+                        "{} must use named fields in order to derive `Schema`",
+                        ident.to_string()
+                    ),
+                ))
+            }
+        };
 
-        let content;
-        syn::braced!(content in input);
-
-        let columns: Punctuated<Column, Token![,]> =
-            content.parse_terminated(Column::parse, Token![,])?;
+        let columns = fields
+            .named
+            .into_iter()
+            .map(Column::try_from)
+            .collect::<syn::Result<HashSet<Column>>>()?;
 
         let primary_key = {
             let primary_keys: HashSet<PrimaryKey> = columns
@@ -137,6 +151,8 @@ impl Parse for Table {
             .collect();
 
         Ok(Self {
+            vis: item.vis,
+            generics: item.generics,
             ident,
             id,
             primary_key,
@@ -156,6 +172,7 @@ impl Table {
             foreign_keys,
             data_columns,
             meta_columns,
+            ..
         } = self;
 
         let schema = id.schema.to_string();
@@ -216,7 +233,7 @@ impl Table {
             stream.extend(quote!(
                 #[automatically_derived]
                 impl #ident {
-                    async fn #find_other<'e, E>(
+                    pub async fn #find_other<'e, E>(
                         &self,
                         executor: E,
                     ) -> Result<#other>
@@ -230,7 +247,7 @@ impl Table {
 
                 #[automatically_derived]
                 impl #other {
-                    async fn #find_all_self<'e, E>(
+                    pub async fn #find_all_self<'e, E>(
                         &self,
                         executor: E,
                     ) -> Result<Vec<#ident>>
@@ -241,7 +258,7 @@ impl Table {
                         <#other as ::atmosphere::rel::ReferedBy<#ident>>::resolve(&self, executor).await
                     }
 
-                    async fn #drop_self<'e, E>(
+                    pub async fn #drop_self<'e, E>(
                         &self,
                         executor: E,
                     ) -> Result<<::atmosphere::Driver as ::sqlx::Database>::QueryResult>
