@@ -12,7 +12,6 @@ struct Forest {
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(name = "tree", schema = "public")]
-#[relation(grouped_by = Forest)]
 struct Tree {
     #[primary_key]
     id: i32,

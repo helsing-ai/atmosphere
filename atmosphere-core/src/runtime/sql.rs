@@ -138,6 +138,9 @@ pub fn update<T: Bind>() -> Query<T> {
 
     let mut separated = builder.separated(",\n  ");
 
+    separated.push(format!("{} = $1", T::PRIMARY_KEY.name));
+    bindings.push(Column::PrimaryKey(&T::PRIMARY_KEY));
+
     let mut col = 2;
 
     for ref fk in T::FOREIGN_KEYS {
@@ -245,7 +248,7 @@ mod tests {
         const PRIMARY_KEY: PrimaryKey<Self> = PrimaryKey::new("id");
         const FOREIGN_KEYS: &'static [DynamicForeignKey<Self>] = &[DynamicForeignKey::new("fk")];
         const DATA_COLUMNS: &'static [DataColumn<Self>] = &[DataColumn::new("data")];
-        const META_COLUMNS: &'static [MetaColumn<Self>] = &[MetaColumn::new("data")];
+        const META_COLUMNS: &'static [MetaColumn<Self>] = &[];
 
         fn pk(&self) -> &Self::PrimaryKey {
             &self.id
@@ -281,7 +284,7 @@ mod tests {
 
         assert_eq!(
             builder.sql(),
-            "SELECT\n  id,\n  fk,\n  data\nFROM\n  \"public\".\"test\"\n"
+            "SELECT\n  id,\n  fk,\n  data\nFROM\n  \"public\".\"test\"\nWHERE id = $1"
         );
 
         assert_eq!(
