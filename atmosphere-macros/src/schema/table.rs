@@ -191,15 +191,6 @@ impl Table {
     }
 
     pub fn quote_bind_impl(&self) -> TokenStream {
-        let Self {
-            ident,
-            id,
-            primary_key,
-            foreign_keys,
-            data_columns,
-            meta_columns,
-        } = self;
-
         let col = Ident::new("col", proc_macro2::Span::call_site());
         let query = Ident::new("query", proc_macro2::Span::call_site());
 
@@ -252,6 +243,8 @@ impl Table {
 
             stream
         };
+
+        let ident = &self.ident;
 
         quote!(
             #[automatically_derived]

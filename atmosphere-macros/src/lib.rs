@@ -8,27 +8,7 @@ use schema::table::Table;
 
 #[proc_macro_derive(Schema, attributes(primary_key, foreign_key))]
 pub fn schema(input: TokenStream) -> TokenStream {
-    //let input = parse_macro_input!(input as DeriveInput);
-
-    //let Data::Struct(DataStruct {
-    //fields: Fields::Named(FieldsNamed { named: columns, .. }),
-    //..
-    //}) = &input.data
-    //else {
-    //panic!("Only named structs can be tables");
-    //};
-
-    //let table_attr = input
-    //.attrs
-    //.iter()
-    //.find(|attr| attr.path.is_ident("table"))
-    //.expect("You need to use the `#[table]` attribute if you want to derive the Schema");
-
-    //dbg!(table_attr.to_token_stream());
-
-    //let table = <Table as syn::parse::Parse>::parse(input.parse);
     let table = parse_macro_input!(input as Table);
-
     let table_impl = table.quote_table_impl();
     let bind_impl = table.quote_bind_impl();
 
@@ -44,7 +24,7 @@ pub fn schema(input: TokenStream) -> TokenStream {
 // Markers
 
 #[proc_macro_attribute]
-pub fn table(attr: TokenStream, input: TokenStream) -> TokenStream {
+pub fn table(_: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
     quote! {

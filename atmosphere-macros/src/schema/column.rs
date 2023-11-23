@@ -31,7 +31,7 @@ impl MetaColumn {
     }
 
     pub fn quote(&self) -> TokenStream {
-        let name = self.name().to_string();
+        //let name = self.name().to_string();
 
         unimplemented!()
 
@@ -116,7 +116,7 @@ impl Parse for Column {
         let meta_updated = field
             .attrs
             .iter()
-            .find(|a| a.path().is_ident(attributes::META_DELETED_AT));
+            .find(|a| a.path().is_ident(attributes::META_UPDATED_AT));
 
         let meta_deleted = field
             .attrs
@@ -163,7 +163,7 @@ impl Parse for Column {
             meta_updated,
             meta_deleted,
         ) {
-            (Some(pk), None, None, None, None, None) => {
+            (Some(_), None, None, None, None, None) => {
                 return Ok(Self::PrimaryKey(PrimaryKey { name, ty }))
             }
             (None, Some(fk), None, None, None, None) => {

@@ -22,17 +22,17 @@ struct Tree {
 
 #[tokio::main]
 async fn main() -> atmosphere::Result<()> {
-    //let pool = PgPool::connect(&std::env::var("DATABASE_URL").unwrap())
-    //.await
-    //.unwrap();
+    let pool = PgPool::connect(&std::env::var("DATABASE_URL").unwrap())
+        .await
+        .unwrap();
 
-    //Forest {
-    //id: 0,
-    //name: "test".to_owned(),
-    //location: "germany".to_owned(),
-    //}
-    //.save(&pool)
-    //.await?;
+    Forest {
+        id: 0,
+        name: "test".to_owned(),
+        location: "germany".to_owned(),
+    }
+    .save(&pool)
+    .await?;
 
     dbg!(Forest::SCHEMA);
     dbg!(Forest::TABLE);
