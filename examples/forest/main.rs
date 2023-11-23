@@ -1,5 +1,4 @@
 use atmosphere::prelude::*;
-use atmosphere_core::relationships::ReferrsTo;
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "forest")]
@@ -33,14 +32,20 @@ async fn main() -> atmosphere::Result<()> {
     .save(&pool)
     .await?;
 
-    dbg!(Forest::SCHEMA);
-    dbg!(Forest::TABLE);
-    dbg!(Forest::PRIMARY_KEY);
-    dbg!(Forest::FOREIGN_KEYS);
-    dbg!(Forest::DATA_COLUMNS);
-    dbg!(Forest::META_COLUMNS);
+    for id in 0..5 {
+        Tree { id, forest_id: 0 }.save(&pool).await?;
+    }
 
-    dbg!(<Tree as ReferrsTo<Forest>>::FOREIGN_KEY);
+    dbg!(Forest {
+        id: 0,
+        name: "test".to_owned(),
+        location: "germany".to_owned(),
+    }
+    .trees(&pool)
+    .await?
+    .iter()
+    .map(|t| t.id)
+    .collect::<std::collections::HashSet<i32>>());
 
     Ok(())
 }

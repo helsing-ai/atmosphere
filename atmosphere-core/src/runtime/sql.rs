@@ -7,7 +7,7 @@ use crate::{
     Bind, Column,
 };
 
-pub struct Bindings<T: Bind>(Vec<Column<'static, T>>);
+pub struct Bindings<T: Bind>(Vec<Column<T>>);
 
 impl<T: Bind> PartialEq for Bindings<T> {
     fn eq(&self, other: &Self) -> bool {
@@ -57,8 +57,13 @@ fn table<T: Bind>() -> String {
     format!("\"{}\".\"{}\"", T::SCHEMA, T::TABLE)
 }
 
-/// Yields a sql `select` statement
+/// `SELECT * FROM .. WHERE .. = $1`
 pub fn select<T: Bind>() -> Query<T> {
+    select_by(Column::PrimaryKey(&T::PRIMARY_KEY))
+}
+
+/// `SELECT * FROM .. WHERE .. = $1`
+pub fn select_by<T: Bind>(c: Column<T>) -> Query<T> {
     let mut query = QueryBuilder::new("SELECT\n  ");
 
     let mut separated = query.separated(",\n  ");
@@ -73,18 +78,52 @@ pub fn select<T: Bind>() -> Query<T> {
         separated.push(data.name);
     }
 
+    for ref meta in T::META_COLUMNS {
+        separated.push(meta.name);
+    }
+
     query.push(format!("\nFROM\n  {}\n", table::<T>()));
-    query.push(format!("WHERE {} = $1", T::PRIMARY_KEY.name));
+    query.push(format!("WHERE {} = $1", c.name()));
 
     Query::new(
         query::Operation::Select,
         query::Cardinality::One,
         query,
-        Bindings(vec![Column::PrimaryKey(&T::PRIMARY_KEY)]),
+        Bindings(vec![c]),
     )
 }
 
-/// Yields a sql `insert` statement
+/// `SELECT * FROM ..`
+pub fn select_all<T: Bind>() -> Query<T> {
+    let mut query = QueryBuilder::new("SELECT\n  ");
+
+    let mut separated = query.separated(",\n  ");
+
+    separated.push(T::PRIMARY_KEY.name);
+
+    for ref fk in T::FOREIGN_KEYS {
+        separated.push(fk.name);
+    }
+
+    for ref data in T::DATA_COLUMNS {
+        separated.push(data.name);
+    }
+
+    for ref meta in T::META_COLUMNS {
+        separated.push(meta.name);
+    }
+
+    query.push(format!("\nFROM\n  {}\n", table::<T>()));
+
+    Query::new(
+        query::Operation::Select,
+        query::Cardinality::Many,
+        query,
+        Bindings::empty(),
+    )
+}
+
+/// `INSERT INTO .. VALUES ..`
 pub fn insert<T: Bind>() -> Query<T> {
     let mut builder = QueryBuilder::new(format!("INSERT INTO {}\n  (", table::<T>()));
 
@@ -130,7 +169,7 @@ pub fn insert<T: Bind>() -> Query<T> {
     )
 }
 
-/// Yields a sql `update` statement
+/// `UPDATE .. SET .. WHERE ..`
 pub fn update<T: Bind>() -> Query<T> {
     let mut builder = QueryBuilder::new(format!("UPDATE {} SET\n  ", table::<T>()));
     let mut bindings = vec![];
@@ -170,7 +209,7 @@ pub fn update<T: Bind>() -> Query<T> {
     )
 }
 
-/// Yields a sql `update .. on conflict insert` statement
+/// `UPDATE .. SET .. WHERE .. ON CONFLICT .. DO UPDATE SET`
 pub fn upsert<T: Bind>() -> Query<T> {
     let Query {
         mut builder,
@@ -204,9 +243,7 @@ pub fn upsert<T: Bind>() -> Query<T> {
     )
 }
 
-/// Yields a sql `delete` statement
-///
-/// Binds: `pk`
+/// `DELETE FROM .. WHERE ..`
 pub fn delete<T: Bind>() -> Query<T> {
     let mut builder = QueryBuilder::new(format!("DELETE FROM {} WHERE ", table::<T>()));
 
@@ -225,7 +262,7 @@ pub fn delete<T: Bind>() -> Query<T> {
 mod tests {
     use crate::{
         runtime::sql::{self, Bindings},
-        Bind, Bindable, Column, DataColumn, DynamicForeignKey, MetaColumn, PrimaryKey, Table,
+        Bind, Bindable, Column, DataColumn, ForeignKey, MetaColumn, PrimaryKey, Table,
     };
 
     #[derive(sqlx::FromRow)]
@@ -243,7 +280,7 @@ mod tests {
         const TABLE: &'static str = "test";
 
         const PRIMARY_KEY: PrimaryKey<Self> = PrimaryKey::new("id");
-        const FOREIGN_KEYS: &'static [DynamicForeignKey<Self>] = &[DynamicForeignKey::new("fk")];
+        const FOREIGN_KEYS: &'static [ForeignKey<Self>] = &[ForeignKey::new("fk")];
         const DATA_COLUMNS: &'static [DataColumn<Self>] = &[DataColumn::new("data")];
         const META_COLUMNS: &'static [MetaColumn<Self>] = &[];
 

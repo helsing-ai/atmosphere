@@ -10,7 +10,7 @@ pub use delete::Delete;
 pub use read::Read;
 pub use update::Update;
 
-pub use self::column::{Column, DataColumn, DynamicForeignKey, ForeignKey, MetaColumn, PrimaryKey};
+pub use self::column::{Column, DataColumn, ForeignKey, MetaColumn, PrimaryKey};
 
 /// SQL Table Definition
 pub trait Table
@@ -26,7 +26,7 @@ where
     /// The primary key of this table
     const PRIMARY_KEY: PrimaryKey<Self>;
     /// Columns that are used as a foreign key
-    const FOREIGN_KEYS: &'static [DynamicForeignKey<Self>];
+    const FOREIGN_KEYS: &'static [ForeignKey<Self>];
     /// Columns that are treated as data
     const DATA_COLUMNS: &'static [DataColumn<Self>];
     /// Columns that are treated as metadata
@@ -46,14 +46,14 @@ pub mod column {
 
     /// Column Variants
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub enum Column<'c, T: Table> {
-        PrimaryKey(&'c PrimaryKey<T>),
-        ForeignKey(&'c DynamicForeignKey<T>),
-        DataColumn(&'c DataColumn<T>),
-        MetaColumn(&'c MetaColumn<T>),
+    pub enum Column<T: Table> {
+        PrimaryKey(&'static PrimaryKey<T>),
+        ForeignKey(&'static ForeignKey<T>),
+        DataColumn(&'static DataColumn<T>),
+        MetaColumn(&'static MetaColumn<T>),
     }
 
-    impl<'c, T: Table> Column<'c, T> {
+    impl<T: Table> Column<T> {
         pub const fn name(&self) -> &'static str {
             match self {
                 Self::PrimaryKey(pk) => pk.name,
@@ -78,39 +78,40 @@ pub mod column {
                 table: PhantomData,
             }
         }
+
+        pub const fn as_col(&'static self) -> Column<T> {
+            Column::PrimaryKey(self)
+        }
     }
 
     /// Descriptor type of a sql foreign key column
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub struct DynamicForeignKey<T: Table> {
+    pub struct ForeignKey<T: Table> {
         pub name: &'static str,
         table: PhantomData<T>,
     }
 
-    impl<T: Table> DynamicForeignKey<T> {
+    impl<T: Table> ForeignKey<T> {
         pub const fn new(name: &'static str) -> Self {
             Self {
                 name,
                 table: PhantomData,
             }
         }
-    }
 
-    /// Descriptor type of a sql foreign key column
-    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub struct ForeignKey<F: Table, T: Table> {
-        pub name: &'static str,
-        from: PhantomData<F>,
-        to: PhantomData<T>,
-    }
+        pub const fn as_col(&'static self) -> Column<T> {
+            Column::ForeignKey(self)
+        }
 
-    impl<F: Table, T: Table> ForeignKey<F, T> {
-        pub const fn new(name: &'static str) -> Self {
-            Self {
-                name,
-                from: PhantomData,
-                to: PhantomData,
-            }
+        pub const unsafe fn transmute<I: Table>(&'static self) -> &'static ForeignKey<I> {
+            // SAFETY:
+            //
+            // We do treat this foreign key as a column of another table. This is not
+            // smart to do - but can become necessary when doing complex joins. This
+            // is memory safe as Self<A> and Self<B> have the exact same memory layout,
+            // we do not store any data (A or B) but only a `PhantomData` instance which
+            // is here transmuted.
+            std::mem::transmute(self)
         }
     }
 

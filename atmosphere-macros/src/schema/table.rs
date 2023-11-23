@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
@@ -178,7 +178,7 @@ impl Table {
                 const TABLE: &'static str = #table;
 
                 const PRIMARY_KEY: ::atmosphere::PrimaryKey<#ident> = #primary_key;
-                const FOREIGN_KEYS: &'static [::atmosphere::DynamicForeignKey<#ident>] = &[#(#foreign_keys),*];
+                const FOREIGN_KEYS: &'static [::atmosphere::ForeignKey<#ident>] = &[#(#foreign_keys),*];
                 const DATA_COLUMNS: &'static [::atmosphere::DataColumn<#ident>] = &[#(#data),*];
                 const META_COLUMNS: &'static [::atmosphere::MetaColumn<#ident>] = &[#(#meta),*];
 
@@ -198,15 +198,53 @@ impl Table {
             let name = fk.name.to_string();
             let other = &fk.foreign_table;
 
+            let find_all_self = Ident::new(
+                &format!("{}s", ident.to_string().to_lowercase()),
+                Span::mixed_site(),
+            );
+
+            let find_other = Ident::new(
+                &format!("{}", other.to_string().to_lowercase()),
+                Span::mixed_site(),
+            );
+
             stream.extend(quote!(
                 #[automatically_derived]
-                impl ::atmosphere::relationships::ReferrsTo<#other> for #ident {
-                    const FOREIGN_KEY: ::atmosphere::ForeignKey<#ident, #other> =
+                impl #ident {
+                    async fn #find_other<'e, E>(
+                        &self,
+                        executor: E,
+                    ) -> Result<#other>
+                    where
+                        E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
+                        for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
+                            ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
+                        <#ident as ::atmosphere::relationships::RefersTo<#other>>::resolve(&self, executor).await
+                    }
+                }
+
+                #[automatically_derived]
+                impl #other {
+                    async fn #find_all_self<'e, E>(
+                        &self,
+                        executor: E,
+                    ) -> Result<Vec<#ident>>
+                    where
+                        E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
+                        for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
+                            ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
+                        <#other as ::atmosphere::relationships::ReferedBy<#ident>>::resolve(&self, executor).await
+                    }
+                }
+
+                #[automatically_derived]
+                impl ::atmosphere::relationships::RefersTo<#other> for #ident {
+                    const FOREIGN_KEY: ::atmosphere::ForeignKey<#ident> =
                         ::atmosphere::ForeignKey::new(#name);
                 }
 
                 #[automatically_derived]
-                impl ::atmosphere::relationships::ReferredBy<#ident> for #other {}
+                impl ::atmosphere::relationships::ReferedBy<#ident> for #other {}
             ));
         }
 

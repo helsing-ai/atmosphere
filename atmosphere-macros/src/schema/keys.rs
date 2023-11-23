@@ -30,7 +30,7 @@ impl ForeignKey {
         let name = self.name.to_string();
 
         quote!(
-            ::atmosphere::DynamicForeignKey::new(#name)
+            ::atmosphere::ForeignKey::new(#name)
         )
     }
 }

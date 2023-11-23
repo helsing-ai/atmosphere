@@ -17,6 +17,13 @@ pub trait Read: Table + Bind + Send + Sync + Unpin + 'static {
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
             IntoArguments<'q, crate::Driver> + Send;
 
+    /// All rows in a table
+    async fn find_all<'e, E>(executor: E) -> Result<Vec<Self>>
+    where
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send;
+
     /// Reload from database
     async fn reload<'e, E>(&mut self, executor: E) -> Result<()>
     where
@@ -72,7 +79,7 @@ where
     {
         let Query {
             builder, bindings, ..
-        } = crate::runtime::sql::select::<T>();
+        } = crate::runtime::sql::select_by::<T>(T::PRIMARY_KEY.as_col());
 
         let mut query = sqlx::query_as(builder.sql());
 
@@ -88,5 +95,23 @@ where
             .map_err(Error::Query)?;
 
         Ok(())
+    }
+
+    async fn find_all<'e, E>(executor: E) -> Result<Vec<Self>>
+    where
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send,
+    {
+        let Query { builder, .. } = crate::runtime::sql::select_all::<T>();
+
+        let query = sqlx::query_as(builder.sql());
+
+        query
+            .persistent(false)
+            .fetch_all(executor)
+            .await
+            .map_err(QueryError::from)
+            .map_err(Error::Query)
     }
 }
