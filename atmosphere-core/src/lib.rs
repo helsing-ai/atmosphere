@@ -2,6 +2,8 @@
 pub mod bind;
 /// High level database error types
 pub mod error;
+/// Hook system
+pub mod hooks;
 /// Query abstraction
 pub mod query;
 /// Runtime environment

@@ -2,7 +2,7 @@ use atmosphere::prelude::*;
 use sqlx::PgPool;
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
-#[table(name = "forest", schema = "public")]
+#[table(schema = "public", name = "forest")]
 struct Forest {
     #[primary_key]
     id: i32,
@@ -11,7 +11,7 @@ struct Forest {
 }
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
-#[table(name = "tree", schema = "public")]
+#[table(schema = "public", name = "tree")]
 #[relation(grouped_by = Forest)]
 struct Tree {
     #[primary_key]
