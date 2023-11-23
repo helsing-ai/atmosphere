@@ -33,7 +33,6 @@ system.
 
 ```rust
 use atmosphere::prelude::*;
-use sqlx::PgPool;
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "user")]
@@ -57,7 +56,7 @@ struct Post {
 
 #[tokio::main]
 async fn main() -> sqlx::Result<()> {
-    let pool = PgPool::connect(&std::env::var("DATABASE_URL").unwrap()).await?;
+    let pool = atmosphere::Pool::connect(&std::env::var("DATABASE_URL").unwrap()).await?;
 
     // CRUD operations
 
@@ -85,7 +84,7 @@ async fn main() -> sqlx::Result<()> {
     // Inter-Table Operations
 
     Post { id: 1, author: 0, title: "test1".to_owned() }
-        .find_author(&pool).await?;
+        .author(&pool).await?;
     Post { id: 1, author: 0, title: "test1".to_owned() }
         .delete_author(&pool).await?;
 

@@ -189,7 +189,7 @@ impl Table {
         )
     }
 
-    pub fn quote_relationship_impls(&self) -> TokenStream {
+    pub fn quote_rel_impls(&self) -> TokenStream {
         let mut stream = TokenStream::new();
 
         let ident = &self.ident;
@@ -208,6 +208,11 @@ impl Table {
                 Span::mixed_site(),
             );
 
+            let drop_self = Ident::new(
+                &format!("drop_{}s", ident.to_string().to_lowercase()),
+                Span::mixed_site(),
+            );
+
             stream.extend(quote!(
                 #[automatically_derived]
                 impl #ident {
@@ -219,7 +224,7 @@ impl Table {
                         E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
                         for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
                             ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
-                        <#ident as ::atmosphere::relationships::RefersTo<#other>>::resolve(&self, executor).await
+                        <#ident as ::atmosphere::rel::RefersTo<#other>>::resolve(&self, executor).await
                     }
                 }
 
@@ -233,18 +238,29 @@ impl Table {
                         E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
                         for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
                             ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
-                        <#other as ::atmosphere::relationships::ReferedBy<#ident>>::resolve(&self, executor).await
+                        <#other as ::atmosphere::rel::ReferedBy<#ident>>::resolve(&self, executor).await
+                    }
+
+                    async fn #drop_self<'e, E>(
+                        &self,
+                        executor: E,
+                    ) -> Result<<::atmosphere::Driver as ::sqlx::Database>::QueryResult>
+                    where
+                        E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
+                        for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
+                            ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
+                        <#other as ::atmosphere::rel::ReferedBy<#ident>>::delete_all(&self, executor).await
                     }
                 }
 
                 #[automatically_derived]
-                impl ::atmosphere::relationships::RefersTo<#other> for #ident {
+                impl ::atmosphere::rel::RefersTo<#other> for #ident {
                     const FOREIGN_KEY: ::atmosphere::ForeignKey<#ident> =
                         ::atmosphere::ForeignKey::new(#name);
                 }
 
                 #[automatically_derived]
-                impl ::atmosphere::relationships::ReferedBy<#ident> for #other {}
+                impl ::atmosphere::rel::ReferedBy<#ident> for #other {}
             ));
         }
 

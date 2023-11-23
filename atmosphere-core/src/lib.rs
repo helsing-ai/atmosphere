@@ -7,7 +7,7 @@ pub mod hooks;
 /// Query abstraction
 pub mod query;
 /// Abstraction to model sql relationships
-pub mod relationships;
+pub mod rel;
 /// Runtime environment
 pub mod runtime;
 /// Compile time generated SQL schema traits

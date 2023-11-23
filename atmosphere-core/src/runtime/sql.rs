@@ -245,9 +245,14 @@ pub fn upsert<T: Bind>() -> Query<T> {
 
 /// `DELETE FROM .. WHERE ..`
 pub fn delete<T: Bind>() -> Query<T> {
+    delete_by(T::PRIMARY_KEY.as_col())
+}
+
+/// `DELETE FROM .. WHERE ..`
+pub fn delete_by<T: Bind>(c: Column<T>) -> Query<T> {
     let mut builder = QueryBuilder::new(format!("DELETE FROM {} WHERE ", table::<T>()));
 
-    builder.push(T::PRIMARY_KEY.name);
+    builder.push(c.name());
     builder.push(" = $1");
 
     Query::new(

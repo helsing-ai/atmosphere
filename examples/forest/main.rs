@@ -24,28 +24,28 @@ async fn main() -> atmosphere::Result<()> {
         .await
         .unwrap();
 
-    Forest {
+    let forest = Forest {
         id: 0,
-        name: "test".to_owned(),
-        location: "germany".to_owned(),
-    }
-    .save(&pool)
-    .await?;
+        name: "our".to_owned(),
+        location: "forest".to_owned(),
+    };
+
+    forest.save(&pool).await?;
 
     for id in 0..5 {
-        Tree { id, forest_id: 0 }.save(&pool).await?;
+        Tree {
+            id,
+            forest_id: forest.id,
+        }
+        .save(&pool)
+        .await?;
     }
 
-    dbg!(Forest {
-        id: 0,
-        name: "test".to_owned(),
-        location: "germany".to_owned(),
-    }
-    .trees(&pool)
-    .await?
-    .iter()
-    .map(|t| t.id)
-    .collect::<std::collections::HashSet<i32>>());
+    assert_eq!(forest.trees(&pool).await?.len(), 5);
+
+    forest.drop_trees(&pool).await?;
+
+    assert_eq!(forest.trees(&pool).await?.len(), 0);
 
     Ok(())
 }

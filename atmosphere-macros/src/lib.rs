@@ -6,11 +6,11 @@ mod schema;
 
 use schema::table::Table;
 
-#[proc_macro_derive(Schema, attributes(primary_key, foreign_key))]
+#[proc_macro_derive(Schema, attributes(primary_key, foreign_key, unique))]
 pub fn schema(input: TokenStream) -> TokenStream {
     let table = parse_macro_input!(input as Table);
     let table_impl = table.quote_table_impl();
-    let rel_impl = table.quote_relationship_impls();
+    let rel_impl = table.quote_rel_impls();
     let bind_impl = table.quote_bind_impl();
 
     quote! {
@@ -20,10 +20,6 @@ pub fn schema(input: TokenStream) -> TokenStream {
     }
     .into()
 }
-
-// ----------------------------------------------------------------------------
-
-// Markers
 
 #[proc_macro_attribute]
 pub fn table(_: TokenStream, input: TokenStream) -> TokenStream {
@@ -36,10 +32,7 @@ pub fn table(_: TokenStream, input: TokenStream) -> TokenStream {
     .into()
 }
 
-// ----------------------------------------------------------------------------
-
 // Query
-
 //#[proc_macro_attribute]
 //pub fn query(attr: TokenStream, item: TokenStream) -> TokenStream {
 //let query = parse_macro_input!(item as syn::Item);
