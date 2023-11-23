@@ -1,5 +1,5 @@
 pub mod column;
-pub mod key;
+pub mod keys;
 pub mod relation;
 pub mod table;
 pub mod r#virtual;

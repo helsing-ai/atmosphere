@@ -36,32 +36,69 @@ use atmosphere::prelude::*;
 use sqlx::PgPool;
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
-#[table(name = "user", schema = "public")]
+#[table(schema = "public", name = "user")]
 struct User {
     #[primary_key]
     id: i32,
     name: String,
+    #[unique]
     email: String,
+}
+
+#[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[table(schema = "public", name = "post")]
+struct Post {
+    #[primary_key]
+    id: i32,
+    #[foreign_key(User)]
+    author: i32,
+    title: String,
 }
 
 #[tokio::main]
 async fn main() -> sqlx::Result<()> {
     let pool = PgPool::connect(&std::env::var("DATABASE_URL").unwrap()).await?;
 
-    User {
-        id: 0,
-        name: "demo".to_owned(),
-        location: "some@email.com".to_owned(),
-    }
-    .save(&pool)
-    .await?;
+    // CRUD operations
+
+    let user = User { id: 0, name: "demo".to_owned(), email: "some@email.com".to_owned(), };
+
+    user.save(&pool).await?;
+    user.delete(&pool).await?;
+
+    // Field Queries
+
+    assert!(
+        User::find(&0, &pool).await?,
+        User::find_by_email("some@email.com", &pool).await?
+    );
+
+    // Relationships
+
+    Post { id: 0, author: 0, title: "test".to_owned() }
+        .save(&pool)
+        .await?;
+
+    Post::find_for_author(&0, &pool).await?;
+    Post::delete_for_author(&0, &pool).await?;
+
+    // Inter-Table Operations
+
+    Post { id: 1, author: 0, title: "test1".to_owned() }
+        .find_author(&pool).await?;
+    Post { id: 1, author: 0, title: "test1".to_owned() }
+        .delete_author(&pool).await?;
+
+    User::find_posts(&pool).await?;
+    User::delete_posts(&pool).await?;
 
     Ok(())
 }
 ```
 
-Atmosphere introspects the `User` struct at compile time and generates `const` available type information
-about the schema into the `Table` trait:
+Atmosphere introspects the `User` and `Post` structs at compile time and
+generates `const` available type information about the schema into the `Table`
+trait:
 
 ```rust
 impl Table for User {
@@ -92,6 +129,7 @@ impl Table for User {
 - [ ] Virtual Columns using (`#[virtual = "<sql>"]`)
 - [ ] Getting Database Agnostic
 - [ ] Errors using `miette`
+- [ ] Combined Primary and Foreign Keys
 - [ ] Attribute Macro (`#[relation]`)
 - [ ] Attribute Macro (`#[query]`)
 
@@ -101,6 +139,8 @@ impl Table for User {
 - [ ] Provide Application Utils
 - [ ] Stabilize Query Generation
 - [ ] Table Lenses (subsets / views)
+- [ ] Soft Delete Support
+- [ ] Auto Timestamping
 
 ### Advanced
 - [x] Postgres Composite Types

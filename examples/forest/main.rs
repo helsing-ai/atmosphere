@@ -38,7 +38,8 @@ async fn main() -> atmosphere::Result<()> {
     dbg!(Forest::TABLE);
     dbg!(Forest::PRIMARY_KEY);
     dbg!(Forest::FOREIGN_KEYS);
-    dbg!(Forest::DATA);
+    dbg!(Forest::DATA_COLUMNS);
+    dbg!(Forest::META_COLUMNS);
 
     Ok(())
 }

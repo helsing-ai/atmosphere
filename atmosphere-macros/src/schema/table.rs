@@ -6,7 +6,10 @@ use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::{Attribute, Error, Ident, LitStr, Token};
 
-use super::column::Column;
+use crate::schema::keys::PrimaryKey;
+
+use super::column::{Column, DataColumn, MetaColumn};
+use super::keys::ForeignKey;
 
 #[derive(Clone, Debug)]
 pub struct TableId {
@@ -59,10 +62,11 @@ pub struct Table {
     pub ident: Ident,
     pub id: TableId,
 
-    pub primary_key: Column,
+    pub primary_key: PrimaryKey,
 
-    pub foreign_keys: HashSet<Column>,
-    pub data: HashSet<Column>,
+    pub foreign_keys: HashSet<ForeignKey>,
+    pub data_columns: HashSet<DataColumn>,
+    pub meta_columns: HashSet<MetaColumn>,
 }
 
 impl Parse for Table {
@@ -88,36 +92,47 @@ impl Parse for Table {
         let columns: Punctuated<Column, Token![,]> =
             content.parse_terminated(Column::parse, Token![,])?;
 
-        let columns: HashSet<Column> = columns.into_iter().collect();
+        let primary_key = {
+            let primary_keys: HashSet<PrimaryKey> = columns
+                .iter()
+                .filter_map(|c| c.as_primary_key())
+                .cloned()
+                .collect();
 
-        let primary_key = columns.iter().find(|c| c.pk).cloned().ok_or(Error::new(
-            input.span(),
-            format!(
-                "{} must declare one field as its primary key (using `#[primary_key]`",
-                ident.to_string()
-            ),
-        ))?;
+            if primary_keys.len() > 1 {
+                return Err(Error::new(
+                    input.span(),
+                    format!(
+                        "{} declares more than one column as its primary key – only one is allowed",
+                        ident.to_string()
+                    ),
+                ));
+            }
 
-        // verify that there is only one primary key
-        if columns.iter().filter(|c| c.pk).count() > 1 {
-            return Err(Error::new(
+            primary_keys.into_iter().next().ok_or(Error::new(
                 input.span(),
                 format!(
-                    "{} declares more than one column as its primary key – only one is allowed",
+                    "{} must declare one field as its primary key (using `#[primary_key]`",
                     ident.to_string()
                 ),
-            ));
-        }
+            ))?
+        };
 
         let foreign_keys = columns
             .iter()
-            .filter(|c| c.pk == false && c.fk == true)
+            .filter_map(|c| c.as_foreign_key())
             .cloned()
             .collect();
 
-        let data = columns
+        let data_columns = columns
             .iter()
-            .filter(|c| c.pk == false && c.fk == false)
+            .filter_map(|c| c.as_data_column())
+            .cloned()
+            .collect();
+
+        let meta_columns = columns
+            .iter()
+            .filter_map(|c| c.as_meta_column())
             .cloned()
             .collect();
 
@@ -126,7 +141,8 @@ impl Parse for Table {
             id,
             primary_key,
             foreign_keys,
-            data,
+            data_columns,
+            meta_columns,
         })
     }
 }
@@ -138,16 +154,20 @@ impl Table {
             id,
             primary_key,
             foreign_keys,
-            data,
+            data_columns,
+            meta_columns,
         } = self;
 
         let schema = id.schema.to_string();
         let table = id.table.to_string();
+
         let pk_ty = &self.primary_key.ty;
         let pk_field = &self.primary_key.name;
-        let primary_key = self.primary_key.quote();
-        let foreign_keys = self.foreign_keys.iter().map(|r| r.quote());
-        let data = self.data.iter().map(|d| d.quote());
+
+        let primary_key = primary_key.quote();
+        let foreign_keys = foreign_keys.iter().map(|r| r.quote_dynamic());
+        let data = data_columns.iter().map(|d| d.quote());
+        let meta = meta_columns.iter().map(|d| d.quote());
 
         quote!(
             #[automatically_derived]
@@ -155,17 +175,13 @@ impl Table {
                 type PrimaryKey = #pk_ty;
                 type Database = ::sqlx::Postgres;
 
-                const PRIMARY_KEY: ::atmosphere::Column<#ident> = #primary_key;
-
                 const SCHEMA: &'static str = #schema;
                 const TABLE: &'static str = #table;
 
-                const FOREIGN_KEYS: &'static [::atmosphere::Column<#ident>] = &[
-                    #(#foreign_keys),*
-                ];
-                const DATA: &'static [::atmosphere::Column<#ident>] = &[
-                    #(#data),*
-                ];
+                const PRIMARY_KEY: ::atmosphere::PrimaryKey<#ident> = #primary_key;
+                const FOREIGN_KEYS: &'static [::atmosphere::DynamicForeignKey<#ident>] = &[#(#foreign_keys),*];
+                const DATA_COLUMNS: &'static [::atmosphere::DataColumn<#ident>] = &[#(#data),*];
+                const META_COLUMNS: &'static [::atmosphere::MetaColumn<#ident>] = &[#(#meta),*];
 
                 fn pk(&self) -> &Self::PrimaryKey {
                     &self.#pk_field
@@ -180,7 +196,8 @@ impl Table {
             id,
             primary_key,
             foreign_keys,
-            data,
+            data_columns,
+            meta_columns,
         } = self;
 
         let col = Ident::new("col", proc_macro2::Span::call_site());
@@ -190,7 +207,7 @@ impl Table {
             let name = &self.primary_key.name;
 
             quote!(
-                if #col.name == Self::PRIMARY_KEY.name {
+                if #col.name() == Self::PRIMARY_KEY.name {
                     use ::atmosphere::Bindable;
 
                     return Ok(#query.dyn_bind(&self.#name));
@@ -206,11 +223,11 @@ impl Table {
                 let name = fk.name.to_string();
 
                 stream.extend(quote!(
-                if #col.name == #name {
-                    use ::atmosphere::Bindable;
+                    if #col.name() == #name {
+                        use ::atmosphere::Bindable;
 
-                    return Ok(#query.dyn_bind(&self.#ident));
-                }
+                        return Ok(#query.dyn_bind(&self.#ident));
+                    }
                 ));
             }
 
@@ -220,16 +237,16 @@ impl Table {
         let data_binds = {
             let mut stream = TokenStream::new();
 
-            for ref data in &self.data {
+            for ref data in &self.data_columns {
                 let ident = &data.name;
                 let name = data.name.to_string();
 
                 stream.extend(quote!(
-                if #col.name == #name {
-                    use ::atmosphere::Bindable;
+                    if #col.name() == #name {
+                        use ::atmosphere::Bindable;
 
-                    return Ok(#query.dyn_bind(&self.#ident));
-                }
+                        return Ok(#query.dyn_bind(&self.#ident));
+                    }
                 ));
             }
 
@@ -252,7 +269,7 @@ impl Table {
                     #data_binds
 
                     Err(::atmosphere::Error::Bind(
-                        ::atmosphere::bind::BindError::Unknown(#col.name)
+                        ::atmosphere::bind::BindError::Unknown(#col.name())
                     ))
                 }
             }

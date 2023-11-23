@@ -79,7 +79,7 @@ where
         } = crate::runtime::sql::delete::<T>();
 
         assert!(bindings.columns().len() == 1);
-        assert!(bindings.columns()[0].name == Self::PRIMARY_KEY.name);
+        assert!(bindings.columns()[0].name() == Self::PRIMARY_KEY.name);
 
         let query = sqlx::query(builder.sql()).bind(pk).persistent(false);
 

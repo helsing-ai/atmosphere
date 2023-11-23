@@ -5,7 +5,7 @@ use crate::{
 };
 
 use async_trait::async_trait;
-use sqlx::{database::HasArguments, Database, Executor, IntoArguments};
+use sqlx::{database::HasArguments, Executor, IntoArguments};
 
 /// Read rows from a [`sqlx::Database`]
 #[async_trait]
@@ -52,10 +52,8 @@ where
             builder, bindings, ..
         } = crate::runtime::sql::select::<T>();
 
-        dbg!(&bindings);
-
         assert!(bindings.columns().len() == 1);
-        assert!(bindings.columns()[0].name == Self::PRIMARY_KEY.name);
+        assert!(bindings.columns()[0].name() == Self::PRIMARY_KEY.name);
 
         let query = sqlx::query_as(builder.sql()).bind(pk).persistent(false);
 

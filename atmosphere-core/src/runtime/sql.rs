@@ -7,7 +7,7 @@ use crate::{
     Bind, Column,
 };
 
-pub struct Bindings<T: Bind>(Vec<&'static Column<T>>);
+pub struct Bindings<T: Bind>(Vec<Column<T>>);
 
 impl<T: Bind> PartialEq for Bindings<T> {
     fn eq(&self, other: &Self) -> bool {
@@ -20,7 +20,7 @@ impl<T: Bind> PartialEq for Bindings<T> {
                 return false;
             };
 
-            if a.name != b.name {
+            if a.name() != b.name() {
                 return false;
             }
         }
@@ -36,7 +36,7 @@ impl<T: Bind> fmt::Debug for Bindings<T> {
         let mut f = f.debug_tuple("Bindings");
 
         for c in &self.0 {
-            f.field(&c.name);
+            f.field(&c.name());
         }
 
         f.finish()
@@ -44,7 +44,7 @@ impl<T: Bind> fmt::Debug for Bindings<T> {
 }
 
 impl<T: Bind> Bindings<T> {
-    pub fn columns(&self) -> &[&'static Column<T>] {
+    pub fn columns(&self) -> &[Column<T>] {
         &self.0
     }
 
@@ -69,7 +69,7 @@ pub fn select<T: Bind>() -> Query<T> {
         separated.push(fk.name);
     }
 
-    for ref data in T::DATA {
+    for ref data in T::DATA_COLUMNS {
         separated.push(data.name);
     }
 
@@ -80,7 +80,7 @@ pub fn select<T: Bind>() -> Query<T> {
         query::Operation::Select,
         query::Cardinality::One,
         query,
-        Bindings(vec![&T::PRIMARY_KEY]),
+        Bindings(vec![Column::PrimaryKey(&T::PRIMARY_KEY)]),
     )
 }
 
@@ -94,25 +94,30 @@ pub fn insert<T: Bind>() -> Query<T> {
     let mut separated = builder.separated(", ");
 
     separated.push(T::PRIMARY_KEY.name.to_string());
-    bindings.push(&T::PRIMARY_KEY);
+    bindings.push(Column::PrimaryKey(&T::PRIMARY_KEY));
 
-    for ref fk in T::FOREIGN_KEYS {
+    for fk in T::FOREIGN_KEYS {
         separated.push(fk.name.to_string());
-        bindings.push(fk);
+        bindings.push(Column::ForeignKey(fk));
     }
 
-    for ref data in T::DATA {
+    for data in T::DATA_COLUMNS {
         separated.push(data.name.to_string());
-        bindings.push(data);
+        bindings.push(Column::DataColumn(data));
+    }
+
+    for meta in T::META_COLUMNS {
+        separated.push(meta.name.to_string());
+        bindings.push(Column::MetaColumn(meta));
     }
 
     separated.push_unseparated(")\nVALUES\n  (");
 
     separated.push_unseparated("$1");
 
-    let cols = 1 + T::FOREIGN_KEYS.len() + T::DATA.len();
+    let columns = 1 + T::FOREIGN_KEYS.len() + T::DATA_COLUMNS.len() + T::META_COLUMNS.len();
 
-    for c in 2..=cols {
+    for c in 2..=columns {
         separated.push(format!("${c}"));
     }
 
@@ -135,18 +140,21 @@ pub fn update<T: Bind>() -> Query<T> {
 
     let mut col = 2;
 
-    separated.push(format!("{} = $1", T::PRIMARY_KEY.name));
-    bindings.push(&T::PRIMARY_KEY);
-
     for ref fk in T::FOREIGN_KEYS {
         separated.push(format!("{} = ${col}", fk.name));
-        bindings.push(*fk);
+        bindings.push(Column::ForeignKey(fk));
         col += 1;
     }
 
-    for ref data in T::DATA {
+    for ref data in T::DATA_COLUMNS {
         separated.push(format!("{} = ${col}", data.name));
-        bindings.push(*data);
+        bindings.push(Column::DataColumn(data));
+        col += 1;
+    }
+
+    for ref meta in T::META_COLUMNS {
+        separated.push(format!("{} = ${col}", meta.name));
+        bindings.push(Column::MetaColumn(meta));
         col += 1;
     }
 
@@ -178,8 +186,12 @@ pub fn upsert<T: Bind>() -> Query<T> {
         separated.push(format!("{} = EXCLUDED.{}", fk.name, fk.name));
     }
 
-    for ref data in T::DATA {
+    for ref data in T::DATA_COLUMNS {
         separated.push(format!("{} = EXCLUDED.{}", data.name, data.name));
+    }
+
+    for ref meta in T::META_COLUMNS {
+        separated.push(format!("{} = EXCLUDED.{}", meta.name, meta.name));
     }
 
     Query::new(
@@ -204,7 +216,7 @@ pub fn delete<T: Bind>() -> Query<T> {
         query::Operation::Delete,
         query::Cardinality::One,
         builder,
-        Bindings(vec![&T::PRIMARY_KEY]),
+        Bindings(vec![Column::PrimaryKey(&T::PRIMARY_KEY)]),
     )
 }
 
@@ -212,7 +224,7 @@ pub fn delete<T: Bind>() -> Query<T> {
 mod tests {
     use crate::{
         runtime::sql::{self, Bindings},
-        Bind, Bindable, Column, Table,
+        Bind, Bindable, Column, DataColumn, DynamicForeignKey, MetaColumn, PrimaryKey, Table,
     };
 
     #[derive(sqlx::FromRow)]
@@ -229,10 +241,11 @@ mod tests {
 
         const SCHEMA: &'static str = "public";
         const TABLE: &'static str = "test";
-        const PRIMARY_KEY: Column<Self> = Column::new("id", crate::ColumnType::PrimaryKey);
-        const FOREIGN_KEYS: &'static [Column<Self>] =
-            &[Column::new("fk", crate::ColumnType::ForeignKey)];
-        const DATA: &'static [Column<Self>] = &[Column::new("data", crate::ColumnType::Value)];
+
+        const PRIMARY_KEY: PrimaryKey<Self> = PrimaryKey::new("id");
+        const FOREIGN_KEYS: &'static [DynamicForeignKey<Self>] = &[DynamicForeignKey::new("fk")];
+        const DATA_COLUMNS: &'static [DataColumn<Self>] = &[DataColumn::new("data")];
+        const META_COLUMNS: &'static [MetaColumn<Self>] = &[MetaColumn::new("data")];
 
         fn pk(&self) -> &Self::PrimaryKey {
             &self.id
@@ -245,7 +258,7 @@ mod tests {
             c: &'q Column<Self>,
             query: Q,
         ) -> crate::Result<Q> {
-            match c.name {
+            match c.name() {
                 "id" => {
                     return Ok(query.dyn_bind(&self.id));
                 }
@@ -271,7 +284,10 @@ mod tests {
             "SELECT\n  id,\n  fk,\n  data\nFROM\n  \"public\".\"test\"\n"
         );
 
-        assert_eq!(bindings, Bindings(vec![&TestTable::PRIMARY_KEY]));
+        assert_eq!(
+            bindings,
+            Bindings(vec![Column::PrimaryKey(&TestTable::PRIMARY_KEY),])
+        );
     }
 
     #[test]
@@ -288,9 +304,9 @@ mod tests {
         assert_eq!(
             bindings,
             Bindings(vec![
-                &TestTable::PRIMARY_KEY,
-                &TestTable::FOREIGN_KEYS[0],
-                &TestTable::DATA[0]
+                Column::PrimaryKey(&TestTable::PRIMARY_KEY),
+                Column::ForeignKey(&TestTable::FOREIGN_KEYS[0]),
+                Column::DataColumn(&TestTable::DATA_COLUMNS[0]),
             ])
         );
     }
@@ -309,9 +325,9 @@ mod tests {
         assert_eq!(
             bindings,
             Bindings(vec![
-                &TestTable::PRIMARY_KEY,
-                &TestTable::FOREIGN_KEYS[0],
-                &TestTable::DATA[0]
+                Column::PrimaryKey(&TestTable::PRIMARY_KEY),
+                Column::ForeignKey(&TestTable::FOREIGN_KEYS[0]),
+                Column::DataColumn(&TestTable::DATA_COLUMNS[0]),
             ])
         );
     }
@@ -330,9 +346,9 @@ mod tests {
         assert_eq!(
             bindings,
             Bindings(vec![
-                &TestTable::PRIMARY_KEY,
-                &TestTable::FOREIGN_KEYS[0],
-                &TestTable::DATA[0]
+                Column::PrimaryKey(&TestTable::PRIMARY_KEY),
+                Column::ForeignKey(&TestTable::FOREIGN_KEYS[0]),
+                Column::DataColumn(&TestTable::DATA_COLUMNS[0]),
             ])
         );
     }
@@ -347,6 +363,9 @@ mod tests {
             builder.sql(),
             "DELETE FROM \"public\".\"test\" WHERE id = $1"
         );
-        assert_eq!(bindings, Bindings(vec![&TestTable::PRIMARY_KEY]));
+        assert_eq!(
+            bindings,
+            Bindings(vec![Column::PrimaryKey(&TestTable::PRIMARY_KEY),])
+        );
     }
 }
