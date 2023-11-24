@@ -45,12 +45,23 @@ pub mod column {
     use std::marker::PhantomData;
 
     /// Column Variants
-    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    #[derive(Copy, Debug, PartialEq, Eq)]
     pub enum Column<T: Table> {
         PrimaryKey(&'static PrimaryKey<T>),
         ForeignKey(&'static ForeignKey<T>),
         DataColumn(&'static DataColumn<T>),
         MetaColumn(&'static MetaColumn<T>),
+    }
+
+    impl<T: Table> Clone for Column<T> {
+        fn clone(&self) -> Self {
+            match self {
+                Self::PrimaryKey(pk) => Self::PrimaryKey(*pk),
+                Self::ForeignKey(fk) => Self::ForeignKey(*fk),
+                Self::DataColumn(data) => Self::DataColumn(*data),
+                Self::MetaColumn(meta) => Self::MetaColumn(*meta),
+            }
+        }
     }
 
     impl<T: Table> Column<T> {
@@ -74,7 +85,7 @@ pub mod column {
     }
 
     /// Descriptor type of a sql data column
-    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    #[derive(Copy, Debug, PartialEq, Eq)]
     pub struct PrimaryKey<T: Table> {
         pub field: &'static str,
         pub sql: &'static str,
@@ -95,8 +106,18 @@ pub mod column {
         }
     }
 
+    impl<T: Table> Clone for PrimaryKey<T> {
+        fn clone(&self) -> Self {
+            Self {
+                field: self.field,
+                sql: self.sql,
+                table: PhantomData,
+            }
+        }
+    }
+
     /// Descriptor type of a sql foreign key column
-    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    #[derive(Copy, Debug, PartialEq, Eq)]
     pub struct ForeignKey<T: Table> {
         pub field: &'static str,
         pub sql: &'static str,
@@ -128,8 +149,18 @@ pub mod column {
         }
     }
 
+    impl<T: Table> Clone for ForeignKey<T> {
+        fn clone(&self) -> Self {
+            Self {
+                field: self.field,
+                sql: self.sql,
+                table: PhantomData,
+            }
+        }
+    }
+
     /// Descriptor type of a sql data column
-    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    #[derive(Copy, Debug, PartialEq, Eq)]
     pub struct DataColumn<T: Table> {
         pub field: &'static str,
         pub sql: &'static str,
@@ -150,8 +181,18 @@ pub mod column {
         }
     }
 
+    impl<T: Table> Clone for DataColumn<T> {
+        fn clone(&self) -> Self {
+            Self {
+                field: self.field,
+                sql: self.sql,
+                table: PhantomData,
+            }
+        }
+    }
+
     /// Descriptor type of a sql metadata column
-    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    #[derive(Copy, Debug, PartialEq, Eq)]
     pub struct MetaColumn<T: Table> {
         pub field: &'static str,
         pub sql: &'static str,
@@ -163,6 +204,16 @@ pub mod column {
             Self {
                 field,
                 sql,
+                table: PhantomData,
+            }
+        }
+    }
+
+    impl<T: Table> Clone for MetaColumn<T> {
+        fn clone(&self) -> Self {
+            Self {
+                field: self.field,
+                sql: self.sql,
                 table: PhantomData,
             }
         }

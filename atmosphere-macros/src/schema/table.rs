@@ -253,9 +253,9 @@ impl Table {
                             Error
                         };
 
-                        static COLUMN: &'static ::atmosphere::Column<#ident> = &#column.as_col();
+                        const COLUMN: ::atmosphere::Column<#ident> = #column.as_col();
 
-                        let query = sql::select_by::<#ident>(COLUMN.to_owned());
+                        let query = sql::select_by::<#ident>(COLUMN.clone());
 
                         ::sqlx::query_as(query.sql())
                             .bind(value)
@@ -281,9 +281,9 @@ impl Table {
                             Error
                         };
 
-                        static COLUMN: &'static ::atmosphere::Column<#ident> = &#column.as_col();
+                        const COLUMN: ::atmosphere::Column<#ident> = #column.as_col();
 
-                        let query = sql::delete_by::<#ident>(COLUMN.to_owned());
+                        let query = sql::delete_by::<#ident>(COLUMN.clone());
 
                         ::sqlx::query(query.sql())
                             .bind(value)
