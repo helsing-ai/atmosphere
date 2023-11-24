@@ -150,6 +150,85 @@ impl Table for User {
 - [ ] Generate Graphs
 
 
+## Functionalities
+
+Given a `struct Model` that derives its atmosphere schema using
+`#[derive(Schema)]` and `#[table]`:
+
+```rust
+use atmosphere::prelude::*;
+
+#[derive(Schema)]
+#[table(schema = "public", name = "model")]
+struct Model {
+    #[sql(pk)]
+    id: i32,
+    a: String,
+    #[sql(unique)]
+    b: String,
+}
+```
+
+Atmosphere is able to derive and generate the following queries:
+
+### CRUD
+
+#### `atmosphere::Create`
+
+- `Model::create`
+
+#### `atmosphere::Read`
+
+- `Model::find`
+- `Model::find_all`
+- `Model::reload`
+
+#### `atmosphere::Update`
+
+- `Model::update`
+- `Model::save`
+
+#### `atmosphere::Delete`
+
+- `Model::delete`
+- `Model::delete_by`
+
+### Field Queries
+
+Each struct field that is marked with `#[sql(unique)]` becomes queriable.
+
+In the above example `b` was marked as unique so atmosphere implements:
+
+- `Model::find_by_b`
+- `Model::delete_by_b`
+
+### Relationships & Inter-Table Queries
+
+Given that a model contains fields are marked as a foreign key / point to
+another `atmosphere::Table` atmosphere – for example:
+
+```rust
+#[derive(Schema)]
+#[table(schema = "public", name = "submodel")]
+struct Submodel {
+    #[sql(pk)]
+    id: i32,
+    #[sql(fk -> Model)]
+    super: i32,
+}
+```
+
+Atmosphere is able to generate utility queries to move across `Table` boundaries:
+
+- `Model::submodels`
+- `Model::delete_submodels`
+- `Submodel::model`
+- `Submodel::find_by_model`
+- `Submodel::delete_by_model`
+
+> Note that the function names contain `model` and `submodel` – they are derived from
+> the respective struct names.
+
 ## Contribution
 
 We welcome contributions! Please see our contribution guidelines for more details.

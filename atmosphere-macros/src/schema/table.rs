@@ -227,9 +227,6 @@ impl Table {
             .map(|data| Column::DataColumn(data))
             .collect();
 
-        dbg!(&self.data_columns);
-        dbg!(&data);
-
         for column in fks.iter().chain(data.iter()) {
             let ty = column.ty();
             let col = column.name().field().to_string().to_lowercase();
@@ -260,8 +257,6 @@ impl Table {
 
                         let query = sql::select_by::<#ident>(COLUMN.to_owned());
 
-                        dbg!(query.sql());
-
                         ::sqlx::query_as(query.sql())
                             .bind(value)
                             .persistent(false)
@@ -289,7 +284,6 @@ impl Table {
                         static COLUMN: &'static ::atmosphere::Column<#ident> = &#column.as_col();
 
                         let query = sql::delete_by::<#ident>(COLUMN.to_owned());
-                        dbg!(query.sql());
 
                         ::sqlx::query(query.sql())
                             .bind(value)
@@ -302,8 +296,6 @@ impl Table {
                 }
             ))
         }
-
-        dbg!(stream.clone().to_string());
 
         stream
     }

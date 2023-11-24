@@ -45,14 +45,9 @@ async fn main() -> atmosphere::Result<()> {
 
     assert_eq!(forest.trees(&pool).await?.len(), 5);
 
-    dbg!(Forest::find_by_name(&"our".to_owned(), &pool).await?);
-    dbg!(Forest::find_by_location(&"forest".to_owned(), &pool).await?);
-
     forest.delete_trees(&pool).await?;
 
     assert_eq!(forest.trees(&pool).await?.len(), 0);
-
-    dbg!(Forest::delete_by_location(&"forest".to_owned(), &pool).await?);
 
     Ok(())
 }
