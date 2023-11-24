@@ -20,12 +20,12 @@ pub fn relationships(table: &Table) -> TokenStream {
         );
 
         let find_other = Ident::new(
-            &format!("{}", other.to_string().to_lowercase()),
+            &format!("{}", fk.name.field().to_string().to_lowercase()),
             Span::mixed_site(),
         );
 
         let find_by_other = Ident::new(
-            &format!("find_by_{}", other.to_string().to_lowercase()),
+            &format!("find_by_{}", fk.name.field().to_string().to_lowercase()),
             Span::mixed_site(),
         );
 

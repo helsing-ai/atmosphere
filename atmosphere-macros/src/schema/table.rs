@@ -3,10 +3,8 @@ use std::collections::HashSet;
 use syn::parse::{Parse, ParseStream};
 use syn::{Error, Fields, Generics, Ident, LitStr, Token, Visibility};
 
-use crate::schema::keys::PrimaryKey;
-
-use super::column::{Column, DataColumn, MetaColumn};
-use super::keys::ForeignKey;
+use crate::schema::column::{Column, DataColumn, TimestampColumn};
+use crate::schema::keys::{ForeignKey, PrimaryKey};
 
 #[derive(Clone, Debug)]
 pub struct TableId {
@@ -66,7 +64,7 @@ pub struct Table {
 
     pub foreign_keys: HashSet<ForeignKey>,
     pub data_columns: HashSet<DataColumn>,
-    pub meta_columns: HashSet<MetaColumn>,
+    pub timestamp_columns: HashSet<TimestampColumn>,
 }
 
 impl Parse for Table {
@@ -142,9 +140,9 @@ impl Parse for Table {
             .cloned()
             .collect();
 
-        let meta_columns = columns
+        let timestamp_columns = columns
             .iter()
-            .filter_map(|c| c.as_meta_column())
+            .filter_map(|c| c.as_timestamp_column())
             .cloned()
             .collect();
 
@@ -156,7 +154,7 @@ impl Parse for Table {
             primary_key,
             foreign_keys,
             data_columns,
-            meta_columns,
+            timestamp_columns,
         })
     }
 }

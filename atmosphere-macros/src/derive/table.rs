@@ -10,7 +10,7 @@ pub fn table(table: &Table) -> TokenStream {
         primary_key,
         foreign_keys,
         data_columns,
-        meta_columns,
+        timestamp_columns,
         ..
     } = table;
 
@@ -23,7 +23,7 @@ pub fn table(table: &Table) -> TokenStream {
     let primary_key = primary_key.quote();
     let foreign_keys = foreign_keys.iter().map(|r| r.quote());
     let data = data_columns.iter().map(|d| d.quote());
-    let meta = meta_columns.iter().map(|d| d.quote());
+    let timestamps = timestamp_columns.iter().map(|d| d.quote());
 
     quote!(
         #[automatically_derived]
@@ -36,7 +36,7 @@ pub fn table(table: &Table) -> TokenStream {
             const PRIMARY_KEY: ::atmosphere::PrimaryKey<#ident> = #primary_key;
             const FOREIGN_KEYS: &'static [::atmosphere::ForeignKey<#ident>] = &[#(#foreign_keys),*];
             const DATA_COLUMNS: &'static [::atmosphere::DataColumn<#ident>] = &[#(#data),*];
-            const META_COLUMNS: &'static [::atmosphere::MetaColumn<#ident>] = &[#(#meta),*];
+            const TIMESTAMP_COLUMNS: &'static [::atmosphere::TimestampColumn<#ident>] = &[#(#timestamps),*];
 
             fn pk(&self) -> &Self::PrimaryKey {
                 &self.#pk_field

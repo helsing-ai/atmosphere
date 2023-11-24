@@ -1,8 +1,8 @@
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Ident;
 
-use crate::schema::{column::Column, table::Table};
+use crate::schema::table::Table;
 
 pub fn bindings(table: &Table) -> TokenStream {
     let col = Ident::new("col", proc_macro2::Span::call_site());

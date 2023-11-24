@@ -32,29 +32,21 @@ pub struct ColumnModifiers {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum MetaColumn {
-    CreatedAt { name: NameSet, ty: Type },
-    UpdatedAt { name: NameSet, ty: Type },
-    DeletedAt { name: NameSet, ty: Type },
+pub enum TimestampKind {
+    Created,
+    Updated,
+    Deleted,
 }
 
-impl MetaColumn {
-    pub fn name(&self) -> &NameSet {
-        match self {
-            Self::CreatedAt { name, .. }
-            | Self::UpdatedAt { name, .. }
-            | Self::DeletedAt { name, .. } => name,
-        }
-    }
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct TimestampColumn {
+    pub modifiers: ColumnModifiers,
+    pub kind: TimestampKind,
+    pub name: NameSet,
+    pub ty: Type,
+}
 
-    pub fn ty(&self) -> &syn::Type {
-        match self {
-            Self::CreatedAt { ty, .. }
-            | Self::UpdatedAt { ty, .. }
-            | Self::DeletedAt { ty, .. } => ty,
-        }
-    }
-
+impl TimestampColumn {
     pub fn quote(&self) -> TokenStream {
         //let name = self.name().to_string();
 
@@ -91,7 +83,7 @@ pub enum Column {
     PrimaryKey(PrimaryKey),
     ForeignKey(ForeignKey),
     DataColumn(DataColumn),
-    MetaColumn(MetaColumn),
+    TimestampColumn(TimestampColumn),
 }
 
 impl Hash for Column {
@@ -106,7 +98,7 @@ impl Column {
             Self::PrimaryKey(pk) => pk.quote(),
             Self::ForeignKey(fk) => fk.quote(),
             Self::DataColumn(data) => data.quote(),
-            Self::MetaColumn(meta) => meta.quote(),
+            Self::TimestampColumn(time) => time.quote(),
         }
     }
 
@@ -115,7 +107,7 @@ impl Column {
             Self::PrimaryKey(pk) => &pk.ty,
             Self::ForeignKey(fk) => &fk.ty,
             Self::DataColumn(data) => &data.ty,
-            Self::MetaColumn(meta) => meta.ty(),
+            Self::TimestampColumn(ts) => &ts.ty,
         }
     }
 }
@@ -123,23 +115,25 @@ impl Column {
 pub mod attribute {
     use syn::{parse::Parse, Error, Ident, LitStr, Token};
 
-    use super::ColumnModifiers;
+    use super::{ColumnModifiers, TimestampKind};
 
     pub const PATH: &str = "sql";
 
     const PRIMARY_KEY: &str = "pk";
     const FOREIGN_KEY: &str = "fk";
     const UNIQUE: &str = "unique";
+    const TIMESTAMP: &str = "timestamp";
 
-    const META_CREATED_AT: &str = "created_at";
-    const META_UPDATED_AT: &str = "updated_at";
-    const META_DELETED_AT: &str = "deleted_at";
+    const TIMESTAMP_CREATED: &str = "created";
+    const TIMESTAMP_UPDATED: &str = "updated";
+    const TIMESTAMP_DELETED: &str = "deleted";
 
     #[derive(Clone, Debug, PartialEq, Eq, Hash)]
     pub enum ColumnKind {
         PrimaryKey,
         ForeignKey { on: Ident },
         Data,
+        Timestamp { kind: TimestampKind },
     }
 
     impl Parse for ColumnKind {
@@ -163,6 +157,27 @@ pub mod attribute {
 
                         kind = ColumnKind::ForeignKey { on }
                     }
+                    TIMESTAMP => {
+                        let _: Ident = input.parse()?;
+
+                        input.parse::<Token![=]>()?;
+
+                        let ty: Ident = input.parse()?;
+
+                        let ty = match ty.to_string().as_ref() {
+                            TIMESTAMP_CREATED => TimestampKind::Created,
+                            TIMESTAMP_UPDATED => TimestampKind::Updated,
+                            TIMESTAMP_DELETED => TimestampKind::Deleted,
+                            _ => {
+                                return Err(syn::Error::new_spanned(
+                                    ty,
+                                    "`#[sql(timestamp = <type>)]` only supports `created`. `updated` and `deleted`",
+                                ))
+                            }
+                        };
+
+                        kind = ColumnKind::Timestamp { kind: ty }
+                    }
                     _ => {}
                 };
 
@@ -180,7 +195,7 @@ pub mod attribute {
     #[derive(Clone, Debug, PartialEq, Eq, Hash)]
     pub struct Attribute {
         pub kind: ColumnKind,
-        pub modifers: ColumnModifiers,
+        pub modifiers: ColumnModifiers,
         pub renamed: Option<Ident>,
     }
 
@@ -188,7 +203,7 @@ pub mod attribute {
         fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
             let kind: ColumnKind = input.parse()?;
 
-            let mut modifers = ColumnModifiers { unique: false };
+            let mut modifiers = ColumnModifiers { unique: false };
             let mut renamed = None;
 
             while !input.is_empty() {
@@ -196,14 +211,14 @@ pub mod attribute {
 
                 // we found a tag
                 if ident.to_string().as_str() == UNIQUE {
-                    if modifers.unique == true {
+                    if modifiers.unique == true {
                         return Err(Error::new(
                             ident.span(),
                             "found redundant `unique` modifier",
                         ));
                     }
 
-                    modifers.unique = true;
+                    modifiers.unique = true;
 
                     if !input.peek(Token![,]) {
                         break;
@@ -232,7 +247,7 @@ pub mod attribute {
 
             Ok(Self {
                 kind,
-                modifers,
+                modifiers,
                 renamed,
             })
         }
@@ -265,26 +280,37 @@ impl TryFrom<Field> for Column {
 
         let attribute: attribute::Attribute = attribute.parse_args()?;
 
+        let modifiers = attribute.modifiers;
+        let name = NameSet::new(name, attribute.renamed);
+
         return match attribute.kind {
             attribute::ColumnKind::PrimaryKey => Ok(Self::PrimaryKey(PrimaryKey {
                 modifiers: ColumnModifiers {
                     unique: true,
-                    ..attribute.modifers
+                    ..modifiers
                 },
-                name: NameSet::new(name, attribute.renamed),
+                name,
                 ty,
             })),
             attribute::ColumnKind::ForeignKey { on } => Ok(Self::ForeignKey(ForeignKey {
                 on,
-                modifiers: attribute.modifers,
-                name: NameSet::new(name, attribute.renamed),
+                modifiers,
+                name,
                 ty,
             })),
             attribute::ColumnKind::Data => Ok(Self::DataColumn(DataColumn {
-                modifiers: attribute.modifers,
-                name: NameSet::new(name, attribute.renamed),
+                modifiers,
+                name,
                 ty,
             })),
+            attribute::ColumnKind::Timestamp { kind } => {
+                Ok(Self::TimestampColumn(TimestampColumn {
+                    modifiers,
+                    kind,
+                    name,
+                    ty,
+                }))
+            }
         };
     }
 }
@@ -295,7 +321,7 @@ impl Column {
             Self::PrimaryKey(pk) => &pk.name,
             Self::ForeignKey(fk) => &fk.name,
             Self::DataColumn(data) => &data.name,
-            Self::MetaColumn(meta) => &meta.name(),
+            Self::TimestampColumn(ts) => &ts.name,
         }
     }
 }
@@ -323,9 +349,9 @@ impl Column {
         }
     }
 
-    pub const fn as_meta_column(&self) -> Option<&MetaColumn> {
+    pub const fn as_timestamp_column(&self) -> Option<&TimestampColumn> {
         match self {
-            Self::MetaColumn(c) => Some(c),
+            Self::TimestampColumn(c) => Some(c),
             _ => None,
         }
     }
