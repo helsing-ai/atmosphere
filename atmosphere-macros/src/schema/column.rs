@@ -47,6 +47,14 @@ impl MetaColumn {
         }
     }
 
+    pub fn ty(&self) -> &syn::Type {
+        match self {
+            Self::CreatedAt { ty, .. }
+            | Self::UpdatedAt { ty, .. }
+            | Self::DeletedAt { ty, .. } => ty,
+        }
+    }
+
     pub fn quote(&self) -> TokenStream {
         //let name = self.name().to_string();
 
@@ -92,6 +100,26 @@ impl Hash for Column {
     }
 }
 
+impl Column {
+    pub fn quote(&self) -> TokenStream {
+        match self {
+            Self::PrimaryKey(pk) => pk.quote(),
+            Self::ForeignKey(fk) => fk.quote(),
+            Self::DataColumn(data) => data.quote(),
+            Self::MetaColumn(meta) => meta.quote(),
+        }
+    }
+
+    pub fn ty(&self) -> &syn::Type {
+        match self {
+            Self::PrimaryKey(pk) => &pk.ty,
+            Self::ForeignKey(fk) => &fk.ty,
+            Self::DataColumn(data) => &data.ty,
+            Self::MetaColumn(meta) => meta.ty(),
+        }
+    }
+}
+
 pub mod attribute {
     use syn::{parse::Parse, Error, Ident, LitStr, Token};
 
@@ -108,9 +136,6 @@ pub mod attribute {
     const META_DELETED_AT: &str = "deleted_at";
 
     #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-    pub struct Uniqueness;
-
-    #[derive(Clone, Debug, PartialEq, Eq, Hash)]
     pub enum ColumnKind {
         PrimaryKey,
         ForeignKey { on: Ident },
@@ -119,23 +144,33 @@ pub mod attribute {
 
     impl Parse for ColumnKind {
         fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-            let ident: Ident = input.parse()?;
+            let mut kind = ColumnKind::Data;
 
-            let kind = match ident.to_string().as_str() {
-                PRIMARY_KEY => ColumnKind::PrimaryKey,
-                FOREIGN_KEY => {
-                    input.parse::<Token![-]>()?;
-                    input.parse::<Token![>]>()?;
+            if let Some((id, _)) = input.cursor().ident() {
+                match id.to_string().as_str() {
+                    PRIMARY_KEY => {
+                        let _: Ident = input.parse()?;
 
-                    let on = input.parse()?;
+                        kind = ColumnKind::PrimaryKey;
+                    }
+                    FOREIGN_KEY => {
+                        let _: Ident = input.parse()?;
 
-                    ColumnKind::ForeignKey { on }
+                        input.parse::<Token![-]>()?;
+                        input.parse::<Token![>]>()?;
+
+                        let on = input.parse()?;
+
+                        kind = ColumnKind::ForeignKey { on }
+                    }
+                    _ => {}
+                };
+
+                if kind != ColumnKind::Data {
+                    if input.peek(Token![,]) {
+                        input.parse::<Token![,]>()?;
+                    }
                 }
-                _ => ColumnKind::Data,
-            };
-
-            if input.peek(Token![,]) {
-                input.parse::<Token![,]>()?;
             }
 
             Ok(kind)
@@ -160,17 +195,23 @@ pub mod attribute {
                 let ident: syn::Ident = input.parse()?;
 
                 // we found a tag
-                if input.peek(Token![,]) {
-                    if ident.to_string().as_str() == UNIQUE {
-                        if modifers.unique == true {
-                            return Err(Error::new(
-                                ident.span(),
-                                "found redundant `unique` modifier",
-                            ));
-                        }
-
-                        modifers.unique = true;
+                if ident.to_string().as_str() == UNIQUE {
+                    if modifers.unique == true {
+                        return Err(Error::new(
+                            ident.span(),
+                            "found redundant `unique` modifier",
+                        ));
                     }
+
+                    modifers.unique = true;
+
+                    if !input.peek(Token![,]) {
+                        break;
+                    }
+
+                    input.parse::<Token![,]>()?;
+
+                    continue;
                 }
 
                 // we found a kv pair

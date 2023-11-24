@@ -67,6 +67,23 @@ where
             .map_err(Error::Query)
     }
 
+    async fn resolve_by<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Vec<Other>>
+    where
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send,
+    {
+        let Query { builder, .. } = sql::select_by::<Other>(Other::FOREIGN_KEY.as_col());
+
+        sqlx::query_as(builder.sql())
+            .bind(pk)
+            .persistent(false)
+            .fetch_all(executor)
+            .await
+            .map_err(QueryError::from)
+            .map_err(Error::Query)
+    }
+
     async fn delete_all<'e, E>(
         &self,
         executor: E,

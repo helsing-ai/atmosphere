@@ -206,6 +206,108 @@ impl Table {
         )
     }
 
+    pub fn quote_field_query_impls(&self) -> TokenStream {
+        let mut stream = TokenStream::new();
+
+        let ident = &self.ident;
+
+        let fks: Vec<Column> = self
+            .foreign_keys
+            .iter()
+            .filter(|fk| fk.modifiers.unique)
+            .cloned()
+            .map(|fk| Column::ForeignKey(fk))
+            .collect();
+
+        let data: Vec<Column> = self
+            .data_columns
+            .iter()
+            .filter(|data| data.modifiers.unique)
+            .cloned()
+            .map(|data| Column::DataColumn(data))
+            .collect();
+
+        dbg!(&self.data_columns);
+        dbg!(&data);
+
+        for column in fks.iter().chain(data.iter()) {
+            let ty = column.ty();
+            let col = column.name().field().to_string().to_lowercase();
+            let column = column.quote();
+
+            let find_by_col = Ident::new(&format!("find_by_{col}"), Span::mixed_site());
+            let delete_by_col = Ident::new(&format!("delete_by_{col}"), Span::mixed_site());
+
+            stream.extend(quote!(
+                #[automatically_derived]
+                impl #ident {
+                    pub async fn #find_by_col<'e, E>(
+                        value: &#ty,
+                        executor: E
+                    ) -> ::atmosphere::Result<Option<#ident>>
+                    where
+                        E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
+                        for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
+                            ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send
+                    {
+                        use ::atmosphere::{
+                            query::{Query, QueryError},
+                            runtime::sql,
+                            Error
+                        };
+
+                        static COLUMN: &'static ::atmosphere::Column<#ident> = &#column.as_col();
+
+                        let query = sql::select_by::<#ident>(COLUMN.to_owned());
+
+                        dbg!(query.sql());
+
+                        ::sqlx::query_as(query.sql())
+                            .bind(value)
+                            .persistent(false)
+                            .fetch_optional(executor)
+                            .await
+                            .map_err(QueryError::from)
+                            .map_err(Error::Query)
+                    }
+
+                    pub async fn #delete_by_col<'e, E>(
+                        value: &#ty,
+                        executor: E,
+                    ) -> ::atmosphere::Result<<::atmosphere::Driver as ::sqlx::Database>::QueryResult>
+                    where
+                        E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
+                        for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
+                            ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send
+                    {
+                        use ::atmosphere::{
+                            query::{Query, QueryError},
+                            runtime::sql,
+                            Error
+                        };
+
+                        static COLUMN: &'static ::atmosphere::Column<#ident> = &#column.as_col();
+
+                        let query = sql::delete_by::<#ident>(COLUMN.to_owned());
+                        dbg!(query.sql());
+
+                        ::sqlx::query(query.sql())
+                            .bind(value)
+                            .persistent(false)
+                            .execute(executor)
+                            .await
+                            .map_err(QueryError::from)
+                            .map_err(Error::Query)
+                    }
+                }
+            ))
+        }
+
+        dbg!(stream.clone().to_string());
+
+        stream
+    }
+
     pub fn quote_rel_impls(&self) -> TokenStream {
         let mut stream = TokenStream::new();
 
@@ -226,8 +328,13 @@ impl Table {
                 Span::mixed_site(),
             );
 
-            let drop_self = Ident::new(
-                &format!("drop_{}s", ident.to_string().to_lowercase()),
+            let find_by_other = Ident::new(
+                &format!("find_by_{}", other.to_string().to_lowercase()),
+                Span::mixed_site(),
+            );
+
+            let delete_self = Ident::new(
+                &format!("delete_{}s", ident.to_string().to_lowercase()),
                 Span::mixed_site(),
             );
 
@@ -237,12 +344,24 @@ impl Table {
                     pub async fn #find_other<'e, E>(
                         &self,
                         executor: E,
-                    ) -> Result<#other>
+                    ) -> ::atmosphere::Result<#other>
                     where
                         E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
                         for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
                             ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
                         <#ident as ::atmosphere::rel::RefersTo<#other>>::resolve(&self, executor).await
+                    }
+
+                    pub async fn #find_by_other<'e, E>(
+                        pk: &<#other as ::atmosphere::Table>::PrimaryKey,
+                        executor: E,
+                        // TODO: either Vec<Self>, or if marked as unique, only Self
+                    ) -> ::atmosphere::Result<Vec<#ident>>
+                    where
+                        E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
+                        for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
+                            ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
+                        <#other as ::atmosphere::rel::ReferedBy<#ident>>::resolve_by(pk, executor).await
                     }
                 }
 
@@ -251,7 +370,7 @@ impl Table {
                     pub async fn #find_all_self<'e, E>(
                         &self,
                         executor: E,
-                    ) -> Result<Vec<#ident>>
+                    ) -> ::atmosphere::Result<Vec<#ident>>
                     where
                         E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
                         for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
@@ -259,10 +378,10 @@ impl Table {
                         <#other as ::atmosphere::rel::ReferedBy<#ident>>::resolve(&self, executor).await
                     }
 
-                    pub async fn #drop_self<'e, E>(
+                    pub async fn #delete_self<'e, E>(
                         &self,
                         executor: E,
-                    ) -> Result<<::atmosphere::Driver as ::sqlx::Database>::QueryResult>
+                    ) -> ::atmosphere::Result<<::atmosphere::Driver as ::sqlx::Database>::QueryResult>
                     where
                         E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
                         for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:

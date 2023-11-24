@@ -144,6 +144,10 @@ pub mod column {
                 table: PhantomData,
             }
         }
+
+        pub const fn as_col(&'static self) -> Column<T> {
+            Column::DataColumn(self)
+        }
     }
 
     /// Descriptor type of a sql metadata column

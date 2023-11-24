@@ -34,23 +34,24 @@ system.
 ```rust
 use atmosphere::prelude::*;
 
-#[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Schema)]
 #[table(schema = "public", name = "user")]
 struct User {
-    #[primary_key]
+    #[sql(pk)]
     id: i32,
     name: String,
-    #[unique]
+    #[sql(unique)]
     email: String,
 }
 
-#[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Schema)]
 #[table(schema = "public", name = "post")]
 struct Post {
-    #[primary_key]
+    #[sql(pk)]
     id: i32,
-    #[foreign_key(User)]
+    #[sql(fk -> User, rename = "author_id")]
     author: i32,
+    #[sql(unique)]
     title: String,
 }
 
@@ -78,18 +79,16 @@ async fn main() -> sqlx::Result<()> {
         .save(&pool)
         .await?;
 
-    Post::find_for_author(&0, &pool).await?;
-    Post::delete_for_author(&0, &pool).await?;
+    Post::find_by_author(&0, &pool).await?;
+    Post::delete_by_author(&0, &pool).await?;
 
     // Inter-Table Operations
 
     Post { id: 1, author: 0, title: "test1".to_owned() }
         .author(&pool).await?;
-    Post { id: 1, author: 0, title: "test1".to_owned() }
-        .delete_author(&pool).await?;
 
-    User::find_posts(&pool).await?;
-    User::delete_posts(&pool).await?;
+    user.posts(&pool).await?;
+    user.delete_posts(&pool).await?;
 
     Ok(())
 }
