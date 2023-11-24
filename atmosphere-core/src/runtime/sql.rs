@@ -20,7 +20,11 @@ impl<T: Bind> PartialEq for Bindings<T> {
                 return false;
             };
 
-            if a.name() != b.name() {
+            if a.field() != b.field() {
+                return false;
+            }
+
+            if a.sql() != b.sql() {
                 return false;
             }
         }
@@ -36,7 +40,7 @@ impl<T: Bind> fmt::Debug for Bindings<T> {
         let mut f = f.debug_tuple("Bindings");
 
         for c in &self.0 {
-            f.field(&c.name());
+            f.field(&c.field());
         }
 
         f.finish()
@@ -68,22 +72,22 @@ pub fn select_by<T: Bind>(c: Column<T>) -> Query<T> {
 
     let mut separated = query.separated(",\n  ");
 
-    separated.push(T::PRIMARY_KEY.name);
+    separated.push(T::PRIMARY_KEY.sql);
 
     for ref fk in T::FOREIGN_KEYS {
-        separated.push(fk.name);
+        separated.push(fk.sql);
     }
 
     for ref data in T::DATA_COLUMNS {
-        separated.push(data.name);
+        separated.push(data.sql);
     }
 
     for ref meta in T::META_COLUMNS {
-        separated.push(meta.name);
+        separated.push(meta.sql);
     }
 
     query.push(format!("\nFROM\n  {}\n", table::<T>()));
-    query.push(format!("WHERE {} = $1", c.name()));
+    query.push(format!("WHERE {} = $1", c.sql()));
 
     Query::new(
         query::Operation::Select,
@@ -99,18 +103,18 @@ pub fn select_all<T: Bind>() -> Query<T> {
 
     let mut separated = query.separated(",\n  ");
 
-    separated.push(T::PRIMARY_KEY.name);
+    separated.push(T::PRIMARY_KEY.sql);
 
     for ref fk in T::FOREIGN_KEYS {
-        separated.push(fk.name);
+        separated.push(fk.sql);
     }
 
     for ref data in T::DATA_COLUMNS {
-        separated.push(data.name);
+        separated.push(data.sql);
     }
 
     for ref meta in T::META_COLUMNS {
-        separated.push(meta.name);
+        separated.push(meta.sql);
     }
 
     query.push(format!("\nFROM\n  {}\n", table::<T>()));
@@ -131,21 +135,21 @@ pub fn insert<T: Bind>() -> Query<T> {
 
     let mut separated = builder.separated(", ");
 
-    separated.push(T::PRIMARY_KEY.name.to_string());
+    separated.push(T::PRIMARY_KEY.sql.to_string());
     bindings.push(Column::PrimaryKey(&T::PRIMARY_KEY));
 
     for fk in T::FOREIGN_KEYS {
-        separated.push(fk.name.to_string());
+        separated.push(fk.sql.to_string());
         bindings.push(Column::ForeignKey(fk));
     }
 
     for data in T::DATA_COLUMNS {
-        separated.push(data.name.to_string());
+        separated.push(data.sql.to_string());
         bindings.push(Column::DataColumn(data));
     }
 
     for meta in T::META_COLUMNS {
-        separated.push(meta.name.to_string());
+        separated.push(meta.sql.to_string());
         bindings.push(Column::MetaColumn(meta));
     }
 
@@ -176,30 +180,30 @@ pub fn update<T: Bind>() -> Query<T> {
 
     let mut separated = builder.separated(",\n  ");
 
-    separated.push(format!("{} = $1", T::PRIMARY_KEY.name));
+    separated.push(format!("{} = $1", T::PRIMARY_KEY.sql));
     bindings.push(Column::PrimaryKey(&T::PRIMARY_KEY));
 
     let mut col = 2;
 
     for ref fk in T::FOREIGN_KEYS {
-        separated.push(format!("{} = ${col}", fk.name));
+        separated.push(format!("{} = ${col}", fk.sql));
         bindings.push(Column::ForeignKey(fk));
         col += 1;
     }
 
     for ref data in T::DATA_COLUMNS {
-        separated.push(format!("{} = ${col}", data.name));
+        separated.push(format!("{} = ${col}", data.sql));
         bindings.push(Column::DataColumn(data));
         col += 1;
     }
 
     for ref meta in T::META_COLUMNS {
-        separated.push(format!("{} = ${col}", meta.name));
+        separated.push(format!("{} = ${col}", meta.sql));
         bindings.push(Column::MetaColumn(meta));
         col += 1;
     }
 
-    builder.push(format!("\nWHERE\n  {} = $1", T::PRIMARY_KEY.name));
+    builder.push(format!("\nWHERE\n  {} = $1", T::PRIMARY_KEY.sql));
 
     Query::new(
         query::Operation::Update,
@@ -218,21 +222,21 @@ pub fn upsert<T: Bind>() -> Query<T> {
     } = insert::<T>();
 
     builder.push("\nON CONFLICT(");
-    builder.push(T::PRIMARY_KEY.name);
+    builder.push(T::PRIMARY_KEY.sql);
     builder.push(")\nDO UPDATE SET\n  ");
 
     let mut separated = builder.separated(",\n  ");
 
     for ref fk in T::FOREIGN_KEYS {
-        separated.push(format!("{} = EXCLUDED.{}", fk.name, fk.name));
+        separated.push(format!("{} = EXCLUDED.{}", fk.sql, fk.sql));
     }
 
     for ref data in T::DATA_COLUMNS {
-        separated.push(format!("{} = EXCLUDED.{}", data.name, data.name));
+        separated.push(format!("{} = EXCLUDED.{}", data.sql, data.sql));
     }
 
     for ref meta in T::META_COLUMNS {
-        separated.push(format!("{} = EXCLUDED.{}", meta.name, meta.name));
+        separated.push(format!("{} = EXCLUDED.{}", meta.sql, meta.sql));
     }
 
     Query::new(
@@ -252,7 +256,7 @@ pub fn delete<T: Bind>() -> Query<T> {
 pub fn delete_by<T: Bind>(c: Column<T>) -> Query<T> {
     let mut builder = QueryBuilder::new(format!("DELETE FROM {} WHERE ", table::<T>()));
 
-    builder.push(c.name());
+    builder.push(c.sql());
     builder.push(" = $1");
 
     Query::new(
@@ -284,9 +288,10 @@ mod tests {
         const SCHEMA: &'static str = "public";
         const TABLE: &'static str = "test";
 
-        const PRIMARY_KEY: PrimaryKey<Self> = PrimaryKey::new("id");
-        const FOREIGN_KEYS: &'static [ForeignKey<Self>] = &[ForeignKey::new("fk")];
-        const DATA_COLUMNS: &'static [DataColumn<Self>] = &[DataColumn::new("data")];
+        const PRIMARY_KEY: PrimaryKey<Self> = PrimaryKey::new("id", "id_sql_col");
+        const FOREIGN_KEYS: &'static [ForeignKey<Self>] = &[ForeignKey::new("fk", "fk_sql_col")];
+        const DATA_COLUMNS: &'static [DataColumn<Self>] =
+            &[DataColumn::new("data", "data_sql_col")];
         const META_COLUMNS: &'static [MetaColumn<Self>] = &[];
 
         fn pk(&self) -> &Self::PrimaryKey {
@@ -296,7 +301,7 @@ mod tests {
 
     impl Bind for TestTable {
         fn bind<'q, Q: Bindable<'q>>(&'q self, c: &'q Column<Self>, query: Q) -> crate::Result<Q> {
-            match c.name() {
+            match c.field() {
                 "id" => {
                     return Ok(query.dyn_bind(&self.id));
                 }
@@ -319,7 +324,7 @@ mod tests {
 
         assert_eq!(
             builder.sql(),
-            "SELECT\n  id,\n  fk,\n  data\nFROM\n  \"public\".\"test\"\nWHERE id = $1"
+            "SELECT\n  id_sql_col,\n  fk_sql_col,\n  data_sql_col\nFROM\n  \"public\".\"test\"\nWHERE id = $1"
         );
 
         assert_eq!(
@@ -336,7 +341,7 @@ mod tests {
 
         assert_eq!(
             builder.sql(),
-            "INSERT INTO \"public\".\"test\"\n  (id, fk, data)\nVALUES\n  ($1, $2, $3)"
+            "INSERT INTO \"public\".\"test\"\n  (id_sql_col, fk_sql_col, data_sql_col)\nVALUES\n  ($1, $2, $3)"
         );
 
         assert_eq!(

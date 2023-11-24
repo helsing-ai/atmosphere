@@ -2,9 +2,29 @@ use std::hash::Hash;
 
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{parse::Error, Field, Ident, Type};
+use syn::{Field, Ident, Type};
 
 use super::keys::{ForeignKey, PrimaryKey};
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct NameSet {
+    field: Ident,
+    sql: Option<Ident>,
+}
+
+impl NameSet {
+    pub fn new(field: Ident, sql: Option<Ident>) -> Self {
+        Self { field, sql }
+    }
+
+    pub fn field(&self) -> &Ident {
+        &self.field
+    }
+
+    pub fn sql(&self) -> &Ident {
+        self.sql.as_ref().unwrap_or(&self.field)
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ColumnModifiers {
@@ -13,13 +33,13 @@ pub struct ColumnModifiers {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum MetaColumn {
-    CreatedAt { name: Ident, ty: Type },
-    UpdatedAt { name: Ident, ty: Type },
-    DeletedAt { name: Ident, ty: Type },
+    CreatedAt { name: NameSet, ty: Type },
+    UpdatedAt { name: NameSet, ty: Type },
+    DeletedAt { name: NameSet, ty: Type },
 }
 
 impl MetaColumn {
-    pub fn name(&self) -> &Ident {
+    pub fn name(&self) -> &NameSet {
         match self {
             Self::CreatedAt { name, .. }
             | Self::UpdatedAt { name, .. }
@@ -32,26 +52,29 @@ impl MetaColumn {
 
         unimplemented!()
 
-        //quote!(
-        //::atmosphere::MetaColumn::new(#name)
-        //)
+        //quote!(::atmosphere::DataColumn::new(
+        //stringify!(#field),
+        //stringify!(#sql)
+        //))
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct DataColumn {
     pub modifiers: ColumnModifiers,
-    pub name: Ident,
+    pub name: NameSet,
     pub ty: Type,
 }
 
 impl DataColumn {
     pub fn quote(&self) -> TokenStream {
-        let name = self.name.to_string();
+        let field = self.name.field();
+        let sql = self.name.sql();
 
-        quote!(
-            ::atmosphere::DataColumn::new(#name)
-        )
+        quote!(::atmosphere::DataColumn::new(
+            stringify!(#field),
+            stringify!(#sql)
+        ))
     }
 }
 
@@ -65,18 +88,114 @@ pub enum Column {
 
 impl Hash for Column {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.name().to_string().hash(state);
+        self.name().field().to_string().hash(state);
     }
 }
 
-mod attributes {
-    pub const PRIMARY_KEY: &str = "primary_key";
-    pub const FOREIGN_KEY: &str = "foreign_key";
-    pub const UNIQUE: &str = "unique";
+pub mod attribute {
+    use syn::{parse::Parse, Error, Ident, LitStr, Token};
 
-    pub const META_CREATED_AT: &str = "created_at";
-    pub const META_UPDATED_AT: &str = "updated_at";
-    pub const META_DELETED_AT: &str = "deleted_at";
+    use super::ColumnModifiers;
+
+    pub const PATH: &str = "sql";
+
+    const PRIMARY_KEY: &str = "pk";
+    const FOREIGN_KEY: &str = "fk";
+    const UNIQUE: &str = "unique";
+
+    const META_CREATED_AT: &str = "created_at";
+    const META_UPDATED_AT: &str = "updated_at";
+    const META_DELETED_AT: &str = "deleted_at";
+
+    #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+    pub struct Uniqueness;
+
+    #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+    pub enum ColumnKind {
+        PrimaryKey,
+        ForeignKey { on: Ident },
+        Data,
+    }
+
+    impl Parse for ColumnKind {
+        fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+            let ident: Ident = input.parse()?;
+
+            let kind = match ident.to_string().as_str() {
+                PRIMARY_KEY => ColumnKind::PrimaryKey,
+                FOREIGN_KEY => {
+                    input.parse::<Token![-]>()?;
+                    input.parse::<Token![>]>()?;
+
+                    let on = input.parse()?;
+
+                    ColumnKind::ForeignKey { on }
+                }
+                _ => ColumnKind::Data,
+            };
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+
+            Ok(kind)
+        }
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+    pub struct Attribute {
+        pub kind: ColumnKind,
+        pub modifers: ColumnModifiers,
+        pub renamed: Option<Ident>,
+    }
+
+    impl Parse for Attribute {
+        fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+            let kind: ColumnKind = input.parse()?;
+
+            let mut modifers = ColumnModifiers { unique: false };
+            let mut renamed = None;
+
+            while !input.is_empty() {
+                let ident: syn::Ident = input.parse()?;
+
+                // we found a tag
+                if input.peek(Token![,]) {
+                    if ident.to_string().as_str() == UNIQUE {
+                        if modifers.unique == true {
+                            return Err(Error::new(
+                                ident.span(),
+                                "found redundant `unique` modifier",
+                            ));
+                        }
+
+                        modifers.unique = true;
+                    }
+                }
+
+                // we found a kv pair
+                input.parse::<Token![=]>()?;
+                let value: LitStr = input.parse()?;
+
+                match ident.to_string().as_str() {
+                    "rename" => renamed = Some(Ident::new(&value.value(), value.span())),
+                    _ => return Err(syn::Error::new_spanned(ident, "")),
+                }
+
+                if !input.peek(Token![,]) {
+                    break;
+                }
+
+                input.parse::<Token![,]>()?;
+            }
+
+            Ok(Self {
+                kind,
+                modifers,
+                renamed,
+            })
+        }
+    }
 }
 
 impl TryFrom<Field> for Column {
@@ -90,117 +209,47 @@ impl TryFrom<Field> for Column {
 
         let ty = field.ty;
 
-        let primary_key = field
+        let attribute = field
             .attrs
             .iter()
-            .find(|a| a.path().is_ident(attributes::PRIMARY_KEY));
+            .find(|a| a.path().is_ident(attribute::PATH));
 
-        let foreign_key = field
-            .attrs
-            .iter()
-            .find(|a| a.path().is_ident(attributes::FOREIGN_KEY));
+        let Some(attribute) = attribute else {
+            return Ok(Self::DataColumn(DataColumn {
+                modifiers: ColumnModifiers { unique: false },
+                name: NameSet::new(name, None),
+                ty,
+            }));
+        };
 
-        let unique = field
-            .attrs
-            .iter()
-            .find(|a| a.path().is_ident(attributes::UNIQUE));
+        let attribute: attribute::Attribute = attribute.parse_args()?;
 
-        let meta_created = field
-            .attrs
-            .iter()
-            .find(|a| a.path().is_ident(attributes::META_CREATED_AT));
-
-        let meta_updated = field
-            .attrs
-            .iter()
-            .find(|a| a.path().is_ident(attributes::META_UPDATED_AT));
-
-        let meta_deleted = field
-            .attrs
-            .iter()
-            .find(|a| a.path().is_ident(attributes::META_DELETED_AT));
-
-        if primary_key.is_some() && foreign_key.is_some() {
-            return Err(Error::new(
-                name.span(),
-                format!(
-                    "{} can not be primary key and foreign key at the same time",
-                    name.to_string()
-                ),
-            ));
-        }
-
-        if primary_key.is_some() && unique.is_some() {
-            return Err(Error::new(
-                name.span(),
-                format!(
-                    "{} uniqueness is inhereted by marking a column as primary key",
-                    name.to_string()
-                ),
-            ));
-        }
-
-        if (primary_key.is_some() || foreign_key.is_some())
-            && (meta_created.is_some() || meta_deleted.is_some() || meta_updated.is_some())
-        {
-            return Err(Error::new(
-                name.span(),
-                format!(
-                    "{} can not be a key column and timestamp at the same time",
-                    name.to_string()
-                ),
-            ));
-        }
-
-        match (
-            primary_key,
-            foreign_key,
-            unique,
-            meta_created,
-            meta_updated,
-            meta_deleted,
-        ) {
-            (Some(_), None, None, None, None, None) => {
-                return Ok(Self::PrimaryKey(PrimaryKey { name, ty }))
-            }
-            (None, Some(fk), None, None, None, None) => {
-                return Ok(Self::ForeignKey(ForeignKey {
-                    foreign_table: fk.parse_args()?,
-                    name,
-                    ty,
-                }))
-            }
-            (None, None, _, None, None, None) => {
-                return Ok(Self::DataColumn(DataColumn {
-                    modifiers: ColumnModifiers { unique: false },
-                    name,
-                    ty,
-                }))
-            }
-            (None, None, None, Some(_), None, None) => {
-                return Ok(Self::MetaColumn(MetaColumn::CreatedAt { name, ty }))
-            }
-            (None, None, None, None, Some(_), None) => {
-                return Ok(Self::MetaColumn(MetaColumn::UpdatedAt { name, ty }))
-            }
-            (None, None, None, None, None, Some(_)) => {
-                return Ok(Self::MetaColumn(MetaColumn::DeletedAt { name, ty }))
-            }
-            _ => {
-                return Err(Error::new(
-                    name.span(),
-                    format!(
-                        "{} has an invalid combination of atmosphere column attributes",
-                        name.to_string()
-                    ),
-                ));
-            }
-        }
+        return match attribute.kind {
+            attribute::ColumnKind::PrimaryKey => Ok(Self::PrimaryKey(PrimaryKey {
+                modifiers: ColumnModifiers {
+                    unique: true,
+                    ..attribute.modifers
+                },
+                name: NameSet::new(name, attribute.renamed),
+                ty,
+            })),
+            attribute::ColumnKind::ForeignKey { on } => Ok(Self::ForeignKey(ForeignKey {
+                on,
+                modifiers: attribute.modifers,
+                name: NameSet::new(name, attribute.renamed),
+                ty,
+            })),
+            attribute::ColumnKind::Data => Ok(Self::DataColumn(DataColumn {
+                modifiers: attribute.modifers,
+                name: NameSet::new(name, attribute.renamed),
+                ty,
+            })),
+        };
     }
 }
 
 impl Column {
-    pub fn name(&self) -> &Ident {
+    pub fn name(&self) -> &NameSet {
         match self {
             Self::PrimaryKey(pk) => &pk.name,
             Self::ForeignKey(fk) => &fk.name,

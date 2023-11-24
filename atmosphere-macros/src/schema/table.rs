@@ -179,10 +179,10 @@ impl Table {
         let table = id.table.to_string();
 
         let pk_ty = &self.primary_key.ty;
-        let pk_field = &self.primary_key.name;
+        let pk_field = &self.primary_key.name.field();
 
         let primary_key = primary_key.quote();
-        let foreign_keys = foreign_keys.iter().map(|r| r.quote_dynamic());
+        let foreign_keys = foreign_keys.iter().map(|r| r.quote());
         let data = data_columns.iter().map(|d| d.quote());
         let meta = meta_columns.iter().map(|d| d.quote());
 
@@ -212,8 +212,9 @@ impl Table {
         let ident = &self.ident;
 
         for fk in self.foreign_keys.iter() {
-            let name = fk.name.to_string();
-            let other = &fk.foreign_table;
+            let col = fk.quote();
+
+            let other = &fk.on;
 
             let find_all_self = Ident::new(
                 &format!("{}s", ident.to_string().to_lowercase()),
@@ -272,8 +273,7 @@ impl Table {
 
                 #[automatically_derived]
                 impl ::atmosphere::rel::RefersTo<#other> for #ident {
-                    const FOREIGN_KEY: ::atmosphere::ForeignKey<#ident> =
-                        ::atmosphere::ForeignKey::new(#name);
+                    const FOREIGN_KEY: ::atmosphere::ForeignKey<#ident> = #col;
                 }
 
                 #[automatically_derived]
@@ -288,55 +288,40 @@ impl Table {
         let col = Ident::new("col", proc_macro2::Span::call_site());
         let query = Ident::new("query", proc_macro2::Span::call_site());
 
-        let primary_key_bind = {
-            let name = &self.primary_key.name;
+        let mut binds = TokenStream::new();
 
-            quote!(
-                if #col.name() == Self::PRIMARY_KEY.name {
+        {
+            let field = &self.primary_key.name.field();
+
+            binds.extend(quote!(
+                if #col.field() == Self::PRIMARY_KEY.field {
                     use ::atmosphere::Bindable;
-
-                    return Ok(#query.dyn_bind(&self.#name));
+                    return Ok(#query.dyn_bind(&self.#field));
                 }
-            )
-        };
+            ));
+        }
 
-        let foreign_key_binds = {
-            let mut stream = TokenStream::new();
+        for ref fk in &self.foreign_keys {
+            let field = fk.name.field();
 
-            for ref fk in &self.foreign_keys {
-                let ident = &fk.name;
-                let name = fk.name.to_string();
+            binds.extend(quote!(
+                if #col.field() == stringify!(#field) {
+                    use ::atmosphere::Bindable;
+                    return Ok(#query.dyn_bind(&self.#field));
+                }
+            ));
+        }
 
-                stream.extend(quote!(
-                    if #col.name() == #name {
-                        use ::atmosphere::Bindable;
+        for ref data in &self.data_columns {
+            let field = data.name.field();
 
-                        return Ok(#query.dyn_bind(&self.#ident));
-                    }
-                ));
-            }
-
-            stream
-        };
-
-        let data_binds = {
-            let mut stream = TokenStream::new();
-
-            for ref data in &self.data_columns {
-                let ident = &data.name;
-                let name = data.name.to_string();
-
-                stream.extend(quote!(
-                    if #col.name() == #name {
-                        use ::atmosphere::Bindable;
-
-                        return Ok(#query.dyn_bind(&self.#ident));
-                    }
-                ));
-            }
-
-            stream
-        };
+            binds.extend(quote!(
+                if #col.field() == stringify!(#field) {
+                    use ::atmosphere::Bindable;
+                    return Ok(#query.dyn_bind(&self.#field));
+                }
+            ));
+        }
 
         let ident = &self.ident;
 
@@ -351,12 +336,10 @@ impl Table {
                     #col: &'q ::atmosphere::Column<Self>,
                     #query: Q
                 ) -> ::atmosphere::Result<Q> {
-                    #primary_key_bind
-                    #foreign_key_binds
-                    #data_binds
+                    #binds
 
                     Err(::atmosphere::Error::Bind(
-                        ::atmosphere::bind::BindError::Unknown(#col.name())
+                        ::atmosphere::bind::BindError::Unknown(#col.field())
                     ))
                 }
             }

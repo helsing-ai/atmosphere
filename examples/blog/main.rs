@@ -3,20 +3,21 @@ use atmosphere::prelude::*;
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "user")]
 struct User {
-    #[primary_key]
+    #[sql(pk)]
     id: i32,
     name: String,
-    #[unique]
+    #[sql(unique)]
     email: String,
 }
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "post")]
 struct Post {
-    #[primary_key]
+    #[sql(pk)]
     id: i32,
-    #[foreign_key(User)]
+    #[sql(fk -> User)]
     author: i32,
+    #[sql(unique)]
     title: String,
 }
 
@@ -25,4 +26,6 @@ async fn main() -> atmosphere::Result<()> {
     let pool = Pool::connect(&std::env::var("DATABASE_URL").unwrap())
         .await
         .unwrap();
+
+    Ok(())
 }

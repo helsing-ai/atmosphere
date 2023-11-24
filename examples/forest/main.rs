@@ -3,7 +3,7 @@ use atmosphere::prelude::*;
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "forest")]
 struct Forest {
-    #[primary_key]
+    #[sql(pk)]
     id: i32,
     name: String,
     location: String,
@@ -12,10 +12,10 @@ struct Forest {
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "tree")]
 struct Tree {
-    #[primary_key]
+    #[sql(pk)]
     id: i32,
-    #[foreign_key(Forest)]
-    forest_id: i32,
+    #[sql(fk -> Forest, rename = "forest_id")]
+    forest: i32,
 }
 
 #[tokio::main]
@@ -35,7 +35,7 @@ async fn main() -> atmosphere::Result<()> {
     for id in 0..5 {
         Tree {
             id,
-            forest_id: forest.id,
+            forest: forest.id,
         }
         .save(&pool)
         .await?;

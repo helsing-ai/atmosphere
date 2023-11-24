@@ -60,7 +60,8 @@ where
         } = crate::runtime::sql::select::<T>();
 
         assert!(bindings.columns().len() == 1);
-        assert!(bindings.columns()[0].name() == Self::PRIMARY_KEY.name);
+        assert!(bindings.columns()[0].field() == Self::PRIMARY_KEY.field);
+        assert!(bindings.columns()[0].sql() == Self::PRIMARY_KEY.sql);
 
         let query = sqlx::query_as(builder.sql()).bind(pk).persistent(false);
 

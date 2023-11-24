@@ -4,7 +4,7 @@ use atmosphere_core::Table;
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(name = "forest", schema = "public")]
 struct Forest {
-    #[primary_key]
+    #[sql(pk)]
     id: i32,
     name: String,
     location: String,
@@ -13,10 +13,10 @@ struct Forest {
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(name = "tree", schema = "public")]
 struct Tree {
-    #[primary_key]
+    #[sql(pk)]
     id: i32,
-    #[foreign_key(Forest)]
-    forest_id: i32,
+    #[sql(fk -> Forest, rename = "forest_id")]
+    forest: i32,
 }
 
 #[sqlx::test(migrations = "tests/db/migrations")]
@@ -30,6 +30,17 @@ async fn create(pool: sqlx::PgPool) {
         &pool,
     )
     .await;
+
+    Forest {
+        id: 99,
+        name: "place".to_owned(),
+        location: "holder".to_owned(),
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    atmosphere::testing::create(Tree { id: 0, forest: 99 }, &pool).await;
 }
 
 #[sqlx::test(migrations = "tests/db/migrations")]
@@ -43,6 +54,17 @@ async fn read(pool: sqlx::PgPool) {
         &pool,
     )
     .await;
+
+    Forest {
+        id: 99,
+        name: "place".to_owned(),
+        location: "holder".to_owned(),
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    atmosphere::testing::read(Tree { id: 0, forest: 99 }, &pool).await;
 }
 
 #[sqlx::test(migrations = "tests/db/migrations")]
@@ -73,6 +95,31 @@ async fn update(pool: sqlx::PgPool) {
         &pool,
     )
     .await;
+
+    Forest {
+        id: 99,
+        name: "place".to_owned(),
+        location: "holder".to_owned(),
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    Forest {
+        id: 100,
+        name: "place".to_owned(),
+        location: "holder".to_owned(),
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    atmosphere::testing::update(
+        Tree { id: 0, forest: 99 },
+        vec![Tree { id: 0, forest: 100 }, Tree { id: 0, forest: 99 }],
+        &pool,
+    )
+    .await;
 }
 
 #[sqlx::test(migrations = "tests/db/migrations")]
@@ -86,4 +133,15 @@ async fn delete(pool: sqlx::PgPool) {
         &pool,
     )
     .await;
+
+    Forest {
+        id: 99,
+        name: "place".to_owned(),
+        location: "holder".to_owned(),
+    }
+    .save(&pool)
+    .await
+    .unwrap();
+
+    atmosphere::testing::delete(Tree { id: 0, forest: 99 }, &pool).await;
 }

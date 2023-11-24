@@ -54,12 +54,21 @@ pub mod column {
     }
 
     impl<T: Table> Column<T> {
-        pub const fn name(&self) -> &'static str {
+        pub const fn field(&self) -> &'static str {
             match self {
-                Self::PrimaryKey(pk) => pk.name,
-                Self::ForeignKey(fk) => fk.name,
-                Self::DataColumn(data) => data.name,
-                Self::MetaColumn(meta) => meta.name,
+                Self::PrimaryKey(pk) => pk.field,
+                Self::ForeignKey(fk) => fk.field,
+                Self::DataColumn(data) => data.field,
+                Self::MetaColumn(meta) => meta.field,
+            }
+        }
+
+        pub const fn sql(&self) -> &'static str {
+            match self {
+                Self::PrimaryKey(pk) => pk.sql,
+                Self::ForeignKey(fk) => fk.sql,
+                Self::DataColumn(data) => data.sql,
+                Self::MetaColumn(meta) => meta.sql,
             }
         }
     }
@@ -67,14 +76,16 @@ pub mod column {
     /// Descriptor type of a sql data column
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     pub struct PrimaryKey<T: Table> {
-        pub name: &'static str,
+        pub field: &'static str,
+        pub sql: &'static str,
         table: PhantomData<T>,
     }
 
     impl<T: Table> PrimaryKey<T> {
-        pub const fn new(name: &'static str) -> Self {
+        pub const fn new(field: &'static str, sql: &'static str) -> Self {
             Self {
-                name,
+                field,
+                sql,
                 table: PhantomData,
             }
         }
@@ -87,14 +98,16 @@ pub mod column {
     /// Descriptor type of a sql foreign key column
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     pub struct ForeignKey<T: Table> {
-        pub name: &'static str,
+        pub field: &'static str,
+        pub sql: &'static str,
         table: PhantomData<T>,
     }
 
     impl<T: Table> ForeignKey<T> {
-        pub const fn new(name: &'static str) -> Self {
+        pub const fn new(field: &'static str, sql: &'static str) -> Self {
             Self {
-                name,
+                field,
+                sql,
                 table: PhantomData,
             }
         }
@@ -118,14 +131,16 @@ pub mod column {
     /// Descriptor type of a sql data column
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     pub struct DataColumn<T: Table> {
-        pub name: &'static str,
+        pub field: &'static str,
+        pub sql: &'static str,
         table: PhantomData<T>,
     }
 
     impl<T: Table> DataColumn<T> {
-        pub const fn new(name: &'static str) -> Self {
+        pub const fn new(field: &'static str, sql: &'static str) -> Self {
             Self {
-                name,
+                field,
+                sql,
                 table: PhantomData,
             }
         }
@@ -134,14 +149,16 @@ pub mod column {
     /// Descriptor type of a sql metadata column
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     pub struct MetaColumn<T: Table> {
-        pub name: &'static str,
+        pub field: &'static str,
+        pub sql: &'static str,
         table: PhantomData<T>,
     }
 
     impl<T: Table> MetaColumn<T> {
-        pub const fn new(name: &'static str) -> Self {
+        pub const fn new(field: &'static str, sql: &'static str) -> Self {
             Self {
-                name,
+                field,
+                sql,
                 table: PhantomData,
             }
         }
