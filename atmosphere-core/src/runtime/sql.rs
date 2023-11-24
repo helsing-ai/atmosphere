@@ -82,7 +82,7 @@ pub fn select_by<T: Bind>(c: Column<T>) -> Query<T> {
         separated.push(data.sql);
     }
 
-    for ref meta in T::META_COLUMNS {
+    for ref meta in T::TIMESTAMP_COLUMNS {
         separated.push(meta.sql);
     }
 
@@ -113,7 +113,7 @@ pub fn select_all<T: Bind>() -> Query<T> {
         separated.push(data.sql);
     }
 
-    for ref meta in T::META_COLUMNS {
+    for ref meta in T::TIMESTAMP_COLUMNS {
         separated.push(meta.sql);
     }
 
@@ -148,16 +148,16 @@ pub fn insert<T: Bind>() -> Query<T> {
         bindings.push(Column::DataColumn(data));
     }
 
-    for meta in T::META_COLUMNS {
+    for meta in T::TIMESTAMP_COLUMNS {
         separated.push(meta.sql.to_string());
-        bindings.push(Column::MetaColumn(meta));
+        bindings.push(Column::TimestampColumn(meta));
     }
 
     separated.push_unseparated(")\nVALUES\n  (");
 
     separated.push_unseparated("$1");
 
-    let columns = 1 + T::FOREIGN_KEYS.len() + T::DATA_COLUMNS.len() + T::META_COLUMNS.len();
+    let columns = 1 + T::FOREIGN_KEYS.len() + T::DATA_COLUMNS.len() + T::TIMESTAMP_COLUMNS.len();
 
     for c in 2..=columns {
         separated.push(format!("${c}"));
@@ -197,9 +197,9 @@ pub fn update<T: Bind>() -> Query<T> {
         col += 1;
     }
 
-    for ref meta in T::META_COLUMNS {
+    for ref meta in T::TIMESTAMP_COLUMNS {
         separated.push(format!("{} = ${col}", meta.sql));
-        bindings.push(Column::MetaColumn(meta));
+        bindings.push(Column::TimestampColumn(meta));
         col += 1;
     }
 
@@ -235,7 +235,7 @@ pub fn upsert<T: Bind>() -> Query<T> {
         separated.push(format!("{} = EXCLUDED.{}", data.sql, data.sql));
     }
 
-    for ref meta in T::META_COLUMNS {
+    for ref meta in T::TIMESTAMP_COLUMNS {
         separated.push(format!("{} = EXCLUDED.{}", meta.sql, meta.sql));
     }
 
@@ -271,7 +271,7 @@ pub fn delete_by<T: Bind>(c: Column<T>) -> Query<T> {
 mod tests {
     use crate::{
         runtime::sql::{self, Bindings},
-        Bind, Bindable, Column, DataColumn, ForeignKey, MetaColumn, PrimaryKey, Table,
+        Bind, Bindable, Column, DataColumn, ForeignKey, PrimaryKey, Table, TimestampColumn,
     };
 
     #[derive(sqlx::FromRow)]
@@ -292,7 +292,7 @@ mod tests {
         const FOREIGN_KEYS: &'static [ForeignKey<Self>] = &[ForeignKey::new("fk", "fk_sql_col")];
         const DATA_COLUMNS: &'static [DataColumn<Self>] =
             &[DataColumn::new("data", "data_sql_col")];
-        const META_COLUMNS: &'static [MetaColumn<Self>] = &[];
+        const TIMESTAMP_COLUMNS: &'static [TimestampColumn<Self>] = &[];
 
         fn pk(&self) -> &Self::PrimaryKey {
             &self.id

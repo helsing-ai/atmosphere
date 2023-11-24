@@ -10,7 +10,7 @@ pub use delete::Delete;
 pub use read::Read;
 pub use update::Update;
 
-pub use self::column::{Column, DataColumn, ForeignKey, MetaColumn, PrimaryKey};
+pub use self::column::{Column, DataColumn, ForeignKey, PrimaryKey, TimestampColumn};
 
 /// SQL Table Definition
 pub trait Table
@@ -29,8 +29,8 @@ where
     const FOREIGN_KEYS: &'static [ForeignKey<Self>];
     /// Columns that are treated as data
     const DATA_COLUMNS: &'static [DataColumn<Self>];
-    /// Columns that are treated as metadata
-    const META_COLUMNS: &'static [MetaColumn<Self>];
+    /// Columns that are treated as timestamps
+    const TIMESTAMP_COLUMNS: &'static [TimestampColumn<Self>];
 
     fn pk(&self) -> &Self::PrimaryKey;
 }
@@ -50,7 +50,7 @@ pub mod column {
         PrimaryKey(&'static PrimaryKey<T>),
         ForeignKey(&'static ForeignKey<T>),
         DataColumn(&'static DataColumn<T>),
-        MetaColumn(&'static MetaColumn<T>),
+        TimestampColumn(&'static TimestampColumn<T>),
     }
 
     impl<T: Table> Clone for Column<T> {
@@ -59,7 +59,7 @@ pub mod column {
                 Self::PrimaryKey(pk) => Self::PrimaryKey(*pk),
                 Self::ForeignKey(fk) => Self::ForeignKey(*fk),
                 Self::DataColumn(data) => Self::DataColumn(*data),
-                Self::MetaColumn(meta) => Self::MetaColumn(*meta),
+                Self::TimestampColumn(ts) => Self::TimestampColumn(*ts),
             }
         }
     }
@@ -70,7 +70,7 @@ pub mod column {
                 Self::PrimaryKey(pk) => pk.field,
                 Self::ForeignKey(fk) => fk.field,
                 Self::DataColumn(data) => data.field,
-                Self::MetaColumn(meta) => meta.field,
+                Self::TimestampColumn(ts) => ts.field,
             }
         }
 
@@ -79,7 +79,7 @@ pub mod column {
                 Self::PrimaryKey(pk) => pk.sql,
                 Self::ForeignKey(fk) => fk.sql,
                 Self::DataColumn(data) => data.sql,
-                Self::MetaColumn(meta) => meta.sql,
+                Self::TimestampColumn(ts) => ts.sql,
             }
         }
     }
@@ -191,17 +191,26 @@ pub mod column {
         }
     }
 
-    /// Descriptor type of a sql metadata column
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    pub enum TimestampKind {
+        Created,
+        Updated,
+        Deleted,
+    }
+
+    /// Descriptor type of a sql timestamp column
     #[derive(Copy, Debug, PartialEq, Eq)]
-    pub struct MetaColumn<T: Table> {
+    pub struct TimestampColumn<T: Table> {
+        pub kind: TimestampKind,
         pub field: &'static str,
         pub sql: &'static str,
         table: PhantomData<T>,
     }
 
-    impl<T: Table> MetaColumn<T> {
-        pub const fn new(field: &'static str, sql: &'static str) -> Self {
+    impl<T: Table> TimestampColumn<T> {
+        pub const fn new(kind: TimestampKind, field: &'static str, sql: &'static str) -> Self {
             Self {
+                kind,
                 field,
                 sql,
                 table: PhantomData,
@@ -209,9 +218,10 @@ pub mod column {
         }
     }
 
-    impl<T: Table> Clone for MetaColumn<T> {
+    impl<T: Table> Clone for TimestampColumn<T> {
         fn clone(&self) -> Self {
             Self {
+                kind: self.kind,
                 field: self.field,
                 sql: self.sql,
                 table: PhantomData,

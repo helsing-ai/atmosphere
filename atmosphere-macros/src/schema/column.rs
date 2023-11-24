@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use proc_macro2::{Span, TokenStream};
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::{Field, Ident, Type};
 
 use super::keys::{ForeignKey, PrimaryKey};
@@ -31,11 +31,23 @@ pub struct ColumnModifiers {
     pub unique: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum TimestampKind {
     Created,
     Updated,
     Deleted,
+}
+
+impl ToTokens for TimestampKind {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let path = match self {
+            Self::Created => quote!(::atmosphere::column::TimestampKind::Created),
+            Self::Updated => quote!(::atmosphere::column::TimestampKind::Updated),
+            Self::Deleted => quote!(::atmosphere::column::TimestampKind::Deleted),
+        };
+
+        tokens.extend(path);
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -48,14 +60,15 @@ pub struct TimestampColumn {
 
 impl TimestampColumn {
     pub fn quote(&self) -> TokenStream {
-        //let name = self.name().to_string();
+        let kind = self.kind;
+        let field = self.name.field().to_string();
+        let sql = self.name.sql().to_string();
 
-        unimplemented!()
-
-        //quote!(::atmosphere::DataColumn::new(
-        //stringify!(#field),
-        //stringify!(#sql)
-        //))
+        quote!(::atmosphere::TimestampColumn::new(
+            #kind,
+            stringify!(#field),
+            stringify!(#sql)
+        ))
     }
 }
 
