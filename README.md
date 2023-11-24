@@ -116,120 +116,39 @@ impl Table for User {
 ### Alpha Release
 - [x] Advanced SQL Trait System (`Table`, `Column`, `Relation` ..)
 - [x] Derive Macro (`Schema`)
-- [x] Field Attributes (`#[primary_key]`, `#[foreign_key]` and so on)
+- [x] SQL Field Attributes (`#[sql(pk)]`, `#[sql(fk -> Model)]` and so on)
 - [x] SQL Query Generation
 - [x] Automated Integration Testing
 - [x] Attribute Macro (`#[table]`)
 
 ### Beta Release
 - [x] Transaction Support
+- [x] Getting Database Agnostic
 - [ ] Hook into query execution using `atmosphere::hooks`
-- [ ] Virtual Columns using (`#[virtual = "<sql>"]`)
-- [ ] Getting Database Agnostic
 - [ ] Errors using `miette`
 - [ ] Combined Primary and Foreign Keys
-- [ ] Attribute Macro (`#[relation]`)
-- [ ] Attribute Macro (`#[query]`)
 
 ### Stable Release
-- [ ] Custom queries
+- [x] Postgres Composite Types
+- [x] Support Custom Types
+- [x] Runtime Inspection
+- [x] Provide Application Utils
 - [ ] Stabilize Traits
-- [ ] Provide Application Utils
 - [ ] Stabilize Query Generation
 - [ ] Table Lenses (subsets / views)
-- [ ] Soft Delete Support
-- [ ] Auto Timestamping
 
 ### Advanced
-- [x] Postgres Composite Types
-- [x] Support custom types
-- [x] Runtime Inspection
-- [ ] Generate Graphs
+- [ ] Virtual Columns using (`#[virtual = "<sql>"]`)
+- [ ] Soft Delete Support
+- [ ] Attribute Macro (`#[query]`)
+- [ ] Custom queries
+- [ ] Auto Timestamping
 - [ ] `validator` support
 
 ### Longterm
 - [ ] Generate GraphQL + HTTP Servers?
+- [ ] Generate Graphs
 
-
-<!--
-
-## Macros
-
-###### `derive(Schema)`
-
-Builds compile time schema of struct and inserts into global database schema.
-This automatically derives the atmosphere base traits for the following common
-operations:
-
-**Create**
-- `Table::insert(&self)`
-- `&[AsRef<Table>]::insert_all(&self)`
-
-**Read**
-- `Table::find(id: &Id)`
-- `Table::find_all(ids: &[&Id])`
-
-**Update**
-- `Table::reload(&mut self)`
-- `Table::update(&self)`
-- `Table::upsert(&self)`
-
- **Delete**
-- `Table::delete(&mut self)`
-- `Table::delete_by(id: &Id)`
-- `Table::delete_all_by(ids: &[&Id])`
-- `&[AsRef<Table>]::delete_all_by(ids: &[&Id])`
-
-###### `#[query]`
-Enables custom queries on the struct
-
-```rust
-impl Forest {
-    /// Select a forest by its name
-    #[query(
-        SELECT * FROM ${Forest}
-        WHERE name = ${name}
-        ORDER BY name
-    )]
-    pub async fn by_name(name: &str) -> query::Result<Self>;
-
-    /// Select the newest forest
-    #[query(
-        SELECT * FROM ${Forest}
-        ORDER BY created_at DESC
-        LIMIT 1
-    )]
-    pub async fn newest() -> query::Result<Self>;
-}
-```
-
----
-
-##### Advanced Macros
-
-###### `#[table(schema = "public", name = <name>, id = (<a>, <b>))]`
-configures a table name and schema (`schema.table`)
-id optionally tells atmosphere to use combined primary keys
-
-###### `#[relation(grouped_by = Forest)]` and `#[fk(Forest)]`
-enable `Tree::by_forest(&forest.id)`
-
-###### `#[relation(groups = Tree)]` and `#[fk(Forest)]`  (on the Tree)
-enable `Forest::collect(&self)`
-
-###### `#[relation(links = Forest, as = neighbour)]` and `#[fk(Forest)]`
-enable `Tree::neighbour(&self)`
-
-###### `#[virtual(<sql>)]`
-marks a virtual column
-
-###### `#[lens(Forest)]`
-data lenses on big structs
-
-###### `#[form(Forest)]`
-data forms for mutating tables
-
--->
 
 ## Contribution
 
