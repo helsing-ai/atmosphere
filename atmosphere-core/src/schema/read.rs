@@ -1,15 +1,11 @@
-use crate::{
-    query::{Query, QueryError},
-    schema::Table,
-    Bind, Error, Result,
-};
+use crate::{hooks::Hooks, query::QueryError, schema::Table, Bind, Error, Result};
 
 use async_trait::async_trait;
 use sqlx::{database::HasArguments, Executor, IntoArguments};
 
 /// Read rows from a [`sqlx::Database`]
 #[async_trait]
-pub trait Read: Table + Bind + Send + Sync + Unpin + 'static {
+pub trait Read: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
     /// Find a row by its primary key
     async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Option<Self>>
     where
@@ -47,7 +43,7 @@ pub trait Read: Table + Bind + Send + Sync + Unpin + 'static {
 #[async_trait]
 impl<T> Read for T
 where
-    T: Table + Bind + Send + Sync + Unpin + 'static,
+    T: Table + Bind + Hooks + Send + Sync + Unpin + 'static,
 {
     async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Option<Self>>
     where
@@ -55,21 +51,29 @@ where
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
             IntoArguments<'q, crate::Driver> + Send,
     {
-        let Query {
-            builder, bindings, ..
-        } = crate::runtime::sql::select::<T>();
+        let query = crate::runtime::sql::select::<T>();
 
-        assert!(bindings.columns().len() == 1);
-        assert!(bindings.columns()[0].field() == Self::PRIMARY_KEY.field);
-        assert!(bindings.columns()[0].sql() == Self::PRIMARY_KEY.sql);
+        Self::inspect(&query);
 
-        let query = sqlx::query_as(builder.sql()).bind(pk).persistent(false);
+        assert!(query.bindings().columns().len() == 1);
+        assert!(query.bindings().columns()[0].field() == Self::PRIMARY_KEY.field);
+        assert!(query.bindings().columns()[0].sql() == Self::PRIMARY_KEY.sql);
 
-        query
+        let row: Option<Self> = sqlx::query_as(query.sql())
+            .bind(pk)
+            .persistent(false)
             .fetch_optional(executor)
             .await
             .map_err(QueryError::from)
-            .map_err(Error::Query)
+            .map_err(Error::Query)?;
+
+        let Some(mut row) = row else {
+            return Ok(None);
+        };
+
+        row.transpose(&query)?;
+
+        Ok(Some(row))
     }
 
     async fn reload<'e, E>(&mut self, executor: E) -> Result<()>
@@ -78,22 +82,26 @@ where
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
             IntoArguments<'q, crate::Driver> + Send,
     {
-        let Query {
-            builder, bindings, ..
-        } = crate::runtime::sql::select_by::<T>(T::PRIMARY_KEY.as_col());
+        let query = crate::runtime::sql::select_by::<T>(T::PRIMARY_KEY.as_col());
 
-        let mut query = sqlx::query_as(builder.sql());
+        Self::inspect(&query);
 
-        for c in bindings.columns() {
-            query = self.bind(c, query).unwrap();
+        let mut sql = sqlx::query_as(query.sql());
+
+        for c in query.bindings().columns() {
+            sql = self.bind(c, sql).unwrap();
         }
 
-        *self = query
+        let mut row: Self = sql
             .persistent(false)
             .fetch_one(executor)
             .await
             .map_err(QueryError::from)
             .map_err(Error::Query)?;
+
+        row.transpose(&query)?;
+
+        *self = row;
 
         Ok(())
     }
@@ -104,15 +112,23 @@ where
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
             IntoArguments<'q, crate::Driver> + Send,
     {
-        let Query { builder, .. } = crate::runtime::sql::select_all::<T>();
+        let query = crate::runtime::sql::select_all::<T>();
 
-        let query = sqlx::query_as(builder.sql());
+        Self::inspect(&query);
 
-        query
+        let sql = sqlx::query_as(query.sql());
+
+        let mut rows: Vec<Self> = sql
             .persistent(false)
             .fetch_all(executor)
             .await
             .map_err(QueryError::from)
-            .map_err(Error::Query)
+            .map_err(Error::Query)?;
+
+        for ref mut row in rows.iter_mut() {
+            row.transpose(&query)?;
+        }
+
+        Ok(rows)
     }
 }

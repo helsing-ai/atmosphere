@@ -124,7 +124,7 @@ impl Table for User {
 ### Beta Release
 - [x] Transaction Support
 - [x] Getting Database Agnostic
-- [ ] Hook into query execution using `atmosphere::hooks`
+- [x] Hook into query execution using `atmosphere::hooks`
 - [ ] Errors using `miette`
 - [ ] Combined Primary and Foreign Keys
 

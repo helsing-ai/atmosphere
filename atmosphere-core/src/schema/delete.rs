@@ -1,17 +1,16 @@
-use crate::{
-    query::{Query, QueryError},
-    schema::Table,
-    Bind, Error, Result,
-};
+use crate::{hooks::Hooks, query::QueryError, schema::Table, Bind, Error, Result};
 
 use async_trait::async_trait;
 use sqlx::{database::HasArguments, Database, Executor, IntoArguments};
 
 /// Delete rows from a [`sqlx::Database`]
 #[async_trait]
-pub trait Delete: Table + Bind + Send + Sync + Unpin + 'static {
+pub trait Delete: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
     /// Delete row in database
-    async fn delete<'e, E>(&self, executor: E) -> Result<<crate::Driver as Database>::QueryResult>
+    async fn delete<'e, E>(
+        &mut self,
+        executor: E,
+    ) -> Result<<crate::Driver as Database>::QueryResult>
     where
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
@@ -26,39 +25,36 @@ pub trait Delete: Table + Bind + Send + Sync + Unpin + 'static {
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
             IntoArguments<'q, crate::Driver> + Send;
-
-    // Delete all rows in the list of primary keys
-    //async fn delete_many<'e, E>(pks: &[impl AsRef<Self::PrimaryKey>], executor: E) -> Result<()>
-    //where
-    //Self: Bind<sqlx::Postgres> + Sync + 'static,
-    //E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-    //for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-    //Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
 }
 
 #[async_trait]
 impl<T> Delete for T
 where
-    T: Table + Bind + Send + Sync + Unpin + 'static,
+    T: Table + Bind + Hooks + Send + Sync + Unpin + 'static,
 {
-    async fn delete<'e, E>(&self, executor: E) -> Result<<crate::Driver as Database>::QueryResult>
+    async fn delete<'e, E>(
+        &mut self,
+        executor: E,
+    ) -> Result<<crate::Driver as Database>::QueryResult>
     where
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
             IntoArguments<'q, crate::Driver> + Send,
     {
-        let Query {
-            builder, bindings, ..
-        } = crate::runtime::sql::delete::<T>();
+        let query = crate::runtime::sql::delete::<T>();
 
-        let mut query = sqlx::query(builder.sql());
+        self.validate(&query)?;
+        self.prepare(&query)?;
 
-        for c in bindings.columns() {
-            query = self.bind(c, query).unwrap();
+        Self::inspect(&query);
+
+        let mut sql = sqlx::query(query.sql());
+
+        for c in query.bindings.columns() {
+            sql = self.bind(c, sql).unwrap();
         }
 
-        query
-            .persistent(false)
+        sql.persistent(false)
             .execute(executor)
             .await
             .map_err(QueryError::from)
@@ -74,17 +70,17 @@ where
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
             IntoArguments<'q, crate::Driver> + Send,
     {
-        let Query {
-            builder, bindings, ..
-        } = crate::runtime::sql::delete::<T>();
+        let query = crate::runtime::sql::delete::<T>();
 
-        assert!(bindings.columns().len() == 1);
-        assert!(bindings.columns()[0].field() == Self::PRIMARY_KEY.field);
-        assert!(bindings.columns()[0].sql() == Self::PRIMARY_KEY.sql);
+        Self::inspect(&query);
 
-        let query = sqlx::query(builder.sql()).bind(pk).persistent(false);
+        assert!(query.bindings().columns().len() == 1);
+        assert!(query.bindings().columns()[0].field() == Self::PRIMARY_KEY.field);
+        assert!(query.bindings().columns()[0].sql() == Self::PRIMARY_KEY.sql);
 
-        query
+        sqlx::query(query.sql())
+            .bind(pk)
+            .persistent(false)
             .execute(executor)
             .await
             .map_err(QueryError::from)

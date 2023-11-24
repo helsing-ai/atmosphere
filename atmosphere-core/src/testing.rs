@@ -2,7 +2,7 @@ use crate::Entity;
 use std::fmt::Debug;
 
 /// Verify creating of entities
-pub async fn create<E>(instance: E, pool: &crate::Pool)
+pub async fn create<E>(mut instance: E, pool: &crate::Pool)
 where
     E: Entity + Clone + Debug + Eq + Send,
 {
@@ -22,7 +22,7 @@ where
 }
 
 /// Verify read operations
-pub async fn read<E>(instance: E, pool: &crate::Pool)
+pub async fn read<E>(mut instance: E, pool: &crate::Pool)
 where
     E: Entity + Clone + Debug + Eq + Send,
 {
@@ -48,7 +48,7 @@ where
 {
     instance.save(pool).await.expect("insertion did not work");
 
-    for update in updates {
+    for mut update in updates {
         update
             .update(pool)
             .await

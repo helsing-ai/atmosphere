@@ -114,6 +114,7 @@ impl From<sqlx::Error> for QueryError {
 }
 
 /// Cardinality information on the affected rows
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Cardinality {
     None,
     One,
@@ -121,6 +122,7 @@ pub enum Cardinality {
 }
 
 /// The operation that the query contains
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Operation {
     Select,
     Insert,
@@ -158,7 +160,6 @@ impl<T: Bind> Query<T> {
         self.builder.sql()
     }
 
-    #[cfg(test)]
     pub const fn bindings(&self) -> &Bindings<T> {
         &self.bindings
     }

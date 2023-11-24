@@ -1,4 +1,5 @@
 use atmosphere::prelude::*;
+use atmosphere_core::hooks::*;
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "forest")]
@@ -11,6 +12,27 @@ struct Forest {
     location: String,
 }
 
+impl Hooks for Forest {
+    const VALIDATION: &'static [&'static dyn ValidationHook<Self>] = &[];
+    const PREPARATION: &'static [&'static dyn PreparationHook<Self>] = &[];
+    const INSPECTION: &'static [&'static dyn InspectionHook<Self>] = &[&PrintHook];
+    const TRANSPOSITION: &'static [&'static dyn TransposeHook<Self>] = &[];
+}
+
+struct PrintHook;
+
+impl<T: Table + Bind> InspectionHook<T> for PrintHook {
+    fn apply(&self, ctx: &query::Query<T>) {
+        println!(
+            "\n\nquerying ({} {:?} {:?}):",
+            T::TABLE,
+            ctx.op,
+            ctx.cardinality
+        );
+        println!("\n\n{}\n\n", ctx.sql());
+    }
+}
+
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "tree")]
 struct Tree {
@@ -20,13 +42,20 @@ struct Tree {
     forest: i32,
 }
 
+impl Hooks for Tree {
+    const VALIDATION: &'static [&'static dyn ValidationHook<Self>] = &[];
+    const PREPARATION: &'static [&'static dyn PreparationHook<Self>] = &[];
+    const INSPECTION: &'static [&'static dyn InspectionHook<Self>] = &[&PrintHook];
+    const TRANSPOSITION: &'static [&'static dyn TransposeHook<Self>] = &[];
+}
+
 #[tokio::main]
 async fn main() -> atmosphere::Result<()> {
     let pool = Pool::connect(&std::env::var("DATABASE_URL").unwrap())
         .await
         .unwrap();
 
-    let forest = Forest {
+    let mut forest = Forest {
         id: 0,
         name: "our".to_owned(),
         location: "forest".to_owned(),
