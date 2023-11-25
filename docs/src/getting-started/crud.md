@@ -1,0 +1,1 @@
+# Use CRUD traits
