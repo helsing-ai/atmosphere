@@ -113,7 +113,7 @@ trait.
 - [x] Transaction Support
 - [x] Getting Database Agnostic
 - [x] Hook into query execution using `atmosphere::hooks`
-- [ ] Errors using `miette`
+- [x] Errors using `miette`
 - [ ] Combined Primary and Foreign Keys
 
 ### Stable Release

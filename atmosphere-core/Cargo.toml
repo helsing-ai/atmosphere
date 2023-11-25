@@ -21,3 +21,4 @@ async-trait.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
 lazy_static.workspace = true
+miette = "5.10.0"
