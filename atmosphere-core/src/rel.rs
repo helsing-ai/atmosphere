@@ -56,7 +56,7 @@ where
 /// entities referring to `Self`, resolving by primary key, and deleting all such referring
 /// entities.
 #[async_trait]
-pub trait ReferedBy<Other>
+pub trait ReferredBy<Other>
 where
     Self: Table + Bind + Unpin + Sync,
     Other: Table + Bind + RefersTo<Self> + Unpin + Sync,

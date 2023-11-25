@@ -9,6 +9,7 @@
 //! maintainability, especially in scenarios involving complex database interactions and
 //! operations.
 
+use miette::Diagnostic;
 use thiserror::Error;
 
 use crate::{query::QueryError, BindError};
@@ -18,22 +19,27 @@ use crate::{query::QueryError, BindError};
 /// This enum encapsulates a range of errors including IO errors, query-related errors, binding
 /// errors, and others. It is designed to provide a unified error handling mechanism across
 /// different components of the framework.
-#[derive(Debug, Error)]
+#[derive(Debug, Diagnostic, Error)]
 #[non_exhaustive]
 pub enum Error {
     #[error("io")]
+    #[diagnostic(code(atmosphere::io))]
     Io(#[from] std::io::Error),
 
     #[error("query")]
+    #[diagnostic(transparent)]
     Query(#[from] QueryError),
 
     #[error("bind")]
+    #[diagnostic(transparent)]
     Bind(#[from] BindError),
 
     #[error("other")]
+    #[diagnostic(code(atmosphere::other))]
     Other,
 
     #[error("internal")]
+    #[diagnostic(code(atmosphere::internal))]
     Internal,
 }
 
