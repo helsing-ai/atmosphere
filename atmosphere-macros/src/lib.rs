@@ -3,6 +3,7 @@ use quote::{quote, ToTokens};
 use syn::{parse_macro_input, ItemStruct};
 
 mod derive;
+mod hooks;
 mod schema;
 
 use schema::table::Table;
@@ -62,27 +63,9 @@ pub fn table(_: TokenStream, input: TokenStream) -> TokenStream {
     .into()
 }
 
-// Query
-//#[proc_macro_attribute]
-//pub fn query(attr: TokenStream, item: TokenStream) -> TokenStream {
-//let query = parse_macro_input!(item as syn::Item);
-
-//let params = parse_macro_input!(attr as syn::LitStr);
-
-//dbg!(params.value().trim());
-
-//dbg!(query.clone().into_token_stream().to_string());
-
-//let expanded = quote! { fn query(&self) {} };
-
-//// 1. analyze signature and infer sqlx function
-////      - fetch_one, execute and so on
-//// 2. pass sql string to handlebars and Bind:
-////      - database tables (smh)
-////      - function arguments
-////      - replace "{*}" with concrete columns
-//// 3. modify signature to be generic over executor and add executor arg
-//// 4. populate function body / execute sql in body
-
-//expanded.into()
-//}
+#[proc_macro_attribute]
+pub fn hooks(attr: TokenStream, input: TokenStream) -> TokenStream {
+    let model = parse_macro_input!(input as ItemStruct);
+    let _ = parse_macro_input!(attr as hooks::Hooks);
+    quote! { #model }.into()
+}

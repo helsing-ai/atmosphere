@@ -34,7 +34,7 @@ pub trait Hook<T: Table + Bind + Sync>: Sync + Send {
     async fn apply(
         &self,
         #[allow(unused)] ctx: &Query<T>,
-        #[allow(unused)] input: &HookInput<'_, T>,
+        #[allow(unused)] input: &mut HookInput<'_, T>,
     ) -> Result<()> {
         println!("{}", ctx.sql());
         Ok(())
@@ -48,14 +48,14 @@ pub trait Hooks: Table + Bind {
 pub(crate) async fn execute<T: Hooks + Sync>(
     stage: HookStage,
     ctx: &Query<T>,
-    input: HookInput<'_, T>,
+    mut input: HookInput<'_, T>,
 ) -> Result<()> {
     for hook in T::HOOKS {
         if hook.stage() != stage {
             continue;
         }
 
-        hook.apply(ctx, &input).await?;
+        hook.apply(ctx, &mut input).await?;
     }
 
     Ok(())

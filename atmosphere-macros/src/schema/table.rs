@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use syn::parse::{Parse, ParseStream};
 use syn::{Error, Fields, Generics, Ident, LitStr, Token, Visibility};
 
+use crate::hooks::Hooks;
 use crate::schema::column::{Column, DataColumn, TimestampColumn};
 use crate::schema::keys::{ForeignKey, PrimaryKey};
 
@@ -61,10 +62,11 @@ pub struct Table {
     pub id: TableId,
 
     pub primary_key: PrimaryKey,
-
     pub foreign_keys: HashSet<ForeignKey>,
     pub data_columns: HashSet<DataColumn>,
     pub timestamp_columns: HashSet<TimestampColumn>,
+
+    pub hooks: Hooks,
 }
 
 impl Parse for Table {
@@ -80,6 +82,16 @@ impl Parse for Table {
                 "You need to use the `#[table]` attribute if you want to derive `Schema`",
             ))?
             .parse_args()?;
+
+        let hooks: Hooks = {
+            let attr = item.attrs.iter().find(|attr| attr.path().is_ident("hooks"));
+
+            if let Some(attr) = attr {
+                attr.parse_args()?
+            } else {
+                Hooks::default()
+            }
+        };
 
         let ident = item.ident;
 
@@ -155,6 +167,7 @@ impl Parse for Table {
             foreign_keys,
             data_columns,
             timestamp_columns,
+            hooks,
         })
     }
 }

@@ -35,5 +35,13 @@ async fn main() -> atmosphere::Result<()> {
         .await
         .unwrap();
 
+    User {
+        id: 0,
+        name: "our".to_owned(),
+        email: "some@email.com".to_owned(),
+    }
+    .save(&pool)
+    .await?;
+
     Ok(())
 }

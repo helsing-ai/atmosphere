@@ -2,9 +2,12 @@ use atmosphere::hooks::*;
 use atmosphere::prelude::*;
 
 use atmosphere::query::Query;
+use sqlx::types::chrono;
+use sqlx::types::chrono::Utc;
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "forest")]
+#[hooks(Created)]
 struct Forest {
     #[sql(pk)]
     id: i32,
@@ -12,7 +15,37 @@ struct Forest {
     name: String,
     #[sql(unique)]
     location: String,
+
+    #[sql(timestamp = created)]
+    created: chrono::DateTime<Utc>,
 }
+
+//struct Created;
+
+//#[async_trait::async_trait]
+//impl Hook<Forest> for Created {
+//fn stage(&self) -> HookStage {
+//HookStage::PreBind
+//}
+
+//async fn apply(&self, ctx: &Query<Forest>, input: &mut HookInput<'_, Forest>) -> Result<()> {
+//dbg!(&ctx.op);
+
+//if ctx.op != ::atmosphere::query::Operation::Insert {
+//return Ok(());
+//}
+
+//let HookInput::Row(ref mut row) = input else {
+//return Ok(());
+//};
+
+//dbg!(&row);
+
+//row.created = Utc::now();
+
+//Ok(())
+//}
+//}
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "tree")]
@@ -21,38 +54,6 @@ struct Tree {
     id: i32,
     #[sql(fk -> Forest, rename = "forest_id")]
     forest: i32,
-}
-
-mod logging {
-    use super::*;
-
-    struct PrintHook;
-
-    #[async_trait]
-    impl<T: Table + Bind + Sync> Hook<T> for PrintHook {
-        fn stage(&self) -> HookStage {
-            HookStage::PreExec
-        }
-
-        async fn apply(&self, ctx: &Query<T>, _: &HookInput<'_, T>) -> Result<()> {
-            println!(
-                "atmosphere::logs::{} => {:?} {:?}",
-                T::TABLE,
-                ctx.op,
-                ctx.cardinality,
-            );
-
-            Ok(())
-        }
-    }
-
-    impl Hooks for Forest {
-        const HOOKS: &'static [&'static dyn Hook<Self>] = &[&PrintHook];
-    }
-
-    impl Hooks for Tree {
-        const HOOKS: &'static [&'static dyn Hook<Self>] = &[&PrintHook];
-    }
 }
 
 #[tokio::main]
@@ -65,6 +66,7 @@ async fn main() -> atmosphere::Result<()> {
         id: 0,
         name: "our".to_owned(),
         location: "forest".to_owned(),
+        created: Utc::now(),
     };
 
     forest.save(&pool).await?;

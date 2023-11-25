@@ -66,8 +66,8 @@ impl TimestampColumn {
 
         quote!(::atmosphere::TimestampColumn::new(
             #kind,
-            stringify!(#field),
-            stringify!(#sql)
+            #field,
+            #sql
         ))
     }
 }

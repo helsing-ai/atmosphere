@@ -43,6 +43,17 @@ pub fn bindings(table: &Table) -> TokenStream {
         ));
     }
 
+    for ref ts in &table.timestamp_columns {
+        let field = ts.name.field();
+
+        binds.extend(quote!(
+            if #col.field() == stringify!(#field) {
+                use ::atmosphere::Bindable;
+                return Ok(#query.dyn_bind(&self.#field));
+            }
+        ));
+    }
+
     let ident = &table.ident;
 
     quote!(
