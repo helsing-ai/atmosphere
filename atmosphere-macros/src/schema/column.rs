@@ -95,8 +95,8 @@ impl DataColumn {
 pub enum Column {
     PrimaryKey(PrimaryKey),
     ForeignKey(ForeignKey),
-    DataColumn(DataColumn),
-    TimestampColumn(TimestampColumn),
+    Data(DataColumn),
+    Timestamp(TimestampColumn),
 }
 
 impl Hash for Column {
@@ -110,8 +110,8 @@ impl Column {
         match self {
             Self::PrimaryKey(pk) => pk.quote(),
             Self::ForeignKey(fk) => fk.quote(),
-            Self::DataColumn(data) => data.quote(),
-            Self::TimestampColumn(time) => time.quote(),
+            Self::Data(data) => data.quote(),
+            Self::Timestamp(time) => time.quote(),
         }
     }
 
@@ -119,8 +119,8 @@ impl Column {
         match self {
             Self::PrimaryKey(pk) => &pk.ty,
             Self::ForeignKey(fk) => &fk.ty,
-            Self::DataColumn(data) => &data.ty,
-            Self::TimestampColumn(ts) => &ts.ty,
+            Self::Data(data) => &data.ty,
+            Self::Timestamp(ts) => &ts.ty,
         }
     }
 }
@@ -194,10 +194,8 @@ pub mod attribute {
                     _ => {}
                 };
 
-                if kind != ColumnKind::Data {
-                    if input.peek(Token![,]) {
-                        input.parse::<Token![,]>()?;
-                    }
+                if kind != ColumnKind::Data && input.peek(Token![,]) {
+                    input.parse::<Token![,]>()?;
                 }
             }
 
@@ -224,7 +222,7 @@ pub mod attribute {
 
                 // we found a tag
                 if ident.to_string().as_str() == UNIQUE {
-                    if modifiers.unique == true {
+                    if modifiers.unique {
                         return Err(Error::new(
                             ident.span(),
                             "found redundant `unique` modifier",
@@ -284,7 +282,7 @@ impl TryFrom<Field> for Column {
             .find(|a| a.path().is_ident(attribute::PATH));
 
         let Some(attribute) = attribute else {
-            return Ok(Self::DataColumn(DataColumn {
+            return Ok(Self::Data(DataColumn {
                 modifiers: ColumnModifiers { unique: false },
                 name: NameSet::new(name, None),
                 ty,
@@ -296,12 +294,9 @@ impl TryFrom<Field> for Column {
         let modifiers = attribute.modifiers;
         let name = NameSet::new(name, attribute.renamed);
 
-        return match attribute.kind {
+        match attribute.kind {
             attribute::ColumnKind::PrimaryKey => Ok(Self::PrimaryKey(PrimaryKey {
-                modifiers: ColumnModifiers {
-                    unique: true,
-                    ..modifiers
-                },
+                modifiers: ColumnModifiers { unique: true },
                 name,
                 ty,
             })),
@@ -311,20 +306,18 @@ impl TryFrom<Field> for Column {
                 name,
                 ty,
             })),
-            attribute::ColumnKind::Data => Ok(Self::DataColumn(DataColumn {
+            attribute::ColumnKind::Data => Ok(Self::Data(DataColumn {
                 modifiers,
                 name,
                 ty,
             })),
-            attribute::ColumnKind::Timestamp { kind } => {
-                Ok(Self::TimestampColumn(TimestampColumn {
-                    modifiers,
-                    kind,
-                    name,
-                    ty,
-                }))
-            }
-        };
+            attribute::ColumnKind::Timestamp { kind } => Ok(Self::Timestamp(TimestampColumn {
+                modifiers,
+                kind,
+                name,
+                ty,
+            })),
+        }
     }
 }
 
@@ -333,8 +326,8 @@ impl Column {
         match self {
             Self::PrimaryKey(pk) => &pk.name,
             Self::ForeignKey(fk) => &fk.name,
-            Self::DataColumn(data) => &data.name,
-            Self::TimestampColumn(ts) => &ts.name,
+            Self::Data(data) => &data.name,
+            Self::Timestamp(ts) => &ts.name,
         }
     }
 }
@@ -357,14 +350,14 @@ impl Column {
 
     pub const fn as_data_column(&self) -> Option<&DataColumn> {
         match self {
-            Self::DataColumn(c) => Some(c),
+            Self::Data(c) => Some(c),
             _ => None,
         }
     }
 
     pub const fn as_timestamp_column(&self) -> Option<&TimestampColumn> {
         match self {
-            Self::TimestampColumn(c) => Some(c),
+            Self::Timestamp(c) => Some(c),
             _ => None,
         }
     }

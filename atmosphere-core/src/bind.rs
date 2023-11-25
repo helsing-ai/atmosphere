@@ -84,8 +84,12 @@ impl<'q> Bindable<'q> for QueryBuilder<'q, crate::Driver> {
     }
 }
 
-/// Bind columns to SQL Queries
+/// Trait for binding columns to SQL queries in the context of a specific table.
+///
+/// This trait should be implemented by table entities to enable the binding of their columns to
+/// SQL queries. It provides a method to bind a single column, ensuring that the query correctly
+/// reflects the structure and constraints of the table.
 pub trait Bind: Table {
-    /// Bind a single column to the query
+    /// Binds a single column of the implementing table entity to a given query.
     fn bind<'q, Q: Bindable<'q>>(&'q self, c: &'q Column<Self>, query: Q) -> Result<Q>;
 }

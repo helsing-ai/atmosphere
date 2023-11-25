@@ -65,10 +65,11 @@ async fn main() -> sqlx::Result<()> {
 
     user.save(&pool).await?;
     user.delete(&pool).await?;
+    user.create(&pool).await?;
 
     // Field Queries
 
-    assert!(
+    assert_eq!(
         User::find(&0, &pool).await?,
         User::find_by_email("some@email.com", &pool).await?
     );
@@ -96,20 +97,7 @@ async fn main() -> sqlx::Result<()> {
 
 Atmosphere introspects the `User` and `Post` structs at compile time and
 generates `const` available type information about the schema into the `Table`
-trait:
-
-```rust
-impl Table for User {
-    const SCHEMA: &str = "public"
-    const TABLE: &str = "user"
-    const PRIMARY_KEY: Column = Column { name: "id", ty: PrimaryKey, .. };
-    const FOREIGN_KEYS: &'static [Column; 0] = &[];
-    const DATA: &'static [Column; 2] = &[
-        Column { name: "name", ty: Value, .. },
-        Column { name: "email", ty: Value, .. }
-    ];
-}
-```
+trait.
 
 ## Roadmap
 
@@ -136,14 +124,14 @@ impl Table for User {
 - [ ] Stabilize Traits
 - [ ] Stabilize Query Generation
 - [ ] Table Lenses (subsets / views)
+- [ ] `validator` support
+- [ ] Auto Timestamping
 
 ### Advanced
 - [ ] Virtual Columns using (`#[virtual = "<sql>"]`)
 - [ ] Soft Delete Support
 - [ ] Attribute Macro (`#[query]`)
 - [ ] Custom queries
-- [ ] Auto Timestamping
-- [ ] `validator` support
 
 ### Longterm
 - [ ] Generate GraphQL + HTTP Servers?

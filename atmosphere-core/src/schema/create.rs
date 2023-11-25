@@ -45,7 +45,7 @@ where
     {
         let query = crate::runtime::sql::insert::<T>();
 
-        hooks::execute(HookStage::PreBind, &query, HookInput::Row(&mut self)).await?;
+        hooks::execute(HookStage::PreBind, &query, HookInput::Row(self)).await?;
 
         let mut builder = sqlx::query(query.sql());
 

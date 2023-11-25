@@ -1,13 +1,10 @@
-use atmosphere::hooks::*;
 use atmosphere::prelude::*;
 
-use atmosphere::query::Query;
 use sqlx::types::chrono;
 use sqlx::types::chrono::Utc;
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "forest")]
-#[hooks(Created)]
 struct Forest {
     #[sql(pk)]
     id: i32,
@@ -15,37 +12,9 @@ struct Forest {
     name: String,
     #[sql(unique)]
     location: String,
-
     #[sql(timestamp = created)]
     created: chrono::DateTime<Utc>,
 }
-
-//struct Created;
-
-//#[async_trait::async_trait]
-//impl Hook<Forest> for Created {
-//fn stage(&self) -> HookStage {
-//HookStage::PreBind
-//}
-
-//async fn apply(&self, ctx: &Query<Forest>, input: &mut HookInput<'_, Forest>) -> Result<()> {
-//dbg!(&ctx.op);
-
-//if ctx.op != ::atmosphere::query::Operation::Insert {
-//return Ok(());
-//}
-
-//let HookInput::Row(ref mut row) = input else {
-//return Ok(());
-//};
-
-//dbg!(&row);
-
-//row.created = Utc::now();
-
-//Ok(())
-//}
-//}
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "tree")]

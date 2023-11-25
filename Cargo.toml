@@ -6,7 +6,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.0.2"
+version = "0.1.0"
 license = "Apache-2.0"
 edition = "2021"
 authors = ["Mara Schulke <mara@hemisphere.studio>"]
@@ -15,8 +15,8 @@ repository = "https://github.com/hemisphere-studio/atmosphere"
 keywords = ["sqlx", "postgres", "database", "orm", "backend"]
 
 [workspace.dependencies]
-atmosphere-core = { version = "=0.0.2", path = "atmosphere-core" }
-atmosphere-macros = { version = "=0.0.2", path = "atmosphere-macros" }
+atmosphere-core = { version = "=0.1.0", path = "atmosphere-core" }
+atmosphere-macros = { version = "=0.1.0", path = "atmosphere-macros" }
 async-trait = "0.1"
 lazy_static = "1"
 sqlx = { version = "0.7", features = ["chrono"] }

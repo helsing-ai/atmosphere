@@ -14,7 +14,7 @@ pub fn queries(table: &Table) -> TokenStream {
         .iter()
         .filter(|fk| fk.modifiers.unique)
         .cloned()
-        .map(|fk| Column::ForeignKey(fk))
+        .map(Column::ForeignKey)
         .collect();
 
     let data: Vec<Column> = table
@@ -22,7 +22,7 @@ pub fn queries(table: &Table) -> TokenStream {
         .iter()
         .filter(|data| data.modifiers.unique)
         .cloned()
-        .map(|data| Column::DataColumn(data))
+        .map(Column::Data)
         .collect();
 
     for column in fks.iter().chain(data.iter()) {

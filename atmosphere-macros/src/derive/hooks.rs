@@ -54,5 +54,4 @@ pub fn hooks(table: &Table) -> TokenStream {
             ];
         }
     )
-    .into()
 }

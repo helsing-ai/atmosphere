@@ -78,9 +78,9 @@ pub mod column {
         /// A foreign key
         ForeignKey(&'static ForeignKey<T>),
         /// A data column
-        DataColumn(&'static DataColumn<T>),
+        Data(&'static DataColumn<T>),
         /// A timestamp column
-        TimestampColumn(&'static TimestampColumn<T>),
+        Timestamp(&'static TimestampColumn<T>),
     }
 
     impl<T: Table> Clone for Column<T> {
@@ -88,8 +88,8 @@ pub mod column {
             match self {
                 Self::PrimaryKey(pk) => Self::PrimaryKey(*pk),
                 Self::ForeignKey(fk) => Self::ForeignKey(*fk),
-                Self::DataColumn(data) => Self::DataColumn(*data),
-                Self::TimestampColumn(ts) => Self::TimestampColumn(*ts),
+                Self::Data(data) => Self::Data(*data),
+                Self::Timestamp(ts) => Self::Timestamp(*ts),
             }
         }
     }
@@ -99,8 +99,8 @@ pub mod column {
             match self {
                 Self::PrimaryKey(pk) => pk.field,
                 Self::ForeignKey(fk) => fk.field,
-                Self::DataColumn(data) => data.field,
-                Self::TimestampColumn(ts) => ts.field,
+                Self::Data(data) => data.field,
+                Self::Timestamp(ts) => ts.field,
             }
         }
 
@@ -108,8 +108,8 @@ pub mod column {
             match self {
                 Self::PrimaryKey(pk) => pk.sql,
                 Self::ForeignKey(fk) => fk.sql,
-                Self::DataColumn(data) => data.sql,
-                Self::TimestampColumn(ts) => ts.sql,
+                Self::Data(data) => data.sql,
+                Self::Timestamp(ts) => ts.sql,
             }
         }
     }
@@ -169,14 +169,14 @@ pub mod column {
             Column::ForeignKey(self)
         }
 
+        /// # Safety
+        //
+        /// We do treat this foreign key as a column of another table. This is not
+        /// smart to do - but can become necessary when doing complex joins. This
+        /// is memory safe as Self<A> and Self<B> have the exact same memory layout,
+        /// we do not store any data (A or B) but only a `PhantomData` instance which
+        /// is here transmuted.
         pub const unsafe fn transmute<I: Table>(&'static self) -> &'static ForeignKey<I> {
-            // SAFETY:
-            //
-            // We do treat this foreign key as a column of another table. This is not
-            // smart to do - but can become necessary when doing complex joins. This
-            // is memory safe as Self<A> and Self<B> have the exact same memory layout,
-            // we do not store any data (A or B) but only a `PhantomData` instance which
-            // is here transmuted.
             std::mem::transmute(self)
         }
     }
@@ -211,7 +211,7 @@ pub mod column {
         }
 
         pub const fn as_col(&'static self) -> Column<T> {
-            Column::DataColumn(self)
+            Column::Data(self)
         }
     }
 

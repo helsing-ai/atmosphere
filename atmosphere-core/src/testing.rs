@@ -16,13 +16,13 @@ where
     E: Entity + Clone + Debug + Eq + Send,
 {
     assert!(
-        E::find(&instance.pk(), pool).await.unwrap().is_none(),
+        E::find(instance.pk(), pool).await.unwrap().is_none(),
         "instance was found before it was created"
     );
 
     instance.create(pool).await.expect("insertion did not work");
 
-    let retrieved = E::find(&instance.pk(), pool)
+    let retrieved = E::find(instance.pk(), pool)
         .await
         .unwrap()
         .expect("instance not found after insertion");
@@ -40,13 +40,13 @@ where
     E: Entity + Clone + Debug + Eq + Send,
 {
     assert!(
-        E::find(&instance.pk(), pool).await.unwrap().is_none(),
+        E::find(instance.pk(), pool).await.unwrap().is_none(),
         "instance was found after deletion"
     );
 
     instance.create(pool).await.expect("insertion did not work");
 
-    let retrieved = E::find(&instance.pk(), pool)
+    let retrieved = E::find(instance.pk(), pool)
         .await
         .unwrap()
         .expect("instance not found after insertion");
@@ -77,7 +77,7 @@ where
 
         assert_eq!(instance, update);
 
-        let retrieved = E::find(&instance.pk(), pool)
+        let retrieved = E::find(instance.pk(), pool)
             .await
             .unwrap()
             .expect("instance not found after update");
@@ -104,7 +104,7 @@ where
         .expect_err("instance could be reloaded from db after deletion");
 
     assert!(
-        E::find(&instance.pk(), pool).await.unwrap().is_none(),
+        E::find(instance.pk(), pool).await.unwrap().is_none(),
         "instance was found after deletion"
     );
 

@@ -59,7 +59,7 @@ where
         hooks::execute(
             hooks::HookStage::PreBind,
             &query,
-            hooks::HookInput::Row(&mut self),
+            hooks::HookInput::Row(self),
         )
         .await?;
 

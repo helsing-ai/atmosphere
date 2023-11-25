@@ -100,15 +100,15 @@ pub fn select_by<T: Bind>(c: Column<T>) -> Query<T> {
 
     separated.push(T::PRIMARY_KEY.sql);
 
-    for ref fk in T::FOREIGN_KEYS {
+    for fk in T::FOREIGN_KEYS {
         separated.push(fk.sql);
     }
 
-    for ref data in T::DATA_COLUMNS {
+    for data in T::DATA_COLUMNS {
         separated.push(data.sql);
     }
 
-    for ref meta in T::TIMESTAMP_COLUMNS {
+    for meta in T::TIMESTAMP_COLUMNS {
         separated.push(meta.sql);
     }
 
@@ -133,15 +133,15 @@ pub fn select_all<T: Bind>() -> Query<T> {
 
     separated.push(T::PRIMARY_KEY.sql);
 
-    for ref fk in T::FOREIGN_KEYS {
+    for fk in T::FOREIGN_KEYS {
         separated.push(fk.sql);
     }
 
-    for ref data in T::DATA_COLUMNS {
+    for data in T::DATA_COLUMNS {
         separated.push(data.sql);
     }
 
-    for ref meta in T::TIMESTAMP_COLUMNS {
+    for meta in T::TIMESTAMP_COLUMNS {
         separated.push(meta.sql);
     }
 
@@ -175,12 +175,12 @@ pub fn insert<T: Bind>() -> Query<T> {
 
     for data in T::DATA_COLUMNS {
         separated.push(data.sql.to_string());
-        bindings.push(Column::DataColumn(data));
+        bindings.push(Column::Data(data));
     }
 
     for meta in T::TIMESTAMP_COLUMNS {
         separated.push(meta.sql.to_string());
-        bindings.push(Column::TimestampColumn(meta));
+        bindings.push(Column::Timestamp(meta));
     }
 
     separated.push_unseparated(")\nVALUES\n  (");
@@ -217,21 +217,21 @@ pub fn update<T: Bind>() -> Query<T> {
 
     let mut col = 2;
 
-    for ref fk in T::FOREIGN_KEYS {
+    for fk in T::FOREIGN_KEYS {
         separated.push(format!("{} = ${col}", fk.sql));
         bindings.push(Column::ForeignKey(fk));
         col += 1;
     }
 
-    for ref data in T::DATA_COLUMNS {
+    for data in T::DATA_COLUMNS {
         separated.push(format!("{} = ${col}", data.sql));
-        bindings.push(Column::DataColumn(data));
+        bindings.push(Column::Data(data));
         col += 1;
     }
 
-    for ref meta in T::TIMESTAMP_COLUMNS {
+    for meta in T::TIMESTAMP_COLUMNS {
         separated.push(format!("{} = ${col}", meta.sql));
-        bindings.push(Column::TimestampColumn(meta));
+        bindings.push(Column::Timestamp(meta));
         col += 1;
     }
 
@@ -261,15 +261,15 @@ pub fn upsert<T: Bind>() -> Query<T> {
 
     let mut separated = builder.separated(",\n  ");
 
-    for ref fk in T::FOREIGN_KEYS {
+    for fk in T::FOREIGN_KEYS {
         separated.push(format!("{} = EXCLUDED.{}", fk.sql, fk.sql));
     }
 
-    for ref data in T::DATA_COLUMNS {
+    for data in T::DATA_COLUMNS {
         separated.push(format!("{} = EXCLUDED.{}", data.sql, data.sql));
     }
 
-    for ref meta in T::TIMESTAMP_COLUMNS {
+    for meta in T::TIMESTAMP_COLUMNS {
         separated.push(format!("{} = EXCLUDED.{}", meta.sql, meta.sql));
     }
 
@@ -340,15 +340,9 @@ mod tests {
     impl Bind for TestTable {
         fn bind<'q, Q: Bindable<'q>>(&'q self, c: &'q Column<Self>, query: Q) -> crate::Result<Q> {
             match c.field() {
-                "id" => {
-                    return Ok(query.dyn_bind(&self.id));
-                }
-                "fk" => {
-                    return Ok(query.dyn_bind(&self.fk));
-                }
-                "data" => {
-                    return Ok(query.dyn_bind(&self.data));
-                }
+                "id" => Ok(query.dyn_bind(self.id)),
+                "fk" => Ok(query.dyn_bind(self.fk)),
+                "data" => Ok(query.dyn_bind(self.data)),
                 _ => unimplemented!(),
             }
         }
@@ -387,7 +381,7 @@ mod tests {
             Bindings(vec![
                 Column::PrimaryKey(&TestTable::PRIMARY_KEY),
                 Column::ForeignKey(&TestTable::FOREIGN_KEYS[0]),
-                Column::DataColumn(&TestTable::DATA_COLUMNS[0]),
+                Column::Data(&TestTable::DATA_COLUMNS[0]),
             ])
         );
     }
@@ -408,7 +402,7 @@ mod tests {
             Bindings(vec![
                 Column::PrimaryKey(&TestTable::PRIMARY_KEY),
                 Column::ForeignKey(&TestTable::FOREIGN_KEYS[0]),
-                Column::DataColumn(&TestTable::DATA_COLUMNS[0]),
+                Column::Data(&TestTable::DATA_COLUMNS[0]),
             ])
         );
     }
@@ -429,7 +423,7 @@ mod tests {
             Bindings(vec![
                 Column::PrimaryKey(&TestTable::PRIMARY_KEY),
                 Column::ForeignKey(&TestTable::FOREIGN_KEYS[0]),
-                Column::DataColumn(&TestTable::DATA_COLUMNS[0]),
+                Column::Data(&TestTable::DATA_COLUMNS[0]),
             ])
         );
     }

@@ -102,7 +102,7 @@ impl Parse for Table {
                     ident.span(),
                     format!(
                         "{} must use named fields in order to derive `Schema`",
-                        ident.to_string()
+                        ident
                     ),
                 ))
             }
@@ -126,7 +126,7 @@ impl Parse for Table {
                     input.span(),
                     format!(
                         "{} declares more than one column as its primary key – only one is allowed",
-                        ident.to_string()
+                        ident
                     ),
                 ));
             }
@@ -135,7 +135,7 @@ impl Parse for Table {
                 input.span(),
                 format!(
                     "{} must declare one field as its primary key (using `#[primary_key]`",
-                    ident.to_string()
+                    ident
                 ),
             ))?
         };

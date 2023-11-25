@@ -21,7 +21,7 @@ pub fn bindings(table: &Table) -> TokenStream {
         ));
     }
 
-    for ref fk in &table.foreign_keys {
+    for fk in &table.foreign_keys {
         let field = fk.name.field();
 
         binds.extend(quote!(
@@ -32,7 +32,7 @@ pub fn bindings(table: &Table) -> TokenStream {
         ));
     }
 
-    for ref data in &table.data_columns {
+    for data in &table.data_columns {
         let field = data.name.field();
 
         binds.extend(quote!(
@@ -43,7 +43,7 @@ pub fn bindings(table: &Table) -> TokenStream {
         ));
     }
 
-    for ref ts in &table.timestamp_columns {
+    for ts in &table.timestamp_columns {
         let field = ts.name.field();
 
         binds.extend(quote!(
