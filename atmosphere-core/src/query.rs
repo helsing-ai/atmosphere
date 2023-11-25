@@ -4,6 +4,7 @@
 //! This module includes custom error types for different database-related errors, enums for query
 //! operations and cardinality, and a struct for building and managing queries for database tables.
 
+use miette::Diagnostic;
 use sqlx::QueryBuilder;
 use thiserror::Error;
 
@@ -14,31 +15,37 @@ use crate::{runtime::sql::Bindings, Bind, Result, Table};
 /// This enum includes variants for IO errors, row not found errors, SQLSTATE errors, violation
 /// errors, and others, allowing for detailed categorization and handling of different database
 /// errors.
-#[derive(Debug, Error)]
+#[derive(Debug, Diagnostic, Error)]
 #[non_exhaustive]
 pub enum QueryError {
     /// Database communication (IO / Protocol / TLS) related errors
     #[error("IO")]
+    #[diagnostic(code(atmosphere::query::io))]
     Io(#[source] sqlx::Error),
 
     /// Row not found errors
     #[error("not found")]
+    #[diagnostic(code(atmosphere::query::not_found))]
     NotFound(#[source] sqlx::Error),
 
     /// SQLSTATE errors
     #[error("sql")]
+    #[diagnostic(transparent)]
     Sql(#[source] SqlError),
 
     /// Violation errors
     #[error("violation")]
+    #[diagnostic(transparent)]
     Violation(#[source] ViolationError),
 
     /// Catch-all for sqlx errors
     #[error("sqlx")]
+    #[diagnostic(code(atmosphere::query::sqlx))]
     Other(#[source] sqlx::Error),
 
     /// Atmosphere internal error
     #[error("internal error")]
+    #[diagnostic(code(atmosphere::query::internal))]
     InternalError(#[source] sqlx::Error),
 }
 
@@ -47,14 +54,22 @@ pub enum QueryError {
 /// Includes uniqueness violations, foreign key violations, and integrity check errors,
 /// encapsulating different types of constraint-related issues that can occur during database
 /// operations.
-#[derive(Debug, Error)]
+#[derive(Debug, Diagnostic, Error)]
 #[non_exhaustive]
 pub enum ViolationError {
+    /// Row uniqueness violated
     #[error("uniqueness violation")]
+    #[diagnostic(code(atmosphere::violation::uniqueness))]
     Unique(#[source] sqlx::Error),
+
+    /// Foreign key violation
     #[error("foreign key violation")]
+    #[diagnostic(code(atmosphere::violation::foreign_key))]
     ForeignKey(#[source] sqlx::Error),
+
+    /// Integritry check failed
     #[error("integrity check")]
+    #[diagnostic(code(atmosphere::violation::integrity))]
     Check(#[source] sqlx::Error),
 }
 
@@ -62,23 +77,27 @@ pub enum ViolationError {
 ///
 /// This enum categorizes various SQL errors such as data exceptions, integrity constraints, syntax
 /// errors, and others, based on their SQLSTATE classification.
-#[derive(Debug, Error)]
+#[derive(Debug, Diagnostic, Error)]
 #[non_exhaustive]
 pub enum SqlError {
     /// SQLSTATE Class 22
     #[error("data exception")]
+    #[diagnostic(code(atmosphere::sqlstate::data))]
     DataException(#[source] sqlx::Error),
 
     /// SQLSTATE Class 23
     #[error("integrity constraint")]
+    #[diagnostic(code(atmosphere::sqlstate::integrity))]
     IntegrityConstraint(#[source] sqlx::Error),
 
     /// SQLSTATE Class 42
     #[error("syntax")]
+    #[diagnostic(code(atmosphere::sqlstate::syntax))]
     Syntax(#[source] sqlx::Error),
 
     /// All other classes
     #[error("other")]
+    #[diagnostic(code(atmosphere::sqlstate::other))]
     Other(#[source] sqlx::Error),
 }
 

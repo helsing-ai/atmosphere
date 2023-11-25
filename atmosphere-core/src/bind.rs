@@ -21,6 +21,7 @@
 //! missing values.
 
 use crate::{Column, Result, Table};
+use miette::Diagnostic;
 use sqlx::database::HasArguments;
 use sqlx::query::QueryAs;
 use sqlx::{Encode, QueryBuilder, Type};
@@ -30,11 +31,12 @@ use thiserror::Error;
 ///
 /// This enum covers various issues that might arise when binding parameters, such as referencing
 /// unknown columns.
-#[derive(Debug, Error)]
+#[derive(Debug, Diagnostic, Error)]
 #[non_exhaustive]
 pub enum BindError {
     /// Represents an error where a specified column is unknown or not found.
     #[error("unknown column: {0}")]
+    #[diagnostic(code(atmosphere::bind::unknown))]
     Unknown(&'static str),
 }
 
