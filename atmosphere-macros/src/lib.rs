@@ -33,7 +33,7 @@ use schema::table::Table;
 ///
 /// Usage:
 ///
-/// ```rust
+/// ```ignore
 /// #[derive(Schema)]
 /// struct User {
 ///     #[sql(pk)]
@@ -63,7 +63,7 @@ pub fn schema(input: TokenStream) -> TokenStream {
 ///
 /// Usage:
 ///
-/// ```rust
+/// ```ignore
 /// #[table(schema = "public", name = "your_table_name")]
 /// ```
 #[proc_macro_attribute]
@@ -119,7 +119,7 @@ pub fn table(_: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// Usage:
 ///
-/// ```rust
+/// ```ignore
 /// #[hooks(path::to::my::Hook)]
 /// struct MyTable { .. }
 /// ```
