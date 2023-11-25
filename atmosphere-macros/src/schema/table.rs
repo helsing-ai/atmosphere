@@ -42,7 +42,7 @@ impl Parse for TableId {
         }
 
         let schema = schema.ok_or_else(|| {
-            syn::Error::new(input.span(), "`#[table]` requies a value for `schema`")
+            syn::Error::new(input.span(), "`#[table]` requires a value for `schema`")
         })?;
 
         let table = table.ok_or_else(|| {
