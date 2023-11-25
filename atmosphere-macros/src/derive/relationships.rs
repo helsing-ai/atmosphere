@@ -57,7 +57,7 @@ pub fn relationships(table: &Table) -> TokenStream {
                     E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
                     for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
                         ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
-                    <#other as ::atmosphere::rel::ReferedBy<#ident>>::resolve_by(pk, executor).await
+                    <#other as ::atmosphere::rel::ReferredBy<#ident>>::resolve_by(pk, executor).await
                 }
             }
 
@@ -71,7 +71,7 @@ pub fn relationships(table: &Table) -> TokenStream {
                     E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
                     for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
                         ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
-                    <#other as ::atmosphere::rel::ReferedBy<#ident>>::resolve(&self, executor).await
+                    <#other as ::atmosphere::rel::ReferredBy<#ident>>::resolve(&self, executor).await
                 }
 
                 pub async fn #delete_self<'e, E>(
@@ -82,7 +82,7 @@ pub fn relationships(table: &Table) -> TokenStream {
                     E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
                     for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
                         ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
-                    <#other as ::atmosphere::rel::ReferedBy<#ident>>::delete_all(&self, executor).await
+                    <#other as ::atmosphere::rel::ReferredBy<#ident>>::delete_all(&self, executor).await
                 }
             }
 
@@ -92,7 +92,7 @@ pub fn relationships(table: &Table) -> TokenStream {
             }
 
             #[automatically_derived]
-            impl ::atmosphere::rel::ReferedBy<#ident> for #other {}
+            impl ::atmosphere::rel::ReferredBy<#ident> for #other {}
         ));
     }
 

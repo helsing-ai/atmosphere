@@ -183,7 +183,7 @@ Atmosphere is able to derive and generate the following queries:
 
 ### Field Queries
 
-Each struct field that is marked with `#[sql(unique)]` becomes queriable.
+Each struct field that is marked with `#[sql(unique)]` becomes queryable.
 
 In the above example `b` was marked as unique so atmosphere implements:
 
