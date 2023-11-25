@@ -8,10 +8,16 @@ use crate::{
 use async_trait::async_trait;
 use sqlx::{database::HasArguments, Database, Executor, IntoArguments};
 
-/// Update rows in the database
+/// Update rows in a database.
+///
+/// Provides functionality for updating data in tables within a SQL database. This trait defines asynchronous methods
+/// for modifying existing rows in the database, either through direct updates or upserts (update or insert if not exists).
+/// It ensures that hooks are executed at various stages, enabling custom logic to be integrated into the update process.
 #[async_trait]
 pub trait Update: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
-    /// Update the row in the database
+    /// Updates an existing row in the database. This method constructs an update query, binds the
+    /// necessary values, executes the query, and applies hooks at predefined stages (e.g., before
+    /// binding, before execution, after execution).
     async fn update<'e, E>(
         &mut self,
         executor: E,
@@ -21,7 +27,9 @@ pub trait Update: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
             IntoArguments<'q, crate::Driver> + Send;
 
-    /// Save to the database
+    /// Similar to `update`, but uses an upsert approach. It either updates an existing row or
+    /// inserts a new one if it does not exist, depending on the primary key's presence and
+    /// uniqueness.
     async fn save<'e, E>(
         &mut self,
         executor: E,

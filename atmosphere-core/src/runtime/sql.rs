@@ -1,3 +1,20 @@
+//! # SQL Code Generation
+//!
+//! This submodule provides essential constructors for SQL queries tailored to the operations
+//! performed within the Atmosphere framework. It includes functionalities for dynamically building
+//! queries for CRUD (Create, Read, Update, Delete) operations, and managing bindings between SQL
+//! queries and table entities.
+//!
+//! ## Key features:
+//!
+//! - Query Builders: Functions like `select`, `insert`, `update`, `delete`, and `upsert`, which create SQL
+//!   queries for their respective operations. These builders ensure that queries are correctly formatted and
+//!   aligned with the structure and constraints of the target table.
+//!
+//! - Binding Management: The `Bindings` struct and its implementations, which manage the relationship between
+//!   table columns and the SQL queries they are bound to. This ensures that queries are executed with the correct
+//!   parameters and their values.
+
 use std::fmt;
 
 use sqlx::QueryBuilder;
@@ -7,6 +24,11 @@ use crate::{
     Bind, Column,
 };
 
+/// Struct representing bindings for SQL queries.
+///
+/// `Bindings` is responsible for holding a collection of columns that are bound to a specific SQL query.
+/// It encapsulates the necessary details for each column, such as field names and SQL representations,
+/// ensuring accurate and efficient binding of data to the query.
 pub struct Bindings<T: Bind>(Vec<Column<T>>);
 
 impl<T: Bind> PartialEq for Bindings<T> {
@@ -61,12 +83,16 @@ fn table<T: Bind>() -> String {
     format!("\"{}\".\"{}\"", T::SCHEMA, T::TABLE)
 }
 
-/// `SELECT * FROM .. WHERE .. = $1`
+/// Generates a `SELECT` query to retrieve a single row from the table based on its primary key.
+///
+/// SQL: `SELECT * FROM .. WHERE .. = $1`
 pub fn select<T: Bind>() -> Query<T> {
     select_by(Column::PrimaryKey(&T::PRIMARY_KEY))
 }
 
-/// `SELECT * FROM .. WHERE .. = $1`
+/// Creates a `SELECT` query to retrieve rows from the table based on a specific column.
+///
+/// SQL: `SELECT * FROM .. WHERE .. = $1`
 pub fn select_by<T: Bind>(c: Column<T>) -> Query<T> {
     let mut query = QueryBuilder::new("SELECT\n  ");
 
@@ -97,7 +123,9 @@ pub fn select_by<T: Bind>(c: Column<T>) -> Query<T> {
     )
 }
 
-/// `SELECT * FROM ..`
+/// Constructs a `SELECT` query to fetch all rows from the table.
+///
+/// SQL: `SELECT * FROM ..`
 pub fn select_all<T: Bind>() -> Query<T> {
     let mut query = QueryBuilder::new("SELECT\n  ");
 
@@ -127,7 +155,9 @@ pub fn select_all<T: Bind>() -> Query<T> {
     )
 }
 
-/// `INSERT INTO .. VALUES ..`
+/// Generates an `INSERT` query to add a new row to the table.
+///
+/// SQL: `INSERT INTO .. VALUES ..`
 pub fn insert<T: Bind>() -> Query<T> {
     let mut builder = QueryBuilder::new(format!("INSERT INTO {}\n  (", table::<T>()));
 
@@ -173,7 +203,9 @@ pub fn insert<T: Bind>() -> Query<T> {
     )
 }
 
-/// `UPDATE .. SET .. WHERE ..`
+/// Creates an `UPDATE` query to modify an existing row in the table.
+///
+/// SQL: `UPDATE .. SET .. WHERE ..`
 pub fn update<T: Bind>() -> Query<T> {
     let mut builder = QueryBuilder::new(format!("UPDATE {} SET\n  ", table::<T>()));
     let mut bindings = vec![];
@@ -213,7 +245,9 @@ pub fn update<T: Bind>() -> Query<T> {
     )
 }
 
-/// `UPDATE .. SET .. WHERE .. ON CONFLICT .. DO UPDATE SET`
+/// Constructs an `UPSERT` query (update or insert) for a row in the table.
+///
+/// SQL: `UPDATE .. SET .. WHERE .. ON CONFLICT .. DO UPDATE SET`
 pub fn upsert<T: Bind>() -> Query<T> {
     let Query {
         mut builder,
@@ -247,12 +281,16 @@ pub fn upsert<T: Bind>() -> Query<T> {
     )
 }
 
-/// `DELETE FROM .. WHERE ..`
+/// Generates a `DELETE` query to remove a row from the table based on its primary key.
+///
+/// SQL: `DELETE FROM .. WHERE ..`
 pub fn delete<T: Bind>() -> Query<T> {
     delete_by(T::PRIMARY_KEY.as_col())
 }
 
-/// `DELETE FROM .. WHERE ..`
+/// Creates a `DELETE` query to remove rows from the table based on a specific column.
+///
+/// SQL: `DELETE FROM .. WHERE ..`
 pub fn delete_by<T: Bind>(c: Column<T>) -> Query<T> {
     let mut builder = QueryBuilder::new(format!("DELETE FROM {} WHERE ", table::<T>()));
 

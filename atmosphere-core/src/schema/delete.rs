@@ -8,10 +8,17 @@ use crate::{
 use async_trait::async_trait;
 use sqlx::{database::HasArguments, Database, Executor, IntoArguments};
 
-/// Delete rows from a [`sqlx::Database`]
+/// Trait for deleting rows from a database.
+///
+/// Provides functionality for deleting rows from a table in the database. Implementors of this trait can delete
+/// entities either by their instance or by their primary key. The trait ensures proper execution of hooks at
+/// various stages of the delete operation, enhancing flexibility and allowing for custom behavior during the
+/// deletion process.
 #[async_trait]
 pub trait Delete: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
-    /// Delete row in database
+    /// Deletes the row represented by the instance from the database. Builds and executes a delete
+    /// query and triggers hooks at appropriate stages (e.g., before binding, before execution,
+    /// after execution).
     async fn delete<'e, E>(
         &mut self,
         executor: E,
@@ -21,7 +28,8 @@ pub trait Delete: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
             IntoArguments<'q, crate::Driver> + Send;
 
-    /// Delete row in database by primary key
+    /// Deletes a row from the database based on its primary key. This method is particularly
+    /// useful for deleting entities when only the primary key is available.
     async fn delete_by<'e, E>(
         pk: &Self::PrimaryKey,
         executor: E,

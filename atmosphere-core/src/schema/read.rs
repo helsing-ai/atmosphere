@@ -8,24 +8,34 @@ use crate::{
 use async_trait::async_trait;
 use sqlx::{database::HasArguments, Executor, IntoArguments};
 
-/// Read rows from a [`sqlx::Database`]
+/// Trait for reading rows from a database.
+///
+/// This trait provides the functionality for reading data from tables in a SQL database. It
+/// defines several asynchronous methods for retrieving rows either by their primary key, reloading
+/// existing entities, or fetching all rows in a table. The trait incorporates hooks at various
+/// stages, allowing for custom logic to be executed as part of the reading process.
 #[async_trait]
 pub trait Read: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
-    /// Find a row by its primary key
+    /// Finds and retrieves a row by its primary key. This method constructs a query to fetch
+    /// a single row based on the primary key, executes it, and returns the result, optionally
+    /// triggering hooks before and after execution.
     async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Option<Self>>
     where
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
             IntoArguments<'q, crate::Driver> + Send;
 
-    /// All rows in a table
+    /// Retrieves all rows from the table. This method is useful for fetching the complete
+    /// dataset of a table, executing a query to return all rows, and applying hooks as needed.
     async fn find_all<'e, E>(executor: E) -> Result<Vec<Self>>
     where
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
             IntoArguments<'q, crate::Driver> + Send;
 
-    /// Reload from database
+    /// Reloads the current entity from the database. This method is designed to update the entity
+    /// instance with the latest data from the database, ensuring that it reflects the current
+    /// state of the corresponding row.
     async fn reload<'e, E>(&mut self, executor: E) -> Result<()>
     where
         E: Executor<'e, Database = crate::Driver>,

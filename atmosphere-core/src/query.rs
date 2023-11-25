@@ -1,9 +1,19 @@
+//! Provides structures and enums for handling and executing SQL queries, along with error
+//! handling.
+//!
+//! This module includes custom error types for different database-related errors, enums for query
+//! operations and cardinality, and a struct for building and managing queries for database tables.
+
 use sqlx::QueryBuilder;
 use thiserror::Error;
 
 use crate::{runtime::sql::Bindings, Bind, Result, Table};
 
-/// An error that occured while executing the query
+/// Errors that can occur while executing a database query.
+///
+/// This enum includes variants for IO errors, row not found errors, SQLSTATE errors, violation
+/// errors, and others, allowing for detailed categorization and handling of different database
+/// errors.
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum QueryError {
@@ -32,6 +42,11 @@ pub enum QueryError {
     InternalError(#[source] sqlx::Error),
 }
 
+/// Represents errors related to constraint violations in the database.
+///
+/// Includes uniqueness violations, foreign key violations, and integrity check errors,
+/// encapsulating different types of constraint-related issues that can occur during database
+/// operations.
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum ViolationError {
@@ -43,7 +58,10 @@ pub enum ViolationError {
     Check(#[source] sqlx::Error),
 }
 
-/// SQLSTATE derived errors
+/// Encapsulates errors derived from SQLSTATE codes.
+///
+/// This enum categorizes various SQL errors such as data exceptions, integrity constraints, syntax
+/// errors, and others, based on their SQLSTATE classification.
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum SqlError {
@@ -113,7 +131,7 @@ impl From<sqlx::Error> for QueryError {
     }
 }
 
-/// Cardinality information on the affected rows
+/// Describes the cardinality of the rows affected by a query.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Cardinality {
     None,
@@ -121,7 +139,7 @@ pub enum Cardinality {
     Many,
 }
 
-/// The operation that the query contains
+/// Describes the types of operations that a query performs.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Operation {
     Select,
@@ -132,7 +150,7 @@ pub enum Operation {
     Other,
 }
 
-/// A generated atmosphere query over a given table
+/// Represents a atmosphere query over a database table.
 pub struct Query<T: Bind> {
     pub op: Operation,
     pub cardinality: Cardinality,
@@ -160,11 +178,13 @@ impl<T: Bind> Query<T> {
         self.builder.sql()
     }
 
+    /// Access the column bindings
     pub const fn bindings(&self) -> &Bindings<T> {
         &self.bindings
     }
 }
 
+/// Describes possible results of executing a query.
 pub enum QueryResult<'t, T: Table + Bind> {
     Execution(&'t Result<<crate::Driver as sqlx::Database>::QueryResult>),
     Optional(&'t Result<Option<T>>),

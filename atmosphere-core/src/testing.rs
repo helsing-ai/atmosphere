@@ -1,7 +1,16 @@
+//! Provides functions for automated database testing.
+//!
+//! This module contains asynchronous functions to test the basic CRUD (Create, Read, Update, Delete)
+//! operations on database entities. It ensures that these operations are executed correctly and that
+//! the data integrity is maintained throughout the process.
+
 use crate::Entity;
 use std::fmt::Debug;
 
-/// Verify creating of entities
+/// Tests entity creation in the database.
+///
+/// Verifies that an entity can be created and retrieved correctly. It asserts the non-existence of
+/// the entity before creation and checks for equality between the created and retrieved instances.
 pub async fn create<E>(mut instance: E, pool: &crate::Pool)
 where
     E: Entity + Clone + Debug + Eq + Send,
@@ -21,7 +30,11 @@ where
     assert_eq!(instance, retrieved);
 }
 
-/// Verify read operations
+/// Tests reading of an entity from the database.
+///
+/// Validates that an entity, once created, can be correctly read from the database. It ensures
+/// that the entity does not exist prior to creation and that the retrieved instance matches the
+/// created one.
 pub async fn read<E>(mut instance: E, pool: &crate::Pool)
 where
     E: Entity + Clone + Debug + Eq + Send,
@@ -41,7 +54,10 @@ where
     assert_eq!(instance, retrieved);
 }
 
-/// Verify update operations
+/// Tests updating of an entity in the database.
+///
+/// Checks that an entity can be updated and the changes are correctly reflected. Each update is
+/// verified by reloading and comparing it with the original instance.
 pub async fn update<E>(mut instance: E, updates: Vec<E>, pool: &crate::Pool)
 where
     E: Entity + Clone + Debug + Eq + Send,
@@ -70,7 +86,10 @@ where
     }
 }
 
-/// Verify delete operations
+/// Tests deletion of an entity from the database.
+///
+/// Ensures that an entity can be deleted and is no longer retrievable post-deletion. It also
+/// confirms the non-existence of the entity after a delete operation.
 pub async fn delete<E>(mut instance: E, pool: &crate::Pool)
 where
     E: Entity + Clone + Debug + Eq + Send,

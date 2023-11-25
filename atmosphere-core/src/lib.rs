@@ -1,18 +1,48 @@
-/// Bind entities to queries
+//! # `🌍 Atmosphere`
+//!
+//! **A lightweight sql framework for sustainable database reliant systems**
+//!
+//! ## Overview
+//!
+//! Atmosphere is a lightweight SQL framework designed for sustainable, database-reliant systems.
+//! It leverages Rust's powerful type and macro systems to derive SQL schemas from your rust struct
+//! definitions into an advanced trait system.
+//!
+//! Atmosphere provides a suite of modules and types that abstract and facilitate various aspects
+//! of database operations, from query construction and execution to error handling and schema
+//! management.
+//!
+//! ## Key Features
+//!
+//! - SQL schema derivation from Rust structs.
+//! - Advanced trait system for query generation.
+//! - Automated database code testing with `atmosphere::testing`
+//! - ORM-like CRUD traits.
+//! - Code reusability across API layers using generics.
+//! - Compile-time introspection for type-safe schema generation.
+
+/// Facilitates binding entities to queries, ensuring type safety and ease of use in query construction.
 pub mod bind;
-/// High level database error types
+
+/// Defines high-level database error types, offering a structured approach to error handling.
 pub mod error;
-/// Hook system
+/// Implements a hook system, allowing custom logic to be executed at different stages of database
+/// interactions.
 pub mod hooks;
-/// Query abstraction
+/// Offers an abstraction layer for building and executing SQL queries, simplifying complex query
+/// logic.
 pub mod query;
-/// Abstraction to model sql relationships
+/// Models SQL relationships, providing tools to define and manipulate relationships between
+/// database entities.
 pub mod rel;
-/// Runtime environment
+/// Manages the runtime environment for database operations, encompassing execution contexts and
+/// configurations.
 pub mod runtime;
-/// Compile time generated SQL schema traits
+/// Contains compile-time generated SQL schema traits, enabling a declarative approach to schema
+/// definition.
 pub mod schema;
-/// Automated testing of SQL interactions
+/// Provides utilities for automated testing of SQL interactions, ensuring reliability and
+/// correctness of database operations.
 pub mod testing;
 
 /// Atmosphere Database Driver

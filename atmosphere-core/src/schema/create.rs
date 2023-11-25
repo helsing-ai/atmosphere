@@ -8,10 +8,17 @@ use crate::{
 use async_trait::async_trait;
 use sqlx::{database::HasArguments, Executor, IntoArguments};
 
-/// Create rows in a [`sqlx::Database`]
+/// Trait for creating rows in a database.
+///
+/// This trait provides the functionality to create new rows in a table represented by a struct implementing
+/// `Table`, `Bind`, and `Hooks`. It defines an asynchronous method for inserting a new row into the database
+/// using a given executor. The trait ensures that all necessary hooks are executed at the appropriate stages
+/// of the operation.
 #[async_trait]
 pub trait Create: Table + Bind + Hooks + Sync + 'static {
-    /// Create a new row
+    /// Creates a new row in the database. This method builds the SQL insert query,
+    /// binds the necessary values, executes the query, and triggers the relevant hooks at different stages
+    /// (pre-binding and post-execution).
     async fn create<'e, E>(
         &mut self,
         executor: E,

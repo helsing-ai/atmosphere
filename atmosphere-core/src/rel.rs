@@ -1,3 +1,9 @@
+//! Provides traits for managing relationships between database entities.
+//!
+//! This module contains traits and their implementations for handling relationships such as
+//! 'RefersTo' and 'ReferredBy'. These traits facilitate operations like resolving and deleting
+//! relationships in a database using SQLx.
+
 use async_trait::async_trait;
 use sqlx::database::HasArguments;
 use sqlx::{Executor, IntoArguments};
@@ -8,7 +14,10 @@ use crate::runtime::sql;
 use crate::schema::Table;
 use crate::{Error, ForeignKey, Result};
 
-/// A relationship where `Self` referrs to `Other`
+/// Defines a relationship where `Self` refers to `Other`.
+///
+/// Implements functionality to resolve this relationship, fetching the `Other` entity that `Self`
+/// refers to.
 #[async_trait]
 pub trait RefersTo<Other>
 where
@@ -17,6 +26,8 @@ where
 {
     const FOREIGN_KEY: ForeignKey<Self>;
 
+    /// Asynchronously resolves and retrieves the `Other` entity that `Self` refers to from the
+    /// database.
     async fn resolve<'e, E>(&self, executor: E) -> Result<Other>
     where
         E: Executor<'e, Database = crate::Driver>,
@@ -39,13 +50,18 @@ where
     }
 }
 
-/// A relationship where `Self` is referred to by many `Other`
+/// Defines a relationship where `Self` is referred to by many `Other`.
+///
+/// This trait provides methods to resolve these relationships, including fetching all `Other`
+/// entities referring to `Self`, resolving by primary key, and deleting all such referring
+/// entities.
 #[async_trait]
 pub trait ReferedBy<Other>
 where
     Self: Table + Bind + Unpin + Sync,
     Other: Table + Bind + RefersTo<Self> + Unpin + Sync,
 {
+    /// Asynchronously fetches all `Other` entities referring to `Self`.
     async fn resolve<'e, E>(&self, executor: E) -> Result<Vec<Other>>
     where
         E: Executor<'e, Database = crate::Driver>,
@@ -67,6 +83,7 @@ where
             .map_err(Error::Query)
     }
 
+    /// Resolves the referring entities based on the primary key of `Self`.
     async fn resolve_by<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Vec<Other>>
     where
         E: Executor<'e, Database = crate::Driver>,
@@ -84,6 +101,7 @@ where
             .map_err(Error::Query)
     }
 
+    /// Deletes all `Other` entities referring to `Self`.
     async fn delete_all<'e, E>(
         &self,
         executor: E,
