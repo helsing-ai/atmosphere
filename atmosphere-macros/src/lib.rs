@@ -23,7 +23,11 @@ use schema::table::Table;
 /// custom attributes and derives necessary traits and implementations for interacting with the
 /// database.
 ///
-/// Attributes:
+/// Entity attributes:
+///
+/// - `#[table(schema = "schema_name", name = "table_name")]` - Set schema and table name
+///
+/// Field attributes:
 ///
 /// - `#[sql(pk)]` - Mark a column as primary key
 /// - `#[sql(fk -> OtherModel)]` - Mark a column as foreign key on `OtherModel`
@@ -33,18 +37,19 @@ use schema::table::Table;
 ///
 /// Usage:
 ///
-/// ```ignore
+/// ```
+/// # use atmosphere::prelude::*;
 /// #[derive(Schema)]
+/// #[table(schema = "public", name = "user")]
 /// struct User {
 ///     #[sql(pk)]
 ///     id: i32,
 ///     #[sql(unique)]
 ///     username: String,
-///     #[sql(timestamp = create)]
-///     created_at: chrono::DateTime<chrono::Utc>
 /// }
 ///
 /// #[derive(Schema)]
+/// #[table(schema = "public", name = "post")]
 /// struct Post {
 ///     #[sql(pk)]
 ///     id: i32,
@@ -61,10 +66,23 @@ pub fn schema(input: TokenStream) -> TokenStream {
 /// An attribute macro that stores metadata about the sql table.
 /// Must be used after `#[derive(Schema)]`.
 ///
+/// Keys:
+///
+/// - `schema` - sets schema name.
+/// - `name` - sets table name.
+///
 /// Usage:
 ///
-/// ```ignore
-/// #[table(schema = "public", name = "your_table_name")]
+/// ```
+/// # use atmosphere::prelude::*;
+/// # #[derive(Schema)]
+/// #[table(schema = "public", name = "user")]
+/// # struct User {
+/// #     #[sql(pk)]
+/// #     id: i32,
+/// #     #[sql(unique)]
+/// #     username: String,
+/// # }
 /// ```
 #[proc_macro_attribute]
 pub fn table(_: TokenStream, input: TokenStream) -> TokenStream {
@@ -117,11 +135,30 @@ pub fn table(_: TokenStream, input: TokenStream) -> TokenStream {
 
 /// An attribute macro for registering on a table. Must be used after `#[derive(Schema)]`.
 ///
+/// Takes as argument a type which implements `Hook<Self>` for the entity type.
+///
 /// Usage:
 ///
-/// ```ignore
-/// #[hooks(path::to::my::Hook)]
-/// struct MyTable { .. }
+/// ```
+/// # use atmosphere::prelude::*;
+/// # use atmosphere::hooks::*;
+/// #[derive(Schema)]
+/// #[table(schema = "public", name = "user")]
+/// #[hooks(MyHook)]
+/// struct User {
+///     #[sql(pk)]
+///     id: i32,
+///     #[sql(unique)]
+///     username: String,
+/// }
+///
+/// struct MyHook;
+///
+/// impl Hook<User> for MyHook {
+///     fn stage(&self) -> HookStage {
+///         todo!()
+///     }
+/// }
 /// ```
 #[proc_macro_attribute]
 pub fn hooks(attr: TokenStream, input: TokenStream) -> TokenStream {
