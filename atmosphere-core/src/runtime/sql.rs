@@ -356,7 +356,7 @@ mod tests {
 
         assert_eq!(
             builder.sql(),
-            "SELECT\n  id_sql_col,\n  fk_sql_col,\n  data_sql_col\nFROM\n  \"public\".\"test\"\nWHERE id = $1"
+            "SELECT\n  id_sql_col,\n  fk_sql_col,\n  data_sql_col\nFROM\n  \"public\".\"test\"\nWHERE id_sql_col = $1"
         );
 
         assert_eq!(
@@ -394,7 +394,7 @@ mod tests {
 
         assert_eq!(
             builder.sql(),
-            "UPDATE \"public\".\"test\" SET\n  id = $1,\n  fk = $2,\n  data = $3\nWHERE\n  id = $1"
+            "UPDATE \"public\".\"test\" SET\n  id_sql_col = $1,\n  fk_sql_col = $2,\n  data_sql_col = $3\nWHERE\n  id_sql_col = $1"
         );
 
         assert_eq!(
@@ -415,7 +415,7 @@ mod tests {
 
         assert_eq!(
                 builder.sql(),
-                "INSERT INTO \"public\".\"test\"\n  (id, fk, data)\nVALUES\n  ($1, $2, $3)\nON CONFLICT(id)\nDO UPDATE SET\n  fk = EXCLUDED.fk,\n  data = EXCLUDED.data"
+                "INSERT INTO \"public\".\"test\"\n  (id_sql_col, fk_sql_col, data_sql_col)\nVALUES\n  ($1, $2, $3)\nON CONFLICT(id_sql_col)\nDO UPDATE SET\n  fk_sql_col = EXCLUDED.fk_sql_col,\n  data_sql_col = EXCLUDED.data_sql_col"
             );
 
         assert_eq!(
@@ -436,7 +436,7 @@ mod tests {
 
         assert_eq!(
             builder.sql(),
-            "DELETE FROM \"public\".\"test\" WHERE id = $1"
+            "DELETE FROM \"public\".\"test\" WHERE id_sql_col = $1"
         );
         assert_eq!(
             bindings,
