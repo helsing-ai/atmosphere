@@ -1,5 +1,7 @@
+use atmosphere::hooks::*;
 use atmosphere::prelude::*;
-use atmosphere_core::hooks::*;
+
+use atmosphere::query::Query;
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "forest")]
@@ -12,27 +14,6 @@ struct Forest {
     location: String,
 }
 
-impl Hooks for Forest {
-    const VALIDATION: &'static [&'static dyn ValidationHook<Self>] = &[];
-    const PREPARATION: &'static [&'static dyn PreparationHook<Self>] = &[];
-    const INSPECTION: &'static [&'static dyn InspectionHook<Self>] = &[&PrintHook];
-    const TRANSPOSITION: &'static [&'static dyn TransposeHook<Self>] = &[];
-}
-
-struct PrintHook;
-
-impl<T: Table + Bind> InspectionHook<T> for PrintHook {
-    fn apply(&self, ctx: &query::Query<T>) {
-        println!(
-            "\n\nquerying ({} {:?} {:?}):",
-            T::TABLE,
-            ctx.op,
-            ctx.cardinality
-        );
-        println!("\n\n{}\n\n", ctx.sql());
-    }
-}
-
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "tree")]
 struct Tree {
@@ -42,11 +23,36 @@ struct Tree {
     forest: i32,
 }
 
-impl Hooks for Tree {
-    const VALIDATION: &'static [&'static dyn ValidationHook<Self>] = &[];
-    const PREPARATION: &'static [&'static dyn PreparationHook<Self>] = &[];
-    const INSPECTION: &'static [&'static dyn InspectionHook<Self>] = &[&PrintHook];
-    const TRANSPOSITION: &'static [&'static dyn TransposeHook<Self>] = &[];
+mod logging {
+    use super::*;
+
+    struct PrintHook;
+
+    #[async_trait]
+    impl<T: Table + Bind + Sync> Hook<T> for PrintHook {
+        fn stage(&self) -> HookStage {
+            HookStage::PreExec
+        }
+
+        async fn apply(&self, ctx: &Query<T>, _: &HookInput<'_, T>) -> Result<()> {
+            println!(
+                "atmosphere::logs::{} => {:?} {:?}",
+                T::TABLE,
+                ctx.op,
+                ctx.cardinality,
+            );
+
+            Ok(())
+        }
+    }
+
+    impl Hooks for Forest {
+        const HOOKS: &'static [&'static dyn Hook<Self>] = &[&PrintHook];
+    }
+
+    impl Hooks for Tree {
+        const HOOKS: &'static [&'static dyn Hook<Self>] = &[&PrintHook];
+    }
 }
 
 #[tokio::main]

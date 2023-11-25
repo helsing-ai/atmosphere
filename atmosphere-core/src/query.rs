@@ -1,7 +1,7 @@
 use sqlx::QueryBuilder;
 use thiserror::Error;
 
-use crate::{runtime::sql::Bindings, Bind};
+use crate::{runtime::sql::Bindings, Bind, Result, Table};
 
 /// An error that occured while executing the query
 #[derive(Debug, Error)]
@@ -163,4 +163,11 @@ impl<T: Bind> Query<T> {
     pub const fn bindings(&self) -> &Bindings<T> {
         &self.bindings
     }
+}
+
+pub enum QueryResult<'t, T: Table + Bind> {
+    Execution(&'t Result<<crate::Driver as sqlx::Database>::QueryResult>),
+    Optional(&'t Result<Option<T>>),
+    One(&'t Result<T>),
+    Many(&'t Result<Vec<T>>),
 }

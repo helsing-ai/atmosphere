@@ -1,4 +1,9 @@
-use crate::{hooks::Hooks, query::QueryError, schema::Table, Bind, Error, Result};
+use crate::{
+    hooks::{self, Hooks},
+    query::{QueryError, QueryResult},
+    schema::Table,
+    Bind, Error, Result,
+};
 
 use async_trait::async_trait;
 use sqlx::{database::HasArguments, Database, Executor, IntoArguments};
@@ -43,10 +48,12 @@ where
     {
         let query = crate::runtime::sql::delete::<T>();
 
-        self.validate(&query)?;
-        self.prepare(&query)?;
-
-        Self::inspect(&query);
+        hooks::execute(
+            hooks::HookStage::PreBind,
+            &query,
+            hooks::HookInput::Row(&mut self),
+        )
+        .await?;
 
         let mut sql = sqlx::query(query.sql());
 
@@ -54,11 +61,23 @@ where
             sql = self.bind(c, sql).unwrap();
         }
 
-        sql.persistent(false)
+        hooks::execute(hooks::HookStage::PreExec, &query, hooks::HookInput::None).await?;
+
+        let res = sql
+            .persistent(false)
             .execute(executor)
             .await
             .map_err(QueryError::from)
-            .map_err(Error::Query)
+            .map_err(Error::Query);
+
+        hooks::execute(
+            hooks::HookStage::PostExec,
+            &query,
+            QueryResult::Execution(&res).into(),
+        )
+        .await?;
+
+        res
     }
 
     async fn delete_by<'e, E>(
@@ -72,18 +91,34 @@ where
     {
         let query = crate::runtime::sql::delete::<T>();
 
-        Self::inspect(&query);
+        hooks::execute(
+            hooks::HookStage::PreBind,
+            &query,
+            hooks::HookInput::PrimaryKey(pk),
+        )
+        .await?;
 
         assert!(query.bindings().columns().len() == 1);
         assert!(query.bindings().columns()[0].field() == Self::PRIMARY_KEY.field);
         assert!(query.bindings().columns()[0].sql() == Self::PRIMARY_KEY.sql);
 
-        sqlx::query(query.sql())
+        hooks::execute(hooks::HookStage::PreExec, &query, hooks::HookInput::None).await?;
+
+        let res = sqlx::query(query.sql())
             .bind(pk)
             .persistent(false)
             .execute(executor)
             .await
             .map_err(QueryError::from)
-            .map_err(Error::Query)
+            .map_err(Error::Query);
+
+        hooks::execute(
+            hooks::HookStage::PostExec,
+            &query,
+            QueryResult::Execution(&res).into(),
+        )
+        .await?;
+
+        res
     }
 }

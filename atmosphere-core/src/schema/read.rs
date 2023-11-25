@@ -1,4 +1,9 @@
-use crate::{hooks::Hooks, query::QueryError, schema::Table, Bind, Error, Result};
+use crate::{
+    hooks::{self, HookInput, HookStage, Hooks},
+    query::{QueryError, QueryResult},
+    schema::Table,
+    Bind, Error, Result,
+};
 
 use async_trait::async_trait;
 use sqlx::{database::HasArguments, Executor, IntoArguments};
@@ -53,27 +58,30 @@ where
     {
         let query = crate::runtime::sql::select::<T>();
 
-        Self::inspect(&query);
+        hooks::execute(HookStage::PreBind, &query, HookInput::PrimaryKey(pk)).await?;
 
         assert!(query.bindings().columns().len() == 1);
         assert!(query.bindings().columns()[0].field() == Self::PRIMARY_KEY.field);
         assert!(query.bindings().columns()[0].sql() == Self::PRIMARY_KEY.sql);
 
-        let row: Option<Self> = sqlx::query_as(query.sql())
+        hooks::execute(HookStage::PreExec, &query, HookInput::None).await?;
+
+        let res = sqlx::query_as(query.sql())
             .bind(pk)
             .persistent(false)
             .fetch_optional(executor)
             .await
             .map_err(QueryError::from)
-            .map_err(Error::Query)?;
+            .map_err(Error::Query);
 
-        let Some(mut row) = row else {
-            return Ok(None);
-        };
+        hooks::execute(
+            hooks::HookStage::PostExec,
+            &query,
+            QueryResult::Optional(&res).into(),
+        )
+        .await?;
 
-        row.transpose(&query)?;
-
-        Ok(Some(row))
+        res
     }
 
     async fn reload<'e, E>(&mut self, executor: E) -> Result<()>
@@ -84,7 +92,7 @@ where
     {
         let query = crate::runtime::sql::select_by::<T>(T::PRIMARY_KEY.as_col());
 
-        Self::inspect(&query);
+        hooks::execute(HookStage::PreBind, &query, HookInput::Row(&mut self)).await?;
 
         let mut sql = sqlx::query_as(query.sql());
 
@@ -92,16 +100,23 @@ where
             sql = self.bind(c, sql).unwrap();
         }
 
-        let mut row: Self = sql
+        hooks::execute(HookStage::PreExec, &query, HookInput::None).await?;
+
+        let res = sql
             .persistent(false)
             .fetch_one(executor)
             .await
             .map_err(QueryError::from)
-            .map_err(Error::Query)?;
+            .map_err(Error::Query);
 
-        row.transpose(&query)?;
+        hooks::execute(
+            hooks::HookStage::PostExec,
+            &query,
+            QueryResult::One(&res).into(),
+        )
+        .await?;
 
-        *self = row;
+        *self = res?;
 
         Ok(())
     }
@@ -114,21 +129,23 @@ where
     {
         let query = crate::runtime::sql::select_all::<T>();
 
-        Self::inspect(&query);
+        hooks::execute(HookStage::PreBind, &query, HookInput::None).await?;
+        hooks::execute(HookStage::PreExec, &query, HookInput::None).await?;
 
-        let sql = sqlx::query_as(query.sql());
-
-        let mut rows: Vec<Self> = sql
+        let res = sqlx::query_as(query.sql())
             .persistent(false)
             .fetch_all(executor)
             .await
             .map_err(QueryError::from)
-            .map_err(Error::Query)?;
+            .map_err(Error::Query);
 
-        for ref mut row in rows.iter_mut() {
-            row.transpose(&query)?;
-        }
+        hooks::execute(
+            hooks::HookStage::PostExec,
+            &query,
+            QueryResult::Many(&res).into(),
+        )
+        .await?;
 
-        Ok(rows)
+        res
     }
 }

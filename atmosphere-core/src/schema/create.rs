@@ -1,4 +1,9 @@
-use crate::{hooks::Hooks, query::QueryError, schema::Table, Bind, Error, Result};
+use crate::{
+    hooks::{self, HookInput, HookStage, Hooks},
+    query::{QueryError, QueryResult},
+    schema::Table,
+    Bind, Error, Result,
+};
 
 use async_trait::async_trait;
 use sqlx::{database::HasArguments, Executor, IntoArguments};
@@ -33,10 +38,7 @@ where
     {
         let query = crate::runtime::sql::insert::<T>();
 
-        self.validate(&query)?;
-        self.prepare(&query)?;
-
-        Self::inspect(&query);
+        hooks::execute(HookStage::PreBind, &query, HookInput::Row(&mut self)).await?;
 
         let mut builder = sqlx::query(query.sql());
 
@@ -44,11 +46,20 @@ where
             builder = self.bind(c, builder).unwrap();
         }
 
-        builder
+        let res = builder
             .persistent(false)
             .execute(executor)
             .await
             .map_err(QueryError::from)
-            .map_err(Error::Query)
+            .map_err(Error::Query);
+
+        hooks::execute(
+            HookStage::PostExec,
+            &query,
+            QueryResult::Execution(&res).into(),
+        )
+        .await?;
+
+        res
     }
 }

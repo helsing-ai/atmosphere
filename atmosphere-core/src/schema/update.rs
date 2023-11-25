@@ -1,4 +1,9 @@
-use crate::{hooks::Hooks, query::QueryError, schema::Table, Bind, Error, Result};
+use crate::{
+    hooks::{self, HookInput, HookStage, Hooks},
+    query::{QueryError, QueryResult},
+    schema::Table,
+    Bind, Error, Result,
+};
 
 use async_trait::async_trait;
 use sqlx::{database::HasArguments, Database, Executor, IntoArguments};
@@ -43,10 +48,7 @@ where
     {
         let query = crate::runtime::sql::update::<T>();
 
-        self.validate(&query)?;
-        self.prepare(&query)?;
-
-        Self::inspect(&query);
+        hooks::execute(HookStage::PreBind, &query, HookInput::Row(&mut self)).await?;
 
         let mut sql = sqlx::query(query.sql());
 
@@ -54,14 +56,23 @@ where
             sql = self.bind(c, sql).unwrap();
         }
 
-        let result = sql
+        hooks::execute(HookStage::PreExec, &query, HookInput::None).await?;
+
+        let res = sql
             .persistent(false)
             .execute(executor)
             .await
             .map_err(QueryError::from)
-            .map_err(Error::Query)?;
+            .map_err(Error::Query);
 
-        Ok(result)
+        hooks::execute(
+            hooks::HookStage::PostExec,
+            &query,
+            QueryResult::Execution(&res).into(),
+        )
+        .await?;
+
+        res
     }
 
     async fn save<'e, E>(&mut self, executor: E) -> Result<<crate::Driver as Database>::QueryResult>
@@ -72,10 +83,7 @@ where
     {
         let query = crate::runtime::sql::upsert::<T>();
 
-        self.validate(&query)?;
-        self.prepare(&query)?;
-
-        Self::inspect(&query);
+        hooks::execute(HookStage::PreBind, &query, HookInput::Row(&mut self)).await?;
 
         let mut sql = sqlx::query(query.sql());
 
@@ -83,13 +91,22 @@ where
             sql = self.bind(c, sql).unwrap();
         }
 
-        let result = sql
+        hooks::execute(HookStage::PreExec, &query, HookInput::None).await?;
+
+        let res = sql
             .persistent(false)
             .execute(executor)
             .await
             .map_err(QueryError::from)
-            .map_err(Error::Query)?;
+            .map_err(Error::Query);
 
-        Ok(result)
+        hooks::execute(
+            hooks::HookStage::PostExec,
+            &query,
+            QueryResult::Execution(&res).into(),
+        )
+        .await?;
+
+        res
     }
 }
