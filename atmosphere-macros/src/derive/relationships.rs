@@ -42,9 +42,9 @@ pub fn relationships(table: &Table) -> TokenStream {
                     executor: E,
                 ) -> ::atmosphere::Result<#other>
                 where
-                    E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
-                    for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
-                        ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
+                    E: ::atmosphere::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
+                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::HasArguments<'q>>::Arguments:
+                        ::atmosphere::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
                     <#ident as ::atmosphere::rel::RefersTo<#other>>::resolve(&self, executor).await
                 }
 
@@ -54,9 +54,9 @@ pub fn relationships(table: &Table) -> TokenStream {
                     // TODO: either Vec<Self>, or if marked as unique, only Self
                 ) -> ::atmosphere::Result<Vec<#ident>>
                 where
-                    E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
-                    for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
-                        ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
+                    E: ::atmosphere::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
+                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::HasArguments<'q>>::Arguments:
+                        ::atmosphere::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
                     <#other as ::atmosphere::rel::ReferredBy<#ident>>::resolve_by(pk, executor).await
                 }
             }
@@ -68,20 +68,20 @@ pub fn relationships(table: &Table) -> TokenStream {
                     executor: E,
                 ) -> ::atmosphere::Result<Vec<#ident>>
                 where
-                    E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
-                    for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
-                        ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
+                    E: ::atmosphere::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
+                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::HasArguments<'q>>::Arguments:
+                        ::atmosphere::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
                     <#other as ::atmosphere::rel::ReferredBy<#ident>>::resolve(&self, executor).await
                 }
 
                 pub async fn #delete_self<'e, E>(
                     &self,
                     executor: E,
-                ) -> ::atmosphere::Result<<::atmosphere::Driver as ::sqlx::Database>::QueryResult>
+                ) -> ::atmosphere::Result<<::atmosphere::Driver as ::atmosphere::sqlx::Database>::QueryResult>
                 where
-                    E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
-                    for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
-                        ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
+                    E: ::atmosphere::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
+                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::HasArguments<'q>>::Arguments:
+                        ::atmosphere::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
                     <#other as ::atmosphere::rel::ReferredBy<#ident>>::delete_all(&self, executor).await
                 }
             }

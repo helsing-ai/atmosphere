@@ -109,7 +109,7 @@ pub fn table(_: TokenStream, input: TokenStream) -> TokenStream {
     let model = model.to_token_stream();
 
     quote! {
-        #[derive(::atmosphere::prelude::sqlx::FromRow)]
+        #[derive(::atmosphere::sqlx::FromRow)]
         #model
     }
     .into()

@@ -53,3 +53,6 @@ pub type Pool = sqlx::PgPool;
 pub use bind::*;
 pub use error::*;
 pub use schema::*;
+
+#[doc(hidden)]
+pub use sqlx;
