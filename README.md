@@ -6,7 +6,7 @@
 
 **A lightweight sql framework for sustainable database reliant systems**
 
-[![SQLx](https://img.shields.io/badge/sqlx-framework-blueviolet.svg)]()
+[![SQLx](https://img.shields.io/badge/sqlx-framework-blueviolet.svg)](https://github.com/launchbadge/sqlx)
 [![Crate](https://img.shields.io/crates/v/atmosphere.svg)](https://crates.io/crates/atmosphere)
 [![Book](https://img.shields.io/badge/book-latest-0f5225.svg)](https://mara-schulke.github.io/atmosphere)
 [![Docs](https://img.shields.io/badge/docs-latest-153f66.svg)](https://docs.rs/atmosphere)
