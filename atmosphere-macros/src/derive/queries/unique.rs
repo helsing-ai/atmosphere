@@ -41,9 +41,9 @@ pub fn queries(table: &Table) -> TokenStream {
                     executor: E
                 ) -> ::atmosphere::Result<Option<#ident>>
                 where
-                    E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
-                    for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
-                        ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send
+                    E: ::atmosphere::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
+                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::HasArguments<'q>>::Arguments:
+                        ::atmosphere::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send
                 {
                     use ::atmosphere::{
                         query::{Query, QueryError},
@@ -55,7 +55,7 @@ pub fn queries(table: &Table) -> TokenStream {
 
                     let query = sql::select_by::<#ident>(COLUMN.clone());
 
-                    ::sqlx::query_as(query.sql())
+                    ::atmosphere::sqlx::query_as(query.sql())
                         .bind(value)
                         .persistent(false)
                         .fetch_optional(executor)
@@ -67,11 +67,11 @@ pub fn queries(table: &Table) -> TokenStream {
                 pub async fn #delete_by_col<'e, E>(
                     value: &#ty,
                     executor: E,
-                ) -> ::atmosphere::Result<<::atmosphere::Driver as ::sqlx::Database>::QueryResult>
+                ) -> ::atmosphere::Result<<::atmosphere::Driver as ::atmosphere::sqlx::Database>::QueryResult>
                 where
-                    E: ::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
-                    for<'q> <::atmosphere::Driver as ::sqlx::database::HasArguments<'q>>::Arguments:
-                        ::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send
+                    E: ::atmosphere::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
+                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::HasArguments<'q>>::Arguments:
+                        ::atmosphere::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send
                 {
                     use ::atmosphere::{
                         query::{Query, QueryError},
@@ -83,7 +83,7 @@ pub fn queries(table: &Table) -> TokenStream {
 
                     let query = sql::delete_by::<#ident>(COLUMN.clone());
 
-                    ::sqlx::query(query.sql())
+                    ::atmosphere::sqlx::query(query.sql())
                         .bind(value)
                         .persistent(false)
                         .execute(executor)
