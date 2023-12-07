@@ -17,6 +17,7 @@ keywords = ["sqlx", "postgres", "database", "orm", "backend"]
 [workspace.dependencies]
 atmosphere-core = { version = "=0.1.1", path = "atmosphere-core" }
 atmosphere-macros = { version = "=0.1.1", path = "atmosphere-macros" }
+atmosphere = { version = "=0.1.1", path = "." }
 async-trait = "0.1"
 lazy_static = "1"
 sqlx = { version = "0.7", features = ["chrono"] }
