@@ -8,11 +8,13 @@ authors.workspace = true
 repository.workspace = true
 
 [features]
-default = ["runtime-tokio-rustls", "postgres"]
+default = ["runtime-tokio-rustls", "any"]
 runtime-async-std-native-tls = ["sqlx/runtime-async-std-native-tls"]
 runtime-tokio-native-tls = ["sqlx/runtime-tokio-native-tls"]
 runtime-async-std-rustls = ["sqlx/runtime-async-std-rustls"]
 runtime-tokio-rustls = ["sqlx/runtime-tokio-rustls"]
+any = ["sqlx/any"]
+mysql = ["sqlx/mysql"]
 postgres = ["sqlx/postgres"]
 sqlite = ["sqlx/sqlite"]
 

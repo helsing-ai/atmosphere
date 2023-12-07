@@ -34,6 +34,24 @@ edition.workspace = true
 authors.workspace = true
 repository.workspace = true
 
+[dependencies]
+atmosphere-core = { version = "=0.1.1", path = "atmosphere-core" }
+atmosphere-macros.workspace = true
+async-trait.workspace = true
+sqlx.workspace = true
+
+[features]
+default = []
+any = ["atmosphere-core/any"]
+mysql = ["atmosphere-core/mysql"]
+postgres = ["atmosphere-core/postgres"]
+sqlite = ["atmosphere-core/sqlite"]
+
+[dev-dependencies]
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "any", "sqlite", "mysql", "postgres"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"]}
+tokio-test = "0"
+
 [[example]]
 name = "forest"
 path = "examples/forest/main.rs"
@@ -42,21 +60,3 @@ path = "examples/forest/main.rs"
 name = "integration"
 path = "tests/lib.rs"
 test = true
-
-[features]
-default = ["postgres"]
-any = ["sqlx/any"]
-mysql = ["sqlx/mysql"]
-postgres = ["sqlx/postgres"]
-sqlite = ["sqlx/sqlite"]
-
-[dependencies]
-atmosphere-core.workspace = true
-atmosphere-macros.workspace = true
-async-trait.workspace = true
-sqlx.workspace = true
-
-[dev-dependencies]
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "any", "sqlite", "mysql", "postgres"] }
-tokio = { version = "1", features = ["macros", "rt-multi-thread"]}
-tokio-test = "0"

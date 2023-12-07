@@ -7,8 +7,7 @@ system.
 
 It works by leveraging the [`sqlx`][] crate and the Rust macro system to allow
 you to work easily with relational-database mapped entities, while still
-enabling low level usage of the underlying `sqlx` concepts. It currently
-only supports the Postgres database.
+enabling low level usage of the underlying `sqlx` concepts.
 
 ### Sections
 
