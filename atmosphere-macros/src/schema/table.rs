@@ -1,11 +1,17 @@
 use std::collections::HashSet;
 
-use syn::parse::{Parse, ParseStream};
-use syn::{Error, Fields, Generics, Ident, LitStr, Token, Visibility};
+use syn::{
+    parse::{Parse, ParseStream},
+    Error, Fields, Generics, Ident, LitStr, Token, Visibility,
+};
 
-use crate::hooks::Hooks;
-use crate::schema::column::{Column, DataColumn, TimestampColumn};
-use crate::schema::keys::{ForeignKey, PrimaryKey};
+use crate::{
+    hooks::Hooks,
+    schema::{
+        column::{Column, DataColumn, TimestampColumn},
+        keys::{ForeignKey, PrimaryKey},
+    },
+};
 
 #[derive(Clone, Debug)]
 pub struct TableId {
@@ -15,6 +21,7 @@ pub struct TableId {
 
 impl Parse for TableId {
     fn parse(input: ParseStream) -> syn::Result<Self> {
+        #[cfg(not(feature = "sqlite"))]
         let mut schema = None;
         let mut table = None;
 
@@ -24,6 +31,7 @@ impl Parse for TableId {
             let value: LitStr = input.parse()?;
 
             match ident.to_string().as_str() {
+                #[cfg(not(feature = "sqlite"))]
                 "schema" => schema = Some(value.value()),
                 "name" => table = Some(value.value()),
                 _ => {
@@ -41,9 +49,13 @@ impl Parse for TableId {
             input.parse::<Token![,]>()?;
         }
 
+        #[cfg(not(feature = "sqlite"))]
         let schema = schema.ok_or_else(|| {
             syn::Error::new(input.span(), "`#[table]` requires a value for `schema`")
         })?;
+
+        #[cfg(feature = "sqlite")]
+        let schema = String::new();
 
         let table = table.ok_or_else(|| {
             syn::Error::new(input.span(), "`#[table]` requires a value for `name`")
