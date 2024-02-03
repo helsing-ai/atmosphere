@@ -21,7 +21,6 @@ pub struct TableId {
 
 impl Parse for TableId {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        #[cfg(not(feature = "sqlite"))]
         let mut schema = None;
         let mut table = None;
 
@@ -49,13 +48,9 @@ impl Parse for TableId {
             input.parse::<Token![,]>()?;
         }
 
-        #[cfg(not(feature = "sqlite"))]
         let schema = schema.ok_or_else(|| {
             syn::Error::new(input.span(), "`#[table]` requires a value for `schema`")
         })?;
-
-        #[cfg(feature = "sqlite")]
-        let schema = String::new();
 
         let table = table.ok_or_else(|| {
             syn::Error::new(input.span(), "`#[table]` requires a value for `name`")

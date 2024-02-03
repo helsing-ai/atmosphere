@@ -10,10 +10,6 @@ repository.workspace = true
 [lib]
 proc-macro = true
 
-[features]
-default = []
-sqlite = []
-
 [dependencies]
 atmosphere-core.workspace = true
 sqlx.workspace = true
