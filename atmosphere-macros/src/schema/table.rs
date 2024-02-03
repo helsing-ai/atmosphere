@@ -1,17 +1,11 @@
 use std::collections::HashSet;
 
-use syn::{
-    parse::{Parse, ParseStream},
-    Error, Fields, Generics, Ident, LitStr, Token, Visibility,
-};
+use syn::parse::{Parse, ParseStream};
+use syn::{Error, Fields, Generics, Ident, LitStr, Token, Visibility};
 
-use crate::{
-    hooks::Hooks,
-    schema::{
-        column::{Column, DataColumn, TimestampColumn},
-        keys::{ForeignKey, PrimaryKey},
-    },
-};
+use crate::hooks::Hooks;
+use crate::schema::column::{Column, DataColumn, TimestampColumn};
+use crate::schema::keys::{ForeignKey, PrimaryKey};
 
 #[derive(Clone, Debug)]
 pub struct TableId {
@@ -30,7 +24,6 @@ impl Parse for TableId {
             let value: LitStr = input.parse()?;
 
             match ident.to_string().as_str() {
-                #[cfg(not(feature = "sqlite"))]
                 "schema" => schema = Some(value.value()),
                 "name" => table = Some(value.value()),
                 _ => {
