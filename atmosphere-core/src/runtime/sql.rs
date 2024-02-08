@@ -80,7 +80,11 @@ impl<T: Bind> Bindings<T> {
 }
 
 fn table<T: Bind>() -> String {
-    format!("\"{}\".\"{}\"", T::SCHEMA, T::TABLE)
+    #[cfg(not(feature = "sqlite"))]
+    return format!("\"{}\".\"{}\"", T::SCHEMA, T::TABLE);
+
+    #[cfg(feature = "sqlite")]
+    return format!("\"{}\"", T::TABLE);
 }
 
 /// Generates a `SELECT` query to retrieve a single row from the table based on its primary key.
