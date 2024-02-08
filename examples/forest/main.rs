@@ -1,7 +1,6 @@
 use atmosphere::prelude::*;
 
 use sqlx::types::chrono;
-use sqlx::types::chrono::Utc;
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "forest")]
@@ -13,7 +12,7 @@ struct Forest {
     #[sql(unique)]
     location: String,
     #[sql(timestamp = created)]
-    created: chrono::DateTime<Utc>,
+    created: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
@@ -35,7 +34,7 @@ async fn main() -> atmosphere::Result<()> {
         id: 0,
         name: "our".to_owned(),
         location: "forest".to_owned(),
-        created: Utc::now(),
+        created: chrono::Utc::now(),
     };
 
     forest.save(&pool).await?;

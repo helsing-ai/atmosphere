@@ -19,7 +19,16 @@ pub trait Read: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
     /// Finds and retrieves a row by its primary key. This method constructs a query to fetch
     /// a single row based on the primary key, executes it, and returns the result, optionally
     /// triggering hooks before and after execution.
-    async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Option<Self>>
+    async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Self>
+    where
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send;
+
+    /// Finds and retrieves a row by its primary key. This method constructs a query to fetch
+    /// a single row based on the primary key, executes it, and returns the result, optionally
+    /// triggering hooks before and after execution.
+    async fn find_optional<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Option<Self>>
     where
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
@@ -60,7 +69,41 @@ impl<T> Read for T
 where
     T: Table + Bind + Hooks + Send + Sync + Unpin + 'static,
 {
-    async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Option<Self>>
+    async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Self>
+    where
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send,
+    {
+        let query = crate::runtime::sql::select::<T>();
+
+        hooks::execute(HookStage::PreBind, &query, HookInput::PrimaryKey(pk)).await?;
+
+        assert!(query.bindings().columns().len() == 1);
+        assert!(query.bindings().columns()[0].field() == Self::PRIMARY_KEY.field);
+        assert!(query.bindings().columns()[0].sql() == Self::PRIMARY_KEY.sql);
+
+        hooks::execute(HookStage::PreExec, &query, HookInput::None).await?;
+
+        let res = sqlx::query_as(query.sql())
+            .bind(pk)
+            .persistent(false)
+            .fetch_one(executor)
+            .await
+            .map_err(QueryError::from)
+            .map_err(Error::Query);
+
+        hooks::execute(
+            hooks::HookStage::PostExec,
+            &query,
+            QueryResult::One(&res).into(),
+        )
+        .await?;
+
+        res
+    }
+
+    async fn find_optional<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Option<Self>>
     where
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
