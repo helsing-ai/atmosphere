@@ -38,7 +38,7 @@ jobs:
       - run: cargo test --workspace --features atmosphere-core/postgres
         env:
           RUST_BACKTRACE: 1
-          DATABASE_URL: postgres://atmosphere:atmosphere@localh/ost:5432
+          DATABASE_URL: postgres://atmosphere:atmosphere@localhost:5432
 
   typos:
     runs-on: ubuntu-latest
