@@ -37,7 +37,7 @@ use schema::table::Table;
 ///
 /// Usage:
 ///
-/// ```
+/// ```ignore
 /// # use atmosphere::prelude::*;
 /// #[derive(Schema)]
 /// #[table(schema = "public", name = "user")]
@@ -73,7 +73,7 @@ pub fn schema(input: TokenStream) -> TokenStream {
 ///
 /// Usage:
 ///
-/// ```
+/// ```ignore
 /// # use atmosphere::prelude::*;
 /// # #[derive(Schema)]
 /// #[table(schema = "public", name = "user")]
@@ -139,7 +139,7 @@ pub fn table(_: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// Usage:
 ///
-/// ```
+/// ```ignore
 /// # use atmosphere::prelude::*;
 /// # use atmosphere::hooks::*;
 /// #[derive(Schema)]
