@@ -71,7 +71,7 @@ async fn main() -> sqlx::Result<()> {
 
     assert_eq!(
         User::find(&0, &pool).await?,
-        User::find_by_email("some@email.com", &pool).await?
+        User::find_by_email("some@email.com", &pool).await?.unwrap()
     );
 
     // Relationships
