@@ -28,8 +28,7 @@ jobs:
       - name: Setup mdbook
         uses: peaceiris/actions-mdbook@v1.2.0
       - uses: Swatinem/rust-cache@v2
-      - run: cargo install mdbook-keeper --locked || true
-      - run: cd docs && mdbook build -- --features atmosphere-core/postgres
+      - run: cd docs && mdbook build
       - name: Upload artifacts
         uses: actions/upload-pages-artifact@v2
         with:

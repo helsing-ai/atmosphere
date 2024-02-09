@@ -4,9 +4,3 @@ language = "en"
 multilingual = false
 src = "src"
 title = "Atmosphere"
-
-# comment this out if you do not want to unit-test code examples
-[preprocessor.keeper]
-command = "mdbook-keeper"
-manifest_dir = ".."
-
