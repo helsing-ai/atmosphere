@@ -14,9 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: rustup update && rustup component add rustfmt
-      - run: cargo fmt --check --all -- --features atmosphere-core/sqlite
-      - run: cargo fmt --check --all -- --features atmosphere-core/postgres
-      - run: cargo fmt --check --all -- --features atmosphere-core/mysql
+      - run: cargo fmt --check --all
 
   clippy:
     runs-on: ubuntu-latest
