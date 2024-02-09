@@ -40,7 +40,7 @@ async-trait.workspace = true
 sqlx.workspace = true
 
 [features]
-default = ["any"]
+default = ["postgres"]
 any = ["atmosphere-core/any"]
 mysql = ["atmosphere-core/mysql"]
 postgres = ["atmosphere-core/postgres"]
@@ -54,6 +54,10 @@ tokio-test = "0"
 [[example]]
 name = "forest"
 path = "examples/forest/main.rs"
+
+[[example]]
+name = "blog"
+path = "examples/blog/main.rs"
 
 [[test]]
 name = "integration"
