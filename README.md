@@ -8,7 +8,7 @@
 
 [![SQLx](https://img.shields.io/badge/sqlx-framework-blueviolet.svg)](https://github.com/launchbadge/sqlx)
 [![Crate](https://img.shields.io/crates/v/atmosphere.svg)](https://crates.io/crates/atmosphere)
-[![Book](https://img.shields.io/badge/book-latest-0f5225.svg)](https://mara-schulke.github.io/atmosphere)
+[![Book](https://img.shields.io/badge/book-latest-0f5225.svg)](https://bmc-labs.github.io/atmosphere)
 [![Docs](https://img.shields.io/badge/docs-latest-153f66.svg)](https://docs.rs/atmosphere)
 
 </div>
@@ -71,7 +71,7 @@ async fn main() -> sqlx::Result<()> {
 
     assert_eq!(
         User::find(&0, &pool).await?,
-        User::find_by_email("some@email.com", &pool).await?
+        User::find_by_email("some@email.com", &pool).await?.unwrap()
     );
 
     // Relationships

@@ -51,7 +51,7 @@ user.create(&pool).await?;
 
 assert_eq!(
     User::find(&0, &pool).await?,
-    User::find_by_email(&"some@email.com".to_string(), &pool).await?
+    User::find_by_email(&"some@email.com".to_string(), &pool).await?.unwrap()
 );
 
 let mut post = Post {

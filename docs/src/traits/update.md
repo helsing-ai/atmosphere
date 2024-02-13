@@ -23,7 +23,7 @@ let database = std::env::var("DATABASE_URL").unwrap();
 let pool = atmosphere::Pool::connect(&database).await?;
 
 // find user by primary key
-let mut user = User::find(&0, &pool).await?.unwrap();
+let mut user = User::find(&0, &pool).await?;
 
 user.email = "joe@example.com".into();
 

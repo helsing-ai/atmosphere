@@ -28,6 +28,7 @@ jobs:
       - name: Setup mdbook
         uses: peaceiris/actions-mdbook@v1.2.0
       - uses: Swatinem/rust-cache@v2
+      - run: cargo install mdbook-keeper
       - run: cd docs && mdbook build
       - name: Upload artifacts
         uses: actions/upload-pages-artifact@v2

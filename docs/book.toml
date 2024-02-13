@@ -1,6 +1,12 @@
 [book]
-authors = ["Hemisphere Studio <mara@hemisphere.studio>"]
+authors = ["Mara Schulke <mara.schulke@bmc-labs.com>"]
 language = "en"
 multilingual = false
 src = "src"
 title = "Atmosphere"
+
+[preprocessor.keeper]
+command = "mdbook-keeper"
+manifest_dir = ".."
+is_workspace = true
+build_features = ["atmosphere-core/postgres"]
