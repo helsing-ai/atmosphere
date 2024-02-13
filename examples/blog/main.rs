@@ -32,7 +32,10 @@ struct Post {
 
 #[tokio::main]
 async fn main() -> atmosphere::Result<()> {
-    let pool = Pool::connect(&std::env::var("DATABASE_URL").unwrap())
+    let pool = Pool::connect(":memory:").await.unwrap();
+
+    sqlx::migrate!("examples/blog/migrations")
+        .run(&pool)
         .await
         .unwrap();
 
