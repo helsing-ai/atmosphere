@@ -72,14 +72,6 @@ pub mod driver {
     ))]
     compile_error!("only one database driver can be set – please use multiple binaries using different atmosphere features if you need more than one database");
 
-    #[cfg(all(
-        not(feature = "mysql"),
-        not(feature = "postgres"),
-        not(feature = "sqlite")
-    ))]
-    /// Atmosphere Database Driver
-    pub type Driver = sqlx::Any;
-
     #[cfg(all(feature = "postgres", not(any(feature = "mysql", feature = "sqlite"))))]
     /// Atmosphere Database Driver
     pub type Driver = sqlx::Postgres;
@@ -104,11 +96,7 @@ pub mod driver {
     /// Atmosphere Database Pool
     pub type Pool = sqlx::SqlitePool;
 
-    #[cfg(all(
-        not(feature = "postgres"),
-        not(feature = "mysql"),
-        not(feature = "sqlite")
-    ))]
+    #[cfg(not(any(feature = "postgres", feature = "mysql", feature = "sqlite")))]
     compile_error!(
         "you must chose a atmosphere database driver (available: postgres, mysql, sqlite)"
     );

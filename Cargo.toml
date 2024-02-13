@@ -41,9 +41,9 @@ sqlx.workspace = true
 
 [features]
 default = []
-mysql = ["atmosphere-core/mysql"]
-postgres = ["atmosphere-core/postgres"]
-sqlite = ["atmosphere-core/sqlite"]
+mysql = ["atmosphere-core/mysql", "atmosphere-macros/mysql"]
+postgres = ["atmosphere-core/postgres", "atmosphere-macros/postgres"]
+sqlite = ["atmosphere-core/sqlite", "atmosphere-macros/sqlite"]
 
 [dev-dependencies]
 sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "any", "sqlite", "mysql", "postgres"] }
@@ -53,10 +53,12 @@ tokio-test = "0"
 [[example]]
 name = "forest"
 path = "examples/forest/main.rs"
+required-features = ["sqlite"]
 
 [[example]]
 name = "blog"
 path = "examples/blog/main.rs"
+required-features = ["sqlite"]
 
 [[test]]
 name = "integration"
