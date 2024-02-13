@@ -40,6 +40,7 @@ async-trait.workspace = true
 sqlx.workspace = true
 
 [features]
+default = []
 mysql = ["atmosphere-core/mysql"]
 postgres = ["atmosphere-core/postgres"]
 sqlite = ["atmosphere-core/sqlite"]
