@@ -18,5 +18,11 @@ syn = { version = "2.0.39", default-features = false, features = ["parsing", "pr
 quote = { version = "1.0.14", default-features = false }
 lazy_static = "1.4.0"
 
+[features]
+default = []
+mysql = ["atmosphere-core/mysql"]
+postgres = ["atmosphere-core/postgres"]
+sqlite = ["atmosphere-core/sqlite"]
+
 [dev-dependencies]
 chrono = "0.4.31"

@@ -108,3 +108,6 @@ pub use bind::*;
 pub use error::*;
 #[cfg(any(feature = "mysql", feature = "postgres", feature = "sqlite"))]
 pub use schema::*;
+
+#[doc(hidden)]
+pub use sqlx;
