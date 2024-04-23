@@ -29,6 +29,8 @@
 //! - `postgres`
 //! - `sqlite`
 
+#![cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
+
 pub use atmosphere_core::*;
 pub use atmosphere_macros::*;
 
