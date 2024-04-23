@@ -9,9 +9,9 @@ members = [
 version = "0.1.4"
 license = "Apache-2.0"
 edition = "2021"
-authors = ["Mara Schulke <mara.schulke@bmc-labs.com>"]
+authors = ["Mara Schulke <mara.schulke@helsing.ai>"]
 description = "A lightweight sql framework for sustainable database reliant systems"
-repository = "https://github.com/bmc-labs/atmosphere"
+repository = "https://github.com/helsing-ai/atmosphere"
 keywords = ["sqlx", "postgres", "database", "orm", "backend"]
 
 [workspace.dependencies]

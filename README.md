@@ -219,7 +219,7 @@ Atmosphere is able to generate utility queries to move across `Table` boundaries
 
 ## Contribution
 
-We welcome contributions! Please see our contribution guidelines for more details.
+We welcome contributions! Please see [our contribution guidelines](CONTRIBUTING.md) for more details.
 
 ## License
 
