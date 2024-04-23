@@ -26,3 +26,6 @@ sqlite = ["atmosphere-core/sqlite"]
 
 [dev-dependencies]
 chrono = "0.4.31"
+
+[package.metadata.docs.rs]
+features = ["postgres"]

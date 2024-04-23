@@ -64,3 +64,6 @@ required-features = ["sqlite"]
 name = "integration"
 path = "tests/lib.rs"
 test = true
+
+[package.metadata.docs.rs]
+features = ["postgres"]

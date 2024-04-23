@@ -23,3 +23,6 @@ sqlx.workspace = true
 thiserror.workspace = true
 lazy_static.workspace = true
 miette = "5.10.0"
+
+[package.metadata.docs.rs]
+features = ["postgres"]
