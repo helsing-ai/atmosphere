@@ -173,7 +173,7 @@ pub mod column {
         //
         /// We do treat this foreign key as a column of another table. This is not
         /// smart to do - but can become necessary when doing complex joins. This
-        /// is memory safe as Self<A> and Self<B> have the exact same memory layout,
+        /// is memory safe as `Self<A>` and `Self<B>` have the exact same memory layout,
         /// we do not store any data (A or B) but only a `PhantomData` instance which
         /// is here transmuted.
         pub const unsafe fn transmute<I: Table>(&'static self) -> &'static ForeignKey<I> {
