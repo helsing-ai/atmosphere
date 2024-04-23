@@ -9,6 +9,8 @@
 //! and align with the framework's conventions, making them a powerful tool in the application
 //! development process.
 
+#![cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
+
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, ItemStruct};

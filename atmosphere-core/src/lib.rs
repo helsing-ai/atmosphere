@@ -21,39 +21,31 @@
 //! - Code reusability across API layers using generics.
 //! - Compile-time introspection for type-safe schema generation.
 
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "sqlite"))]
+#![cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
+
 /// Facilitates binding entities to queries, ensuring type safety and ease of use in query construction.
 pub mod bind;
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "sqlite"))]
 /// Defines high-level database error types, offering a structured approach to error handling.
 pub mod error;
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "sqlite"))]
 /// Implements a hook system, allowing custom logic to be executed at different stages of database
 /// interactions.
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "sqlite"))]
 pub mod hooks;
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "sqlite"))]
 /// Offers an abstraction layer for building and executing SQL queries, simplifying complex query
 /// logic.
 pub mod query;
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "sqlite"))]
 /// Models SQL relationships, providing tools to define and manipulate relationships between
 /// database entities.
 pub mod rel;
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "sqlite"))]
 /// Manages the runtime environment for database operations, encompassing execution contexts and
 /// configurations.
 pub mod runtime;
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "sqlite"))]
 /// Contains compile-time generated SQL schema traits, enabling a declarative approach to schema
 /// definition.
 pub mod schema;
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "sqlite"))]
 /// Provides utilities for automated testing of SQL interactions, ensuring reliability and
 /// correctness of database operations.
 pub mod testing;
 
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "sqlite"))]
 pub use driver::{Driver, Pool};
 
 /// Driver System
@@ -95,18 +87,10 @@ pub mod driver {
     #[cfg(all(feature = "sqlite", not(any(feature = "postgres", feature = "mysql"))))]
     /// Atmosphere Database Pool
     pub type Pool = sqlx::SqlitePool;
-
-    #[cfg(not(any(feature = "postgres", feature = "mysql", feature = "sqlite")))]
-    compile_error!(
-        "you must chose a atmosphere database driver (available: postgres, mysql, sqlite)"
-    );
 }
 
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "sqlite"))]
 pub use bind::*;
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "sqlite"))]
 pub use error::*;
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "sqlite"))]
 pub use schema::*;
 
 #[doc(hidden)]

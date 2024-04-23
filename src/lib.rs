@@ -20,6 +20,16 @@
 //! - ORM-like CRUD traits.
 //! - Code reusability across API layers using generics.
 //! - Compile-time introspection for type-safe schema generation.
+//!
+//! ## Usage
+//!
+//! To use this crate you must activate **one** of the following features (else the crate is empty):
+//!
+//! - `mysql`
+//! - `postgres`
+//! - `sqlite`
+
+#![cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
 
 pub use atmosphere_core::*;
 pub use atmosphere_macros::*;
