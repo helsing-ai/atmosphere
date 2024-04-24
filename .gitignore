@@ -3,5 +3,3 @@ target
 Cargo.lock
 docs/book
 docs/doctest_cache
-.vscode
-data
