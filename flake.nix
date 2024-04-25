@@ -98,7 +98,7 @@
             settings.mysqld.port = mySqlPort;
           };
 
-          # avoid both the processes trying to create `data` directory at the same time
+          # avoid both processes trying to create `data` directory at the same time
           settings.processes."mysql-configure".depends_on."pg-init".condition = "process_completed_successfully";
         };
         
