@@ -45,7 +45,6 @@
             command = pkgs.writeShellApplication {
               name = "cargo.test.postgres";
               runtimeInputs = with pkgs; [
-                darwin.apple_sdk.frameworks.Security
                 darwin.apple_sdk.frameworks.SystemConfiguration
                 rust-bin.stable.latest.default
               ];
