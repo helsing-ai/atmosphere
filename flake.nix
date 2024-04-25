@@ -33,8 +33,7 @@
         };
         dbName = "atmosphere";
         mySqlPort = 3310;
-        inherit (lib) optionals splitString last;
-        ifDarwin = optionals ("darwin" == (last (splitString "-" system)));
+        ifDarwin = lib.optionals pkgs.stdenv.isDarwin;
       in {
         apps.lint.program = pkgs.writeShellApplication {
           name = "cargo.lint";
