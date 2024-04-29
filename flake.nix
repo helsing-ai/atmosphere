@@ -1,5 +1,5 @@
 {
-  description = "";
+  description = "Setup for testing Atmosphere";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
