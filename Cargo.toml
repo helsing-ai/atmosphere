@@ -1,16 +1,16 @@
 [workspace]
-members = [
-    ".",
-    "atmosphere-macros",
-    "atmosphere-core",
-]
+members = [".", "atmosphere-macros", "atmosphere-core"]
 
 [workspace.package]
 version = "0.2.0"
 license = "Apache-2.0"
 edition = "2021"
 exclude = ["/.github", "/tests"]
-authors = ["Mara Schulke <mara.schulke@helsing.ai>"]
+authors = [
+    "Florian Eich <florian.eich@helsing.ai>",
+    "Mara Schulke <mara.schulke@helsing.ai>",
+    "Nicolas Vizzari-Trinquier <nicolas.vizzari@helsing.ai>",
+]
 description = "A lightweight sql framework for sustainable database reliant systems"
 repository = "https://github.com/helsing-ai/atmosphere"
 keywords = ["sqlx", "postgres", "database", "orm", "backend"]
