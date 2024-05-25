@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "atmosphere-macros", "atmosphere-core"]
+members = [".", "atmosphere-core", "atmosphere-macros"]
 
 [workspace.package]
 version = "0.2.0"
@@ -47,8 +47,14 @@ postgres = ["atmosphere-core/postgres", "atmosphere-macros/postgres"]
 sqlite = ["atmosphere-core/sqlite", "atmosphere-macros/sqlite"]
 
 [dev-dependencies]
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "any", "sqlite", "mysql", "postgres"] }
-tokio = { version = "1", features = ["macros", "rt-multi-thread"]}
+sqlx = { version = "0.7", features = [
+    "runtime-tokio-rustls",
+    "any",
+    "sqlite",
+    "mysql",
+    "postgres",
+] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tokio-test = "0"
 
 [[example]]
