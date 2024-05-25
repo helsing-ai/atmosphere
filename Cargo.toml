@@ -9,6 +9,7 @@ members = [
 version = "0.2.0"
 license = "Apache-2.0"
 edition = "2021"
+exclude = ["/.github", "/tests"]
 authors = ["Mara Schulke <mara.schulke@helsing.ai>"]
 description = "A lightweight sql framework for sustainable database reliant systems"
 repository = "https://github.com/helsing-ai/atmosphere"
