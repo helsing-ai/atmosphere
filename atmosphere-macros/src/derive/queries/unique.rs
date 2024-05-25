@@ -37,8 +37,8 @@ pub fn queries(table: &Table) -> TokenStream {
             #[automatically_derived]
             impl #ident {
                 pub async fn #find_by_col<'e, E>(
+                    executor: E,
                     value: &#ty,
-                    executor: E
                 ) -> ::atmosphere::Result<Option<#ident>>
                 where
                     E: ::atmosphere::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
@@ -65,8 +65,8 @@ pub fn queries(table: &Table) -> TokenStream {
                 }
 
                 pub async fn #delete_by_col<'e, E>(
-                    value: &#ty,
                     executor: E,
+                    value: &#ty,
                 ) -> ::atmosphere::Result<<::atmosphere::Driver as ::atmosphere::sqlx::Database>::QueryResult>
                 where
                     E: ::atmosphere::sqlx::Executor<'e, Database = ::atmosphere::Driver>,

@@ -19,7 +19,7 @@ pub trait Read: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
     /// Finds and retrieves a row by its primary key. This method constructs a query to fetch
     /// a single row based on the primary key, executes it, and returns the result, optionally
     /// triggering hooks before and after execution.
-    async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Self>
+    async fn find<'e, E>(executor: E, pk: &Self::PrimaryKey) -> Result<Self>
     where
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
@@ -28,7 +28,7 @@ pub trait Read: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
     /// Finds and retrieves a row by its primary key. This method constructs a query to fetch
     /// a single row based on the primary key, executes it, and returns the result, optionally
     /// triggering hooks before and after execution.
-    async fn find_optional<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Option<Self>>
+    async fn find_optional<'e, E>(executor: E, pk: &Self::PrimaryKey) -> Result<Option<Self>>
     where
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
@@ -69,7 +69,7 @@ impl<T> Read for T
 where
     T: Table + Bind + Hooks + Send + Sync + Unpin + 'static,
 {
-    async fn find<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Self>
+    async fn find<'e, E>(executor: E, pk: &Self::PrimaryKey) -> Result<Self>
     where
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
@@ -103,7 +103,7 @@ where
         res
     }
 
-    async fn find_optional<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Option<Self>>
+    async fn find_optional<'e, E>(executor: E, pk: &Self::PrimaryKey) -> Result<Option<Self>>
     where
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:

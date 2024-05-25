@@ -26,7 +26,7 @@ let pool = atmosphere::Pool::connect(&database).await?;
 let users = User::find_all(&pool).await?;
 
 // find user by primary key
-let mut user = User::find(&0, &pool).await?;
+let mut user = User::find(&pool, &0).await?;
 
 // refresh user data
 user.reload(&pool).await?;

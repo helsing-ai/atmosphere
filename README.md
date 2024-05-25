@@ -70,8 +70,8 @@ async fn main() -> sqlx::Result<()> {
     // Field Queries
 
     assert_eq!(
-        User::find(&0, &pool).await?,
-        User::find_by_email("some@email.com", &pool).await?.unwrap()
+        User::find(&pool, &0).await?,
+        User::find_by_email(&pool,"some@email.com").await?.unwrap()
     );
 
     // Relationships
@@ -80,8 +80,8 @@ async fn main() -> sqlx::Result<()> {
         .save(&pool)
         .await?;
 
-    Post::find_by_author(&0, &pool).await?;
-    Post::delete_by_author(&0, &pool).await?;
+    Post::find_by_author(&pool, &0).await?;
+    Post::delete_by_author(&pool, &0).await?;
 
     // Inter-Table Operations
 

@@ -23,13 +23,13 @@ let database = std::env::var("DATABASE_URL").unwrap();
 let pool = atmosphere::Pool::connect(&database).await?;
 
 // find user by primary key
-let mut user = User::find(&0, &pool).await?;
+let mut user = User::find(&pool, &0).await?;
 
 // delete user data
 user.delete(&pool).await?;
 
 // delete by primary key
-User::delete_by(&4, &pool).await?;
+User::delete_by(&pool, &4).await?;
 # Ok(())
 # }
 # fn main() {}

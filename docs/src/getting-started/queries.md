@@ -50,8 +50,8 @@ user.delete(&pool).await?;
 user.create(&pool).await?;
 
 assert_eq!(
-    User::find(&0, &pool).await?,
-    User::find_by_email(&"some@email.com".to_string(), &pool).await?.unwrap()
+    User::find(&pool, &0).await?,
+    User::find_by_email(&pool, &"some@email.com".to_string()).await?.unwrap()
 );
 
 let mut post = Post {
@@ -62,7 +62,7 @@ let mut post = Post {
 
 post.save(&pool).await?;
 
-Post::find_by_author(&0, &pool).await?;
+Post::find_by_author(&pool, &0).await?;
 
 // Inter-Table Operations
 
