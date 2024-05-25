@@ -50,18 +50,6 @@ pub trait Read: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
             IntoArguments<'q, crate::Driver> + Send;
-
-    // Find all rows in the list of primary keys
-    //async fn find_many<'e, E>(pks: &[impl AsRef<Self::PrimaryKey>], executor: E) -> Result<Vec<Self>>
-    //where
-    //Self: Bind<sqlx::Postgres> + Sync + 'static,
-    //E: sqlx::Executor<'e, Database = sqlx::Postgres>,
-    //for<'q> <sqlx::Postgres as sqlx::database::HasArguments<'q>>::Arguments:
-    //Send + sqlx::IntoArguments<'q, sqlx::Postgres>;
-
-    // TODO(mara): figure out streams
-    // Read all rows from the database
-    //async fn all(pool: &sqlx::PgPool) -> Result<Vec<Self>>;
 }
 
 #[async_trait]
