@@ -49,15 +49,15 @@ pub fn relationships(table: &Table) -> TokenStream {
                 }
 
                 pub async fn #find_by_other<'e, E>(
-                    pk: &<#other as ::atmosphere::Table>::PrimaryKey,
                     executor: E,
+                    pk: &<#other as ::atmosphere::Table>::PrimaryKey,
                     // TODO: either Vec<Self>, or if marked as unique, only Self
                 ) -> ::atmosphere::Result<Vec<#ident>>
                 where
                     E: ::atmosphere::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
                     for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::HasArguments<'q>>::Arguments:
                         ::atmosphere::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
-                    <#other as ::atmosphere::rel::ReferredBy<#ident>>::resolve_by(pk, executor).await
+                    <#other as ::atmosphere::rel::ReferredBy<#ident>>::resolve_by(executor, pk).await
                 }
             }
 

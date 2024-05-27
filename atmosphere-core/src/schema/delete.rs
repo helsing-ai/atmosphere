@@ -31,8 +31,8 @@ pub trait Delete: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
     /// Deletes a row from the database based on its primary key. This method is particularly
     /// useful for deleting entities when only the primary key is available.
     async fn delete_by<'e, E>(
-        pk: &Self::PrimaryKey,
         executor: E,
+        pk: &Self::PrimaryKey,
     ) -> Result<<crate::Driver as Database>::QueryResult>
     where
         E: Executor<'e, Database = crate::Driver>,
@@ -89,8 +89,8 @@ where
     }
 
     async fn delete_by<'e, E>(
-        pk: &Self::PrimaryKey,
         executor: E,
+        pk: &Self::PrimaryKey,
     ) -> Result<<crate::Driver as Database>::QueryResult>
     where
         E: Executor<'e, Database = crate::Driver>,

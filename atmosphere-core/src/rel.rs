@@ -84,7 +84,7 @@ where
     }
 
     /// Resolves the referring entities based on the primary key of `Self`.
-    async fn resolve_by<'e, E>(pk: &Self::PrimaryKey, executor: E) -> Result<Vec<Other>>
+    async fn resolve_by<'e, E>(executor: E, pk: &Self::PrimaryKey) -> Result<Vec<Other>>
     where
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:

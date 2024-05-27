@@ -22,12 +22,12 @@ struct Tree {
 #[sqlx::test(migrations = "tests/db/migrations")]
 async fn create(pool: sqlx::PgPool) {
     atmosphere::testing::create(
+        &pool,
         Forest {
             id: 0,
             name: "grunewald".to_owned(),
             location: "berlin".to_owned(),
         },
-        &pool,
     )
     .await;
 
@@ -40,18 +40,18 @@ async fn create(pool: sqlx::PgPool) {
     .await
     .unwrap();
 
-    atmosphere::testing::create(Tree { id: 0, forest: 99 }, &pool).await;
+    atmosphere::testing::create(&pool, Tree { id: 0, forest: 99 }).await;
 }
 
 #[sqlx::test(migrations = "tests/db/migrations")]
 async fn read(pool: sqlx::PgPool) {
     atmosphere::testing::read(
+        &pool,
         Forest {
             id: 0,
             name: "grunewald".to_owned(),
             location: "berlin".to_owned(),
         },
-        &pool,
     )
     .await;
 
@@ -64,12 +64,13 @@ async fn read(pool: sqlx::PgPool) {
     .await
     .unwrap();
 
-    atmosphere::testing::read(Tree { id: 0, forest: 99 }, &pool).await;
+    atmosphere::testing::read(&pool, Tree { id: 0, forest: 99 }).await;
 }
 
 #[sqlx::test(migrations = "tests/db/migrations")]
 async fn update(pool: sqlx::PgPool) {
     atmosphere::testing::update(
+        &pool,
         Forest {
             id: 0,
             name: "grunewald".to_owned(),
@@ -92,7 +93,6 @@ async fn update(pool: sqlx::PgPool) {
                 location: "münchen".to_owned(),
             },
         ],
-        &pool,
     )
     .await;
 
@@ -115,9 +115,9 @@ async fn update(pool: sqlx::PgPool) {
     .unwrap();
 
     atmosphere::testing::update(
+        &pool,
         Tree { id: 0, forest: 99 },
         vec![Tree { id: 0, forest: 100 }, Tree { id: 0, forest: 99 }],
-        &pool,
     )
     .await;
 }
@@ -125,12 +125,12 @@ async fn update(pool: sqlx::PgPool) {
 #[sqlx::test(migrations = "tests/db/migrations")]
 async fn delete(pool: sqlx::PgPool) {
     atmosphere::testing::delete(
+        &pool,
         Forest {
             id: 0,
             name: "grunewald".to_owned(),
             location: "berlin".to_owned(),
         },
-        &pool,
     )
     .await;
 
@@ -143,5 +143,5 @@ async fn delete(pool: sqlx::PgPool) {
     .await
     .unwrap();
 
-    atmosphere::testing::delete(Tree { id: 0, forest: 99 }, &pool).await;
+    atmosphere::testing::delete(&pool, Tree { id: 0, forest: 99 }).await;
 }

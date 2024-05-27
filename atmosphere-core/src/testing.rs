@@ -11,17 +11,17 @@ use std::fmt::Debug;
 ///
 /// Verifies that an entity can be created and retrieved correctly. It asserts the non-existence of
 /// the entity before creation and checks for equality between the created and retrieved instances.
-pub async fn create<E>(mut instance: E, pool: &crate::Pool)
+pub async fn create<E>(pool: &crate::Pool, mut instance: E)
 where
     E: Entity + Clone + Debug + Eq + Send,
 {
     assert!(
-        E::find(instance.pk(), pool).await.is_err(),
+        E::find(pool, instance.pk()).await.is_err(),
         "instance was found (find) before it was created"
     );
 
     assert!(
-        E::find_optional(instance.pk(), pool)
+        E::find_optional(pool, instance.pk())
             .await
             .unwrap()
             .is_none(),
@@ -30,7 +30,7 @@ where
 
     instance.create(pool).await.expect("insertion did not work");
 
-    let retrieved = E::find(instance.pk(), pool)
+    let retrieved = E::find(pool, instance.pk())
         .await
         .expect("instance not found after insertion");
 
@@ -42,17 +42,17 @@ where
 /// Validates that an entity, once created, can be correctly read from the database. It ensures
 /// that the entity does not exist prior to creation and that the retrieved instance matches the
 /// created one.
-pub async fn read<E>(mut instance: E, pool: &crate::Pool)
+pub async fn read<E>(pool: &crate::Pool, mut instance: E)
 where
     E: Entity + Clone + Debug + Eq + Send,
 {
     assert!(
-        E::find(instance.pk(), pool).await.is_err(),
+        E::find(pool, instance.pk()).await.is_err(),
         "instance was found (find) after deletion"
     );
 
     assert!(
-        E::find_optional(instance.pk(), pool)
+        E::find_optional(pool, instance.pk())
             .await
             .unwrap()
             .is_none(),
@@ -61,7 +61,7 @@ where
 
     instance.create(pool).await.expect("insertion did not work");
 
-    let retrieved = E::find(instance.pk(), pool)
+    let retrieved = E::find(pool, instance.pk())
         .await
         .expect("instance not found after insertion");
 
@@ -72,7 +72,7 @@ where
 ///
 /// Checks that an entity can be updated and the changes are correctly reflected. Each update is
 /// verified by reloading and comparing it with the original instance.
-pub async fn update<E>(mut instance: E, updates: Vec<E>, pool: &crate::Pool)
+pub async fn update<E>(pool: &crate::Pool, mut instance: E, updates: Vec<E>)
 where
     E: Entity + Clone + Debug + Eq + Send,
 {
@@ -91,13 +91,13 @@ where
 
         assert_eq!(instance, update);
 
-        let retrieved = E::find(instance.pk(), pool)
+        let retrieved = E::find(pool, instance.pk())
             .await
             .expect("instance not found after update");
 
         assert_eq!(instance, retrieved);
 
-        let retrieved = E::find_optional(instance.pk(), pool)
+        let retrieved = E::find_optional(pool, instance.pk())
             .await
             .unwrap()
             .expect("instance not found (find_optional) after update");
@@ -110,7 +110,7 @@ where
 ///
 /// Ensures that an entity can be deleted and is no longer retrievable post-deletion. It also
 /// confirms the non-existence of the entity after a delete operation.
-pub async fn delete<E>(mut instance: E, pool: &crate::Pool)
+pub async fn delete<E>(pool: &crate::Pool, mut instance: E)
 where
     E: Entity + Clone + Debug + Eq + Send,
 {
@@ -124,12 +124,12 @@ where
         .expect_err("instance could be reloaded from db after deletion");
 
     assert!(
-        E::find(instance.pk(), pool).await.is_err(),
+        E::find(pool, instance.pk()).await.is_err(),
         "instance was found (find) after deletion"
     );
 
     assert!(
-        E::find_optional(instance.pk(), pool)
+        E::find_optional(pool, instance.pk())
             .await
             .unwrap()
             .is_none(),
@@ -138,7 +138,7 @@ where
 
     instance.create(pool).await.expect("insertion did not work");
 
-    E::delete_by(instance.pk(), pool)
+    E::delete_by(pool, instance.pk())
         .await
         .expect("deletion did not work");
 
