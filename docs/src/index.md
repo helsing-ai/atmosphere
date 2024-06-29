@@ -15,5 +15,5 @@ enabling low level usage of the underlying `sqlx` concepts.
 
 **[Traits](traits/index.md)**
 
-[GitHub]: https://github.com/bmc-labs/atmosphere/tree/main
+[GitHub]: https://github.com/helsing-ai/atmosphere/tree/main
 [`sqlx`]: https://github.com/launchbadge/sqlx

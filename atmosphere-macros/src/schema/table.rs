@@ -55,7 +55,12 @@ impl Parse for TableId {
 
 #[derive(Clone, Debug)]
 pub struct Table {
+    // TODO(flrn):
+    //  confirm what the fields `vis` and `generics` were
+    //  intended for; remove them if they are not needed
+    #[allow(dead_code)]
     pub vis: Visibility,
+    #[allow(dead_code)]
     pub generics: Generics,
     pub ident: Ident,
 
