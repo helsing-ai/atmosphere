@@ -1,0 +1,14 @@
+CREATE TABLE user (
+    id    INT PRIMARY KEY,
+    name  TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE post (
+    id         INT PRIMARY KEY,
+    author     INT REFERENCES user(id) ON DELETE CASCADE,
+    title      TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMPTZ
+);
