@@ -50,7 +50,7 @@ user.delete(&pool).await?;
 user.create(&pool).await?;
 
 assert_eq!(
-    User::find(&pool, &0).await?,
+    User::read(&pool, &0).await?,
     User::find_by_email(&pool, &"some@email.com".to_string()).await?.unwrap()
 );
 

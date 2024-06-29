@@ -16,21 +16,18 @@ where
     E: Entity + Clone + Debug + Eq + Send,
 {
     assert!(
-        E::find(pool, instance.pk()).await.is_err(),
-        "instance was found (find) before it was created"
+        E::read(pool, instance.pk()).await.is_err(),
+        "instance was found (read) before it was created"
     );
 
     assert!(
-        E::find_optional(pool, instance.pk())
-            .await
-            .unwrap()
-            .is_none(),
-        "instance was found (find_optional) before it was created"
+        E::find(pool, instance.pk()).await.unwrap().is_none(),
+        "instance was found (find) before it was created"
     );
 
     instance.create(pool).await.expect("insertion did not work");
 
-    let retrieved = E::find(pool, instance.pk())
+    let retrieved = E::read(pool, instance.pk())
         .await
         .expect("instance not found after insertion");
 
@@ -47,32 +44,29 @@ where
     E: Entity + Clone + Debug + Eq + Send,
 {
     assert!(
-        E::find(pool, instance.pk()).await.is_err(),
+        E::read(pool, instance.pk()).await.is_err(),
+        "instance was found (read) after deletion"
+    );
+
+    assert!(
+        E::find(pool, instance.pk()).await.unwrap().is_none(),
         "instance was found (find) after deletion"
     );
 
     assert!(
-        E::find_optional(pool, instance.pk())
-            .await
-            .unwrap()
-            .is_none(),
-        "instance was found (find_optional) after deletion"
-    );
-
-    assert!(
-        E::find_all(pool).await.unwrap().is_empty(),
+        E::read_all(pool).await.unwrap().is_empty(),
         "there was an instance found in the database before creating"
     );
 
     instance.create(pool).await.expect("insertion did not work");
 
-    let retrieved = E::find(pool, instance.pk())
+    let retrieved = E::read(pool, instance.pk())
         .await
         .expect("instance not found after insertion");
 
     assert_eq!(instance, retrieved);
 
-    assert_eq!(E::find_all(pool).await.unwrap(), vec![instance.clone()]);
+    assert_eq!(E::read_all(pool).await.unwrap(), vec![instance.clone()]);
 }
 
 /// Tests updating of an entity in the database.
@@ -83,7 +77,7 @@ pub async fn update<E>(pool: &crate::Pool, mut instance: E, updates: Vec<E>)
 where
     E: Entity + Clone + Debug + Eq + Send,
 {
-    instance.save(pool).await.expect("insertion did not work");
+    instance.upsert(pool).await.expect("insertion did not work");
 
     for mut update in updates {
         update
@@ -98,16 +92,16 @@ where
 
         assert_eq!(instance, update);
 
-        let retrieved = E::find(pool, instance.pk())
+        let retrieved = E::read(pool, instance.pk())
             .await
             .expect("instance not found after update");
 
         assert_eq!(instance, retrieved);
 
-        let retrieved = E::find_optional(pool, instance.pk())
+        let retrieved = E::find(pool, instance.pk())
             .await
             .unwrap()
-            .expect("instance not found (find_optional) after update");
+            .expect("instance not found (find) after update");
 
         assert_eq!(instance, retrieved);
     }
@@ -131,16 +125,13 @@ where
         .expect_err("instance could be reloaded from db after deletion");
 
     assert!(
-        E::find(pool, instance.pk()).await.is_err(),
-        "instance was found (find) after deletion"
+        E::read(pool, instance.pk()).await.is_err(),
+        "instance was found (read) after deletion"
     );
 
     assert!(
-        E::find_optional(pool, instance.pk())
-            .await
-            .unwrap()
-            .is_none(),
-        "instance was found (find_optional) after deletion"
+        E::find(pool, instance.pk()).await.unwrap().is_none(),
+        "instance was found (find) after deletion"
     );
 
     instance.create(pool).await.expect("insertion did not work");

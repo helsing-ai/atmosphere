@@ -36,7 +36,7 @@ async fn create(pool: sqlx::PgPool) {
         name: "place".to_owned(),
         location: "holder".to_owned(),
     }
-    .save(&pool)
+    .upsert(&pool)
     .await
     .unwrap();
 
@@ -60,7 +60,7 @@ async fn read(pool: sqlx::PgPool) {
         name: "place".to_owned(),
         location: "holder".to_owned(),
     }
-    .save(&pool)
+    .upsert(&pool)
     .await
     .unwrap();
 
@@ -101,7 +101,7 @@ async fn update(pool: sqlx::PgPool) {
         name: "place".to_owned(),
         location: "holder".to_owned(),
     }
-    .save(&pool)
+    .upsert(&pool)
     .await
     .unwrap();
 
@@ -110,7 +110,7 @@ async fn update(pool: sqlx::PgPool) {
         name: "place".to_owned(),
         location: "holder".to_owned(),
     }
-    .save(&pool)
+    .upsert(&pool)
     .await
     .unwrap();
 
@@ -139,7 +139,7 @@ async fn delete(pool: sqlx::PgPool) {
         name: "place".to_owned(),
         location: "holder".to_owned(),
     }
-    .save(&pool)
+    .upsert(&pool)
     .await
     .unwrap();
 

@@ -10,10 +10,10 @@ use sqlx::{database::HasArguments, Database, Executor, IntoArguments};
 
 /// Trait for deleting rows from a database.
 ///
-/// Provides functionality for deleting rows from a table in the database. Implementors of this trait can delete
-/// entities either by their instance or by their primary key. The trait ensures proper execution of hooks at
-/// various stages of the delete operation, enhancing flexibility and allowing for custom behavior during the
-/// deletion process.
+/// Provides functionality for deleting rows from a table in the database. Implementors of this
+/// trait can delete entities either by their instance or by their primary key. The trait ensures
+/// proper execution of hooks at various stages of the delete operation, enhancing flexibility and
+/// allowing for custom behavior during the deletion process.
 #[async_trait]
 pub trait Delete: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
     /// Deletes the row represented by the instance from the database. Builds and executes a delete

@@ -19,7 +19,7 @@ pub trait Read: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
     /// Finds and retrieves a row by its primary key. This method constructs a query to fetch
     /// a single row based on the primary key, executes it, and returns the result, optionally
     /// triggering hooks before and after execution.
-    async fn find<'e, E>(executor: E, pk: &Self::PrimaryKey) -> Result<Self>
+    async fn read<'e, E>(executor: E, pk: &Self::PrimaryKey) -> Result<Self>
     where
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
@@ -28,7 +28,7 @@ pub trait Read: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
     /// Finds and retrieves a row by its primary key. This method constructs a query to fetch
     /// a single row based on the primary key, executes it, and returns the result, optionally
     /// triggering hooks before and after execution.
-    async fn find_optional<'e, E>(executor: E, pk: &Self::PrimaryKey) -> Result<Option<Self>>
+    async fn find<'e, E>(executor: E, pk: &Self::PrimaryKey) -> Result<Option<Self>>
     where
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
@@ -36,7 +36,7 @@ pub trait Read: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
 
     /// Retrieves all rows from the table. This method is useful for fetching the complete
     /// dataset of a table, executing a query to return all rows, and applying hooks as needed.
-    async fn find_all<'e, E>(executor: E) -> Result<Vec<Self>>
+    async fn read_all<'e, E>(executor: E) -> Result<Vec<Self>>
     where
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
@@ -57,7 +57,7 @@ impl<T> Read for T
 where
     T: Table + Bind + Hooks + Send + Sync + Unpin + 'static,
 {
-    async fn find<'e, E>(executor: E, pk: &Self::PrimaryKey) -> Result<Self>
+    async fn read<'e, E>(executor: E, pk: &Self::PrimaryKey) -> Result<Self>
     where
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
@@ -91,7 +91,7 @@ where
         res
     }
 
-    async fn find_optional<'e, E>(executor: E, pk: &Self::PrimaryKey) -> Result<Option<Self>>
+    async fn find<'e, E>(executor: E, pk: &Self::PrimaryKey) -> Result<Option<Self>>
     where
         E: Executor<'e, Database = crate::Driver>,
         for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
@@ -119,6 +119,34 @@ where
             hooks::HookStage::PostExec,
             &query,
             QueryResult::Optional(&res).into(),
+        )
+        .await?;
+
+        res
+    }
+
+    async fn read_all<'e, E>(executor: E) -> Result<Vec<Self>>
+    where
+        E: Executor<'e, Database = crate::Driver>,
+        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
+            IntoArguments<'q, crate::Driver> + Send,
+    {
+        let query = crate::runtime::sql::select_all::<T>();
+
+        hooks::execute(HookStage::PreBind, &query, HookInput::None).await?;
+        hooks::execute(HookStage::PreExec, &query, HookInput::None).await?;
+
+        let res = sqlx::query_as(query.sql())
+            .persistent(false)
+            .fetch_all(executor)
+            .await
+            .map_err(QueryError::from)
+            .map_err(Error::Query);
+
+        hooks::execute(
+            hooks::HookStage::PostExec,
+            &query,
+            QueryResult::Many(&res).into(),
         )
         .await?;
 
@@ -160,33 +188,5 @@ where
         *self = res?;
 
         Ok(())
-    }
-
-    async fn find_all<'e, E>(executor: E) -> Result<Vec<Self>>
-    where
-        E: Executor<'e, Database = crate::Driver>,
-        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, crate::Driver> + Send,
-    {
-        let query = crate::runtime::sql::select_all::<T>();
-
-        hooks::execute(HookStage::PreBind, &query, HookInput::None).await?;
-        hooks::execute(HookStage::PreExec, &query, HookInput::None).await?;
-
-        let res = sqlx::query_as(query.sql())
-            .persistent(false)
-            .fetch_all(executor)
-            .await
-            .map_err(QueryError::from)
-            .map_err(Error::Query);
-
-        hooks::execute(
-            hooks::HookStage::PostExec,
-            &query,
-            QueryResult::Many(&res).into(),
-        )
-        .await?;
-
-        res
     }
 }

@@ -8,7 +8,7 @@
 
 [![SQLx](https://img.shields.io/badge/sqlx-framework-blueviolet.svg)](https://github.com/launchbadge/sqlx)
 [![Crate](https://img.shields.io/crates/v/atmosphere.svg)](https://crates.io/crates/atmosphere)
-[![Book](https://img.shields.io/badge/book-latest-0f5225.svg)](https://bmc-labs.github.io/atmosphere)
+[![Book](https://img.shields.io/badge/book-latest-0f5225.svg)](https://helsing-ai.github.io/atmosphere)
 [![Docs](https://img.shields.io/badge/docs-latest-153f66.svg)](https://docs.rs/atmosphere)
 
 </div>
@@ -70,7 +70,7 @@ async fn main() -> sqlx::Result<()> {
     // Field Queries
 
     assert_eq!(
-        User::find(&pool, &0).await?,
+        User::read(&pool, &0).await?,
         User::find_by_email(&pool, "some@email.com").await?.unwrap()
     );
 
@@ -167,14 +167,15 @@ Atmosphere is able to derive and generate the following queries:
 
 #### `atmosphere::Read`
 
-- `Model::find`
-- `Model::find_all`
+- `Model::read`: read a `Model` by its primary key, returning a `Model`.
+- `Model::find`: find a `Model` by its primary key, returning an `Option<Model>`.
+- `Model::read_all`: read all `Model`s, returning a `Vec<Model>`.
 - `Model::reload`
 
 #### `atmosphere::Update`
 
 - `Model::update`
-- `Model::save`
+- `Model::upsert`
 
 #### `atmosphere::Delete`
 
@@ -187,8 +188,8 @@ Each struct field that is marked with `#[sql(unique)]` becomes queryable.
 
 In the above example `b` was marked as unique so atmosphere implements:
 
-- `Model::find_by_b`
-- `Model::delete_by_b`
+- `Model::find_by_b`: find a `Model` by its `b` field, returning an `Option<Model>`.
+- `Model::delete_by_b`: delete a `Model` by its `b` field.
 
 ### Relationships & Inter-Table Queries
 
