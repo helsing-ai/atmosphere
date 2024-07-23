@@ -42,7 +42,7 @@ pub fn queries(table: &Table) -> TokenStream {
                 ) -> ::atmosphere::Result<Option<#ident>>
                 where
                     E: ::atmosphere::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
-                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::HasArguments<'q>>::Arguments:
+                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::Database>::Arguments<'q>:
                         ::atmosphere::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send
                 {
                     use ::atmosphere::{
@@ -70,7 +70,7 @@ pub fn queries(table: &Table) -> TokenStream {
                 ) -> ::atmosphere::Result<<::atmosphere::Driver as ::atmosphere::sqlx::Database>::QueryResult>
                 where
                     E: ::atmosphere::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
-                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::HasArguments<'q>>::Arguments:
+                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::Database>::Arguments<'q>:
                         ::atmosphere::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send
                 {
                     use ::atmosphere::{

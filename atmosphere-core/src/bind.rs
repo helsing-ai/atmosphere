@@ -22,7 +22,7 @@
 
 use crate::{Column, Result, Table};
 use miette::Diagnostic;
-use sqlx::database::HasArguments;
+use sqlx::database::Database;
 use sqlx::query::QueryAs;
 use sqlx::{Encode, QueryBuilder, Type};
 use thiserror::Error;
@@ -40,7 +40,7 @@ pub enum BindError {
     Unknown(&'static str),
 }
 
-type Query<'q, DB> = sqlx::query::Query<'q, DB, <DB as HasArguments<'q>>::Arguments>;
+type Query<'q, DB> = sqlx::query::Query<'q, DB, <DB as Database>::Arguments<'q>>;
 
 /// Trait for dynamic binding of values.
 ///
@@ -66,7 +66,7 @@ impl<'q> Bindable<'q> for Query<'q, crate::Driver> {
 }
 
 impl<'q, E> Bindable<'q>
-    for QueryAs<'q, crate::Driver, E, <crate::Driver as HasArguments<'q>>::Arguments>
+    for QueryAs<'q, crate::Driver, E, <crate::Driver as Database>::Arguments<'q>>
 {
     fn dyn_bind<T: 'q + Send + Encode<'q, crate::Driver> + Type<crate::Driver>>(
         self,

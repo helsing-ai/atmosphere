@@ -20,7 +20,7 @@ atmosphere-core = { version = "=0.3.0", path = "atmosphere-core" }
 atmosphere-macros = { version = "=0.3.0", path = "atmosphere-macros" }
 async-trait = "0.1"
 lazy_static = "1"
-sqlx = { version = "0.7", features = ["chrono"] }
+sqlx = { version = "0.8", features = ["chrono"] }
 thiserror = "1"
 
 [package]
@@ -47,7 +47,7 @@ postgres = ["atmosphere-core/postgres", "atmosphere-macros/postgres"]
 sqlite = ["atmosphere-core/sqlite", "atmosphere-macros/sqlite"]
 
 [dev-dependencies]
-sqlx = { version = "0.7", features = [
+sqlx = { version = "0.8", features = [
     "runtime-tokio-rustls",
     "any",
     "sqlite",
