@@ -5,7 +5,7 @@
 //! relationships in a database using SQLx.
 
 use async_trait::async_trait;
-use sqlx::database::HasArguments;
+use sqlx::database::Database;
 use sqlx::{Executor, IntoArguments};
 
 use crate::bind::Bind;
@@ -31,8 +31,7 @@ where
     async fn resolve<'e, E>(&self, executor: E) -> Result<Other>
     where
         E: Executor<'e, Database = crate::Driver>,
-        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, crate::Driver> + Send,
+        for<'q> <crate::Driver as Database>::Arguments<'q>: IntoArguments<'q, crate::Driver> + Send,
     {
         let Query { builder, .. } = sql::select::<Other>();
 
@@ -65,8 +64,7 @@ where
     async fn resolve<'e, E>(&self, executor: E) -> Result<Vec<Other>>
     where
         E: Executor<'e, Database = crate::Driver>,
-        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, crate::Driver> + Send,
+        for<'q> <crate::Driver as Database>::Arguments<'q>: IntoArguments<'q, crate::Driver> + Send,
     {
         let Query { builder, .. } = sql::select_by::<Other>(Other::FOREIGN_KEY.as_col());
 
@@ -87,8 +85,7 @@ where
     async fn resolve_by<'e, E>(executor: E, pk: &Self::PrimaryKey) -> Result<Vec<Other>>
     where
         E: Executor<'e, Database = crate::Driver>,
-        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, crate::Driver> + Send,
+        for<'q> <crate::Driver as Database>::Arguments<'q>: IntoArguments<'q, crate::Driver> + Send,
     {
         let Query { builder, .. } = sql::select_by::<Other>(Other::FOREIGN_KEY.as_col());
 
@@ -108,8 +105,7 @@ where
     ) -> Result<<crate::Driver as sqlx::Database>::QueryResult>
     where
         E: Executor<'e, Database = crate::Driver>,
-        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, crate::Driver> + Send,
+        for<'q> <crate::Driver as Database>::Arguments<'q>: IntoArguments<'q, crate::Driver> + Send,
     {
         let Query { builder, .. } = sql::delete_by::<Other>(Other::FOREIGN_KEY.as_col());
 

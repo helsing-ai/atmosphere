@@ -43,7 +43,7 @@ pub fn relationships(table: &Table) -> TokenStream {
                 ) -> ::atmosphere::Result<#other>
                 where
                     E: ::atmosphere::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
-                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::HasArguments<'q>>::Arguments:
+                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::Database>::Arguments<'q>:
                         ::atmosphere::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
                     <#ident as ::atmosphere::rel::RefersTo<#other>>::resolve(&self, executor).await
                 }
@@ -55,7 +55,7 @@ pub fn relationships(table: &Table) -> TokenStream {
                 ) -> ::atmosphere::Result<Vec<#ident>>
                 where
                     E: ::atmosphere::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
-                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::HasArguments<'q>>::Arguments:
+                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::Database>::Arguments<'q>:
                         ::atmosphere::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
                     <#other as ::atmosphere::rel::ReferredBy<#ident>>::resolve_by(executor, pk).await
                 }
@@ -69,7 +69,7 @@ pub fn relationships(table: &Table) -> TokenStream {
                 ) -> ::atmosphere::Result<Vec<#ident>>
                 where
                     E: ::atmosphere::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
-                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::HasArguments<'q>>::Arguments:
+                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::Database>::Arguments<'q>:
                         ::atmosphere::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
                     <#other as ::atmosphere::rel::ReferredBy<#ident>>::resolve(&self, executor).await
                 }
@@ -80,7 +80,7 @@ pub fn relationships(table: &Table) -> TokenStream {
                 ) -> ::atmosphere::Result<<::atmosphere::Driver as ::atmosphere::sqlx::Database>::QueryResult>
                 where
                     E: ::atmosphere::sqlx::Executor<'e, Database = ::atmosphere::Driver>,
-                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::HasArguments<'q>>::Arguments:
+                    for<'q> <::atmosphere::Driver as ::atmosphere::sqlx::database::Database>::Arguments<'q>:
                         ::atmosphere::sqlx::IntoArguments<'q, ::atmosphere::Driver> + Send {
                     <#other as ::atmosphere::rel::ReferredBy<#ident>>::delete_all(&self, executor).await
                 }

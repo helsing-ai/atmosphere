@@ -6,7 +6,7 @@ use crate::{
 };
 
 use async_trait::async_trait;
-use sqlx::{database::HasArguments, Executor, IntoArguments};
+use sqlx::{database::Database, Executor, IntoArguments};
 
 /// Trait for creating rows in a database.
 ///
@@ -25,8 +25,7 @@ pub trait Create: Table + Bind + Hooks + Sync + 'static {
     ) -> Result<<crate::Driver as sqlx::Database>::QueryResult>
     where
         E: Executor<'e, Database = crate::Driver>,
-        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, crate::Driver> + Send;
+        for<'q> <crate::Driver as Database>::Arguments<'q>: IntoArguments<'q, crate::Driver> + Send;
 }
 
 #[async_trait]
@@ -40,8 +39,7 @@ where
     ) -> Result<<crate::Driver as sqlx::Database>::QueryResult>
     where
         E: Executor<'e, Database = crate::Driver>,
-        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, crate::Driver> + Send,
+        for<'q> <crate::Driver as Database>::Arguments<'q>: IntoArguments<'q, crate::Driver> + Send,
     {
         let query = crate::runtime::sql::insert::<T>();
 

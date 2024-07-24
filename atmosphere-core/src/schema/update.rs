@@ -6,7 +6,7 @@ use crate::{
 };
 
 use async_trait::async_trait;
-use sqlx::{database::HasArguments, Database, Executor, IntoArguments};
+use sqlx::{Database, Executor, IntoArguments};
 
 /// Update rows in a database.
 ///
@@ -25,8 +25,7 @@ pub trait Update: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
     ) -> Result<<crate::Driver as Database>::QueryResult>
     where
         E: Executor<'e, Database = crate::Driver>,
-        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, crate::Driver> + Send;
+        for<'q> <crate::Driver as Database>::Arguments<'q>: IntoArguments<'q, crate::Driver> + Send;
 
     /// Similar to `update`, but either updates an existing row or inserts a new one if it does not
     /// exist, depending on the primary key's presence and uniqueness.
@@ -36,8 +35,7 @@ pub trait Update: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
     ) -> Result<<crate::Driver as Database>::QueryResult>
     where
         E: Executor<'e, Database = crate::Driver>,
-        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, crate::Driver> + Send;
+        for<'q> <crate::Driver as Database>::Arguments<'q>: IntoArguments<'q, crate::Driver> + Send;
 }
 
 #[async_trait]
@@ -51,8 +49,7 @@ where
     ) -> Result<<crate::Driver as Database>::QueryResult>
     where
         E: Executor<'e, Database = crate::Driver>,
-        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, crate::Driver> + Send,
+        for<'q> <crate::Driver as Database>::Arguments<'q>: IntoArguments<'q, crate::Driver> + Send,
     {
         let query = crate::runtime::sql::update::<T>();
 
@@ -89,8 +86,7 @@ where
     ) -> Result<<crate::Driver as Database>::QueryResult>
     where
         E: Executor<'e, Database = crate::Driver>,
-        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, crate::Driver> + Send,
+        for<'q> <crate::Driver as Database>::Arguments<'q>: IntoArguments<'q, crate::Driver> + Send,
     {
         let query = crate::runtime::sql::upsert::<T>();
 

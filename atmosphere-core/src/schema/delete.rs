@@ -6,7 +6,7 @@ use crate::{
 };
 
 use async_trait::async_trait;
-use sqlx::{database::HasArguments, Database, Executor, IntoArguments};
+use sqlx::{Database, Executor, IntoArguments};
 
 /// Trait for deleting rows from a database.
 ///
@@ -25,8 +25,7 @@ pub trait Delete: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
     ) -> Result<<crate::Driver as Database>::QueryResult>
     where
         E: Executor<'e, Database = crate::Driver>,
-        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, crate::Driver> + Send;
+        for<'q> <crate::Driver as Database>::Arguments<'q>: IntoArguments<'q, crate::Driver> + Send;
 
     /// Deletes a row from the database based on its primary key. This method is particularly
     /// useful for deleting entities when only the primary key is available.
@@ -36,8 +35,7 @@ pub trait Delete: Table + Bind + Hooks + Send + Sync + Unpin + 'static {
     ) -> Result<<crate::Driver as Database>::QueryResult>
     where
         E: Executor<'e, Database = crate::Driver>,
-        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, crate::Driver> + Send;
+        for<'q> <crate::Driver as Database>::Arguments<'q>: IntoArguments<'q, crate::Driver> + Send;
 }
 
 #[async_trait]
@@ -51,8 +49,7 @@ where
     ) -> Result<<crate::Driver as Database>::QueryResult>
     where
         E: Executor<'e, Database = crate::Driver>,
-        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, crate::Driver> + Send,
+        for<'q> <crate::Driver as Database>::Arguments<'q>: IntoArguments<'q, crate::Driver> + Send,
     {
         let query = crate::runtime::sql::delete::<T>();
 
@@ -94,8 +91,7 @@ where
     ) -> Result<<crate::Driver as Database>::QueryResult>
     where
         E: Executor<'e, Database = crate::Driver>,
-        for<'q> <crate::Driver as HasArguments<'q>>::Arguments:
-            IntoArguments<'q, crate::Driver> + Send,
+        for<'q> <crate::Driver as Database>::Arguments<'q>: IntoArguments<'q, crate::Driver> + Send,
     {
         let query = crate::runtime::sql::delete::<T>();
 
