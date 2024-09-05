@@ -2,7 +2,7 @@
 members = [".", "atmosphere-core", "atmosphere-macros"]
 
 [workspace.package]
-version = "0.3.0"
+version = "0.3.1"
 license = "Apache-2.0"
 edition = "2021"
 exclude = ["/.github", "/tests"]
@@ -16,8 +16,8 @@ repository = "https://github.com/helsing-ai/atmosphere"
 keywords = ["sqlx", "postgres", "database", "orm", "backend"]
 
 [workspace.dependencies]
-atmosphere-core = { version = "=0.3.0", path = "atmosphere-core" }
-atmosphere-macros = { version = "=0.3.0", path = "atmosphere-macros" }
+atmosphere-core = { version = "=0.3.1", path = "atmosphere-core" }
+atmosphere-macros = { version = "=0.3.1", path = "atmosphere-macros" }
 async-trait = "0.1"
 lazy_static = "1"
 sqlx = { version = "0.8", features = ["chrono"] }
