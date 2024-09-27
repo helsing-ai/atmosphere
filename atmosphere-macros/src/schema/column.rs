@@ -91,12 +91,32 @@ impl DataColumn {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct GeneratedColumn {
+    pub modifiers: ColumnModifiers,
+    pub name: NameSet,
+    pub ty: Type,
+}
+
+impl GeneratedColumn {
+    pub fn quote(&self) -> TokenStream {
+        let field = self.name.field();
+        let sql = self.name.sql();
+
+        quote!(::atmosphere::GeneratedColumn::new(
+            stringify!(#field),
+            stringify!(#sql)
+        ))
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Column {
     PrimaryKey(PrimaryKey),
     ForeignKey(ForeignKey),
     Data(DataColumn),
     Timestamp(TimestampColumn),
+    Generated(GeneratedColumn),
 }
 
 impl Hash for Column {
@@ -112,6 +132,7 @@ impl Column {
             Self::ForeignKey(fk) => fk.quote(),
             Self::Data(data) => data.quote(),
             Self::Timestamp(time) => time.quote(),
+            Self::Generated(generated) => generated.quote(),
         }
     }
 
@@ -121,6 +142,7 @@ impl Column {
             Self::ForeignKey(fk) => &fk.ty,
             Self::Data(data) => &data.ty,
             Self::Timestamp(ts) => &ts.ty,
+            Self::Generated(gen) => &gen.ty,
         }
     }
 }
@@ -136,6 +158,7 @@ pub mod attribute {
     const FOREIGN_KEY: &str = "fk";
     const UNIQUE: &str = "unique";
     const TIMESTAMP: &str = "timestamp";
+    const GENERATED: &str = "generated";
 
     const TIMESTAMP_CREATED: &str = "created";
     const TIMESTAMP_UPDATED: &str = "updated";
@@ -145,6 +168,7 @@ pub mod attribute {
     pub enum ColumnKind {
         PrimaryKey,
         ForeignKey { on: Ident },
+        Generated,
         Data,
         Timestamp { kind: TimestampKind },
     }
@@ -190,6 +214,11 @@ pub mod attribute {
                         };
 
                         kind = ColumnKind::Timestamp { kind: ty }
+                    }
+                    GENERATED => {
+                        let _: Ident = input.parse()?;
+
+                        kind = ColumnKind::Generated
                     }
                     _ => {}
                 };
@@ -317,6 +346,11 @@ impl TryFrom<Field> for Column {
                 name,
                 ty,
             })),
+            attribute::ColumnKind::Generated => Ok(Self::Generated(GeneratedColumn {
+                modifiers,
+                name,
+                ty
+            })),
         }
     }
 }
@@ -328,6 +362,7 @@ impl Column {
             Self::ForeignKey(fk) => &fk.name,
             Self::Data(data) => &data.name,
             Self::Timestamp(ts) => &ts.name,
+            Self::Generated(gen) => &gen.name,
         }
     }
 }
