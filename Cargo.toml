@@ -21,7 +21,7 @@ atmosphere-macros = { version = "=0.3.1", path = "atmosphere-macros" }
 async-trait = "0.1"
 lazy_static = "1"
 sqlx = { version = "0.8", features = ["chrono"] }
-thiserror = "1"
+thiserror = "2"
 
 [package]
 name = "atmosphere"
