@@ -75,3 +75,10 @@ required-features = ["postgres"]
 
 [package.metadata.docs.rs]
 features = ["postgres"]
+
+[workspace.lints.clippy]
+expect_used = "warn"
+pedantic = { level = "warn", priority = -1 }
+undocumented_unsafe_blocks = "deny"
+unwrap_used = "warn"
+wildcard_imports = "warn"
