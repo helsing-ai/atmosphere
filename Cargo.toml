@@ -11,7 +11,7 @@ authors = [
     "Mara Schulke <mara.schulke@helsing.ai>",
     "Nicolas Vizzari-Trinquier <nicolas.vizzari@helsing.ai>",
 ]
-description = "A lightweight sql framework for sustainable database reliant systems"
+description = "A lightweight SQL framework for sustainable database reliant systems"
 repository = "https://github.com/helsing-ai/atmosphere"
 keywords = ["sqlx", "postgres", "database", "orm", "backend"]
 
@@ -26,7 +26,7 @@ thiserror = "2"
 [package]
 name = "atmosphere"
 readme = "README.md"
-description = "A lightweight sql framework for sustainable database reliant systems"
+description = "A lightweight SQL framework for sustainable database reliant systems"
 documentation = "https://docs.rs/atmosphere"
 version.workspace = true
 license.workspace = true
