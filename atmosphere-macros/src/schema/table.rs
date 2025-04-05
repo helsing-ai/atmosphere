@@ -30,7 +30,7 @@ impl Parse for TableId {
                     return Err(syn::Error::new_spanned(
                         ident,
                         "`#[table]` supports only the values `schema` and `name`",
-                    ))
+                    ));
                 }
             }
 
@@ -109,7 +109,7 @@ impl Parse for Table {
                         "{} must use named fields in order to derive `Schema`",
                         ident
                     ),
-                ))
+                ));
             }
         };
 

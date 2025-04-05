@@ -4,7 +4,7 @@ members = [".", "atmosphere-core", "atmosphere-macros"]
 [workspace.package]
 version = "0.3.1"
 license = "Apache-2.0"
-edition = "2021"
+edition = "2024"
 exclude = ["/.github", "/tests"]
 authors = [
     "Florian Eich <florian.eich@helsing.ai>",

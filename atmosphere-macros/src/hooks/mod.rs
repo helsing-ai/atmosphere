@@ -18,7 +18,7 @@ impl syn::parse::Parse for Hooks {
                     return Err(syn::Error::new_spanned(
                         expr,
                         "`#[hooks(..)]` only supports paths or struct literals",
-                    ))
+                    ));
                 }
             }
 

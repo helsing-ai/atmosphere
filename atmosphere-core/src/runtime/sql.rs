@@ -20,8 +20,8 @@ use std::fmt;
 use sqlx::QueryBuilder;
 
 use crate::{
-    query::{self, Query},
     Bind, Column,
+    query::{self, Query},
 };
 
 /// Struct representing bindings for SQL queries.
@@ -312,8 +312,8 @@ pub fn delete_by<T: Bind>(c: Column<T>) -> Query<T> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        runtime::sql::{self, Bindings},
         Bind, Bindable, Column, DataColumn, ForeignKey, PrimaryKey, Table, TimestampColumn,
+        runtime::sql::{self, Bindings},
     };
 
     #[derive(sqlx::FromRow)]
@@ -418,9 +418,9 @@ mod tests {
         } = sql::upsert::<TestTable>();
 
         assert_eq!(
-                builder.sql(),
-                "INSERT INTO \"public\".\"test\"\n  (id_sql_col, fk_sql_col, data_sql_col)\nVALUES\n  ($1, $2, $3)\nON CONFLICT(id_sql_col)\nDO UPDATE SET\n  fk_sql_col = EXCLUDED.fk_sql_col,\n  data_sql_col = EXCLUDED.data_sql_col"
-            );
+            builder.sql(),
+            "INSERT INTO \"public\".\"test\"\n  (id_sql_col, fk_sql_col, data_sql_col)\nVALUES\n  ($1, $2, $3)\nON CONFLICT(id_sql_col)\nDO UPDATE SET\n  fk_sql_col = EXCLUDED.fk_sql_col,\n  data_sql_col = EXCLUDED.data_sql_col"
+        );
 
         assert_eq!(
             bindings,
