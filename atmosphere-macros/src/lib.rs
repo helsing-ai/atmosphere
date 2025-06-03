@@ -12,8 +12,8 @@
 #![cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
 
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
-use syn::{parse_macro_input, ItemStruct};
+use quote::{ToTokens, quote};
+use syn::{ItemStruct, parse_macro_input};
 
 mod derive;
 mod hooks;

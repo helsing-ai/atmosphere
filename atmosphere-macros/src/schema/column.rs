@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use syn::{Field, Ident, Type};
 
 use super::keys::{ForeignKey, PrimaryKey};
@@ -126,7 +126,7 @@ impl Column {
 }
 
 pub mod attribute {
-    use syn::{parse::Parse, Error, Ident, LitStr, Token};
+    use syn::{Error, Ident, LitStr, Token, parse::Parse};
 
     use super::{ColumnModifiers, TimestampKind};
 
@@ -185,7 +185,7 @@ pub mod attribute {
                                 return Err(syn::Error::new_spanned(
                                     ty,
                                     "`#[sql(timestamp = <type>)]` only supports `created`. `updated` and `deleted`",
-                                ))
+                                ));
                             }
                         };
 

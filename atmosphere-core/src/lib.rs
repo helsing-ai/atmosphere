@@ -62,7 +62,9 @@ pub mod driver {
         all(feature = "mysql", any(feature = "postgres", feature = "sqlite")),
         all(feature = "sqlite", any(feature = "postgres", feature = "mysql")),
     ))]
-    compile_error!("only one database driver can be set – please use multiple binaries using different atmosphere features if you need more than one database");
+    compile_error!(
+        "only one database driver can be set – please use multiple binaries using different atmosphere features if you need more than one database"
+    );
 
     #[cfg(all(feature = "postgres", not(any(feature = "mysql", feature = "sqlite"))))]
     /// Atmosphere Database Driver

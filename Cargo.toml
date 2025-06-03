@@ -4,14 +4,14 @@ members = [".", "atmosphere-core", "atmosphere-macros"]
 [workspace.package]
 version = "0.3.1"
 license = "Apache-2.0"
-edition = "2021"
+edition = "2024"
 exclude = ["/.github", "/tests"]
 authors = [
     "Florian Eich <florian.eich@helsing.ai>",
     "Mara Schulke <mara.schulke@helsing.ai>",
     "Nicolas Vizzari-Trinquier <nicolas.vizzari@helsing.ai>",
 ]
-description = "A lightweight sql framework for sustainable database reliant systems"
+description = "A lightweight SQL framework for sustainable database reliant systems"
 repository = "https://github.com/helsing-ai/atmosphere"
 keywords = ["sqlx", "postgres", "database", "orm", "backend"]
 
@@ -21,12 +21,12 @@ atmosphere-macros = { version = "=0.3.1", path = "atmosphere-macros" }
 async-trait = "0.1"
 lazy_static = "1"
 sqlx = { version = "0.8", features = ["chrono"] }
-thiserror = "1"
+thiserror = "2"
 
 [package]
 name = "atmosphere"
 readme = "README.md"
-description = "A lightweight sql framework for sustainable database reliant systems"
+description = "A lightweight SQL framework for sustainable database reliant systems"
 documentation = "https://docs.rs/atmosphere"
 version.workspace = true
 license.workspace = true
@@ -75,3 +75,10 @@ required-features = ["postgres"]
 
 [package.metadata.docs.rs]
 features = ["postgres"]
+
+[workspace.lints.clippy]
+expect_used = "warn"
+pedantic = { level = "warn", priority = -1 }
+undocumented_unsafe_blocks = "deny"
+unwrap_used = "warn"
+wildcard_imports = "warn"

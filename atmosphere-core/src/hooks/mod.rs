@@ -20,8 +20,8 @@
 use async_trait::async_trait;
 
 use crate::{
-    query::{Query, QueryResult},
     Bind, Result, Table,
+    query::{Query, QueryResult},
 };
 
 /// Enumerates different stages in the query lifecycle for hook application.

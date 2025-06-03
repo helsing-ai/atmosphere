@@ -8,7 +8,7 @@ use miette::Diagnostic;
 use sqlx::QueryBuilder;
 use thiserror::Error;
 
-use crate::{runtime::sql::Bindings, Bind, Result, Table};
+use crate::{Bind, Result, Table, runtime::sql::Bindings};
 
 /// Errors that can occur while executing a database query.
 ///

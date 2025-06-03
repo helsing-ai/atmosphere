@@ -12,7 +12,7 @@
 use miette::Diagnostic;
 use thiserror::Error;
 
-use crate::{query::QueryError, BindError};
+use crate::{BindError, query::QueryError};
 
 /// Errors that can occur within Atmosphere.
 ///

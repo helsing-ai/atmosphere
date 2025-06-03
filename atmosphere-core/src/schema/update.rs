@@ -1,8 +1,8 @@
 use crate::{
+    Bind, Error, Result,
     hooks::{self, HookInput, HookStage, Hooks},
     query::{QueryError, QueryResult},
     schema::Table,
-    Bind, Error, Result,
 };
 
 use async_trait::async_trait;
