@@ -105,10 +105,7 @@ impl Parse for Table {
             Fields::Unnamed(_) | Fields::Unit => {
                 return Err(Error::new(
                     ident.span(),
-                    format!(
-                        "{} must use named fields in order to derive `Schema`",
-                        ident
-                    ),
+                    format!("{ident} must use named fields in order to derive `Schema`"),
                 ));
             }
         };
@@ -130,8 +127,7 @@ impl Parse for Table {
                 return Err(Error::new(
                     input.span(),
                     format!(
-                        "{} declares more than one column as its primary key – only one is allowed",
-                        ident
+                        "{ident} declares more than one column as its primary key – only one is allowed"
                     ),
                 ));
             }
@@ -139,8 +135,7 @@ impl Parse for Table {
             primary_keys.into_iter().next().ok_or(Error::new(
                 input.span(),
                 format!(
-                    "{} must declare one field as its primary key (using `#[primary_key]`",
-                    ident
+                    "{ident} must declare one field as its primary key (using `#[primary_key]`"
                 ),
             ))?
         };

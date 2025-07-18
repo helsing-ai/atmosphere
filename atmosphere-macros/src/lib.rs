@@ -120,7 +120,7 @@ pub fn table(_: TokenStream, input: TokenStream) -> TokenStream {
             }
 
             let Extract { rename } =
-                syn::parse_str(&format!("#[sqlx(rename = \"{}\")]", rename)).unwrap();
+                syn::parse_str(&format!("#[sqlx(rename = \"{rename}\")]")).unwrap();
 
             field.attrs.push(rename);
         }
