@@ -1,12 +1,15 @@
 use sqlx::{Database, Decode, Encode, Postgres, Type};
 
+/// Error related to decoding operations from Postgres via sqlx.
 #[derive(Debug, thiserror::Error)]
 pub enum DecodeErr {
+    /// Indicates that we received a different geometry type from the one we expected.
     #[error("expected '{expected}', but instead got '{decoded:?}'")]
     WrongType {
         expected: &'static str,
         decoded: geo_types::Geometry,
     },
+    /// Indicates that we received a `NULL` value instead of a concrete geometry value.
     #[error("expected a point, but got NULL instead")]
     UnexpectedNull,
 }
@@ -14,6 +17,8 @@ pub enum DecodeErr {
 pub mod point {
     use super::*;
 
+    /// Wrapper type for PostGIS Point type, which can be used in a table. Provides encoding and
+    /// decoding implementations.
     #[derive(Debug, Clone, PartialEq)]
     pub struct Point(geo_types::Point<f64>);
 
@@ -62,6 +67,8 @@ mod polygon {
 
     use super::*;
 
+    /// A wrapper for the PostGIS `Point` type, providing `Encode` and `Decode` implementations for
+    /// database persistence.
     #[derive(Debug, Clone, PartialEq)]
     pub struct Polygon(geo_types::Polygon<f64>);
 
