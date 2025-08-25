@@ -1,0 +1,24 @@
+[package]
+name = "atmosphere-extras"
+description = "Implementations for additional database types."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[features]
+default = ["postgis"]
+postgres = ["sqlx/postgres"]
+postgis = ["postgres", "dep:geozero", "dep:geo-types"]
+
+[dependencies]
+geo-types = { version = "0.7.17", optional = true }
+geozero = { version = "0.14.0", features = [
+    "with-postgis-sqlx",
+], optional = true }
+sqlx.workspace = true
+thiserror.workspace = true
+
+[package.metadata.docs.rs]
+features = ["postgres", "postgis"]

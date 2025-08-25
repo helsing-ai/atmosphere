@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "atmosphere-core", "atmosphere-macros"]
+members = [".", "atmosphere-core", "atmosphere-macros", "atmosphere-extras"]
 
 [workspace.package]
 version = "0.3.1"
