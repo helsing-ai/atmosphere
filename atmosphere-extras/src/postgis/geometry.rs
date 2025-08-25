@@ -20,7 +20,7 @@ pub mod point {
     /// Wrapper type for PostGIS Point type, which can be used in a table. Provides encoding and
     /// decoding implementations.
     #[derive(Debug, Clone, PartialEq)]
-    pub struct Point(geo_types::Point<f64>);
+    pub struct Point(pub(crate) geo_types::Point<f64>);
 
     impl From<geo_types::Point<f64>> for Point {
         fn from(value: geo_types::Point<f64>) -> Self {
@@ -60,6 +60,39 @@ pub mod point {
             geozero::wkb::Encode(geometry).encode(buf)
         }
     }
+
+    #[cfg(feature = "serde")]
+    mod serde {
+        #[derive(serde::Serialize, serde::Deserialize)]
+        struct InternalPoint {
+            x: f64,
+            y: f64,
+        }
+
+        impl serde::Serialize for super::Point {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: serde::Serializer,
+            {
+                let point = InternalPoint {
+                    x: self.0.x(),
+                    y: self.0.y(),
+                };
+
+                point.serialize(serializer)
+            }
+        }
+
+        impl<'de> serde::Deserialize<'de> for super::Point {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                let internal_point = InternalPoint::deserialize(deserializer)?;
+                Ok(geo_types::Point::new(internal_point.x, internal_point.y).into())
+            }
+        }
+    }
 }
 
 mod polygon {
@@ -70,7 +103,7 @@ mod polygon {
     /// A wrapper for the PostGIS `Point` type, providing `Encode` and `Decode` implementations for
     /// database persistence.
     #[derive(Debug, Clone, PartialEq)]
-    pub struct Polygon(geo_types::Polygon<f64>);
+    pub struct Polygon(pub(crate) geo_types::Polygon<f64>);
 
     impl From<geo_types::Polygon<f64>> for Polygon {
         fn from(value: geo_types::Polygon<f64>) -> Self {
@@ -118,6 +151,44 @@ mod polygon {
             buf: &mut <Postgres as Database>::ArgumentBuffer<'r>,
         ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
             self.clone().encode(buf)
+        }
+    }
+
+    #[cfg(feature = "serde")]
+    mod serde {
+        #[derive(serde::Serialize, serde::Deserialize)]
+        struct InternalPolygon(Vec<super::Point>);
+
+        impl serde::Serialize for super::Polygon {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: serde::Serializer,
+            {
+                let exterior = self.0.exterior();
+
+                let mut points = Vec::with_capacity(exterior.0.len());
+
+                for coord in exterior {
+                    let point = geo_types::Point(*coord);
+                    points.push(super::Point(point));
+                }
+
+                InternalPolygon(points).serialize(serializer)
+            }
+        }
+
+        impl<'de> serde::Deserialize<'de> for super::Polygon {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                let InternalPolygon(points) = InternalPolygon::deserialize(deserializer)?;
+                let coords = points.into_iter().map(|point| point.0.0).collect();
+                let exterior = geo_types::LineString::new(coords);
+                let polygon = geo_types::Polygon::new(exterior, Vec::default());
+
+                Ok(Self(polygon))
+            }
         }
     }
 }
