@@ -34,7 +34,6 @@ system.
 ```rust
 use atmosphere::prelude::*;
 
-#[derive(Schema)]
 #[table(schema = "public", name = "user")]
 struct User {
     #[sql(pk)]
@@ -44,7 +43,6 @@ struct User {
     email: String,
 }
 
-#[derive(Schema)]
 #[table(schema = "public", name = "post")]
 struct Post {
     #[sql(pk)]
@@ -103,7 +101,6 @@ trait.
 
 ### Alpha Release
 - [x] Advanced SQL Trait System (`Table`, `Column`, `Relation` ..)
-- [x] Derive Macro (`Schema`)
 - [x] SQL Field Attributes (`#[sql(pk)]`, `#[sql(fk -> Model)]` and so on)
 - [x] SQL Query Generation
 - [x] Automated Integration Testing
@@ -140,13 +137,11 @@ trait.
 
 ## Functionalities
 
-Given a `struct Model` that derives its atmosphere schema using
-`#[derive(Schema)]` and `#[table]`:
+Given a `struct Model` that derives its atmosphere schema using `#[table]`:
 
 ```rust
 use atmosphere::prelude::*;
 
-#[derive(Schema)]
 #[table(schema = "public", name = "model")]
 struct Model {
     #[sql(pk)]
@@ -197,7 +192,6 @@ Given that a model contains fields are marked as a foreign key / point to
 another `atmosphere::Table` atmosphere – for example:
 
 ```rust
-#[derive(Schema)]
 #[table(schema = "public", name = "submodel")]
 struct Submodel {
     #[sql(pk)]

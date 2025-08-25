@@ -2,7 +2,7 @@ use atmosphere::prelude::*;
 
 use sqlx::types::chrono;
 
-#[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "forest")]
 struct Forest {
     #[sql(pk)]
@@ -15,7 +15,7 @@ struct Forest {
     created: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "tree")]
 struct Tree {
     #[sql(pk)]

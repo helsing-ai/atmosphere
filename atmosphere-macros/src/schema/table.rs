@@ -1,7 +1,8 @@
 use std::collections::HashSet;
 
 use syn::parse::{Parse, ParseStream};
-use syn::{Error, Fields, Generics, Ident, LitStr, Token, Visibility};
+use syn::spanned::Spanned as _;
+use syn::{Error, Fields, Ident, LitStr, Token};
 
 use crate::hooks::Hooks;
 use crate::schema::column::{Column, DataColumn, TimestampColumn};
@@ -55,13 +56,6 @@ impl Parse for TableId {
 
 #[derive(Clone, Debug)]
 pub struct Table {
-    // TODO(flrn):
-    //  confirm what the fields `vis` and `generics` were
-    //  intended for; remove them if they are not needed
-    #[allow(dead_code)]
-    pub vis: Visibility,
-    #[allow(dead_code)]
-    pub generics: Generics,
     pub ident: Ident,
 
     pub id: TableId,
@@ -74,19 +68,12 @@ pub struct Table {
     pub hooks: Hooks,
 }
 
-impl Parse for Table {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let item: syn::ItemStruct = input.parse()?;
-
-        let id: TableId = item
-            .attrs
-            .iter()
-            .find(|attr| attr.path().is_ident("table"))
-            .ok_or(syn::Error::new(
-                input.span(),
-                "You need to use the `#[table]` attribute if you want to derive `Schema`",
-            ))?
-            .parse_args()?;
+impl Table {
+    pub fn parse_struct(
+        item: &syn::ItemStruct,
+        table_args: proc_macro::TokenStream,
+    ) -> syn::Result<Self> {
+        let id: TableId = syn::parse(table_args)?;
 
         let hooks: Hooks = {
             let attr = item.attrs.iter().find(|attr| attr.path().is_ident("hooks"));
@@ -98,19 +85,20 @@ impl Parse for Table {
             }
         };
 
-        let ident = item.ident;
+        let ident = &item.ident;
 
-        let fields = match item.fields {
+        let fields = match &item.fields {
             Fields::Named(n) => n,
             Fields::Unnamed(_) | Fields::Unit => {
                 return Err(Error::new(
                     ident.span(),
-                    format!("{ident} must use named fields in order to derive `Schema`"),
+                    format!("{ident} must use named fields in order to be used with `table`"),
                 ));
             }
         };
 
         let columns = fields
+            .clone()
             .named
             .into_iter()
             .map(Column::try_from)
@@ -125,7 +113,7 @@ impl Parse for Table {
 
             if primary_keys.len() > 1 {
                 return Err(Error::new(
-                    input.span(),
+                    item.span(),
                     format!(
                         "{ident} declares more than one column as its primary key – only one is allowed"
                     ),
@@ -133,10 +121,8 @@ impl Parse for Table {
             }
 
             primary_keys.into_iter().next().ok_or(Error::new(
-                input.span(),
-                format!(
-                    "{ident} must declare one field as its primary key (using `#[primary_key]`"
-                ),
+                item.span(),
+                format!("{ident} must declare one field as its primary key (using `#[sql(pk)]`"),
             ))?
         };
 
@@ -159,9 +145,7 @@ impl Parse for Table {
             .collect();
 
         Ok(Self {
-            vis: item.vis,
-            generics: item.generics,
-            ident,
+            ident: ident.clone(),
             id,
             primary_key,
             foreign_keys,

@@ -2,7 +2,7 @@ use atmosphere::prelude::*;
 
 use sqlx::types::chrono;
 
-#[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "user")]
 struct User {
     #[sql(pk)]
@@ -12,7 +12,7 @@ struct User {
     email: String,
 }
 
-#[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(schema = "public", name = "post")]
 struct Post {
     #[sql(pk)]

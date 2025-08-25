@@ -1,7 +1,7 @@
 use atmosphere::prelude::*;
 use atmosphere_core::Table;
 
-#[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(name = "forest", schema = "public")]
 struct Forest {
     #[sql(pk)]
@@ -10,7 +10,7 @@ struct Forest {
     location: String,
 }
 
-#[derive(Schema, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[table(name = "tree", schema = "public")]
 struct Tree {
     #[sql(pk)]

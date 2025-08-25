@@ -21,52 +21,7 @@ mod schema;
 
 use schema::table::Table;
 
-/// A derive macro that processes structs to automatically generate schema-related code. It reads
-/// custom attributes and derives necessary traits and implementations for interacting with the
-/// database.
-///
-/// Entity attributes:
-///
-/// - `#[table(schema = "schema_name", name = "table_name")]` - Set schema and table name
-///
-/// Field attributes:
-///
-/// - `#[sql(pk)]` - Mark a column as primary key
-/// - `#[sql(fk -> OtherModel)]` - Mark a column as foreign key on `OtherModel`
-/// - `#[sql(unique)]` - Mark a column as unique
-/// - `#[sql(timestamp = [create|update|delete])]` - Mark a column as timestamp
-/// - `#[sql(.., rename = "renamed_sql_col")]` - Rename a column in the generated sql
-///
-/// Usage:
-///
-/// ```ignore
-/// # use atmosphere::prelude::*;
-/// #[derive(Schema)]
-/// #[table(schema = "public", name = "user")]
-/// struct User {
-///     #[sql(pk)]
-///     id: i32,
-///     #[sql(unique)]
-///     username: String,
-/// }
-///
-/// #[derive(Schema)]
-/// #[table(schema = "public", name = "post")]
-/// struct Post {
-///     #[sql(pk)]
-///     id: i32,
-///     #[sql(fk -> User, rename = "author_id")]
-///     author: i32,
-/// }
-/// ```
-#[proc_macro_derive(Schema, attributes(sql))]
-pub fn schema(input: TokenStream) -> TokenStream {
-    let table = parse_macro_input!(input as Table);
-    derive::all(&table).into()
-}
-
-/// An attribute macro that stores metadata about the sql table.
-/// Must be used after `#[derive(Schema)]`.
+/// An attribute macro that stores metadata about the sql table and derives needed traits.
 ///
 /// Keys:
 ///
@@ -77,7 +32,6 @@ pub fn schema(input: TokenStream) -> TokenStream {
 ///
 /// ```ignore
 /// # use atmosphere::prelude::*;
-/// # #[derive(Schema)]
 /// #[table(schema = "public", name = "user")]
 /// # struct User {
 /// #     #[sql(pk)]
@@ -87,7 +41,7 @@ pub fn schema(input: TokenStream) -> TokenStream {
 /// # }
 /// ```
 #[proc_macro_attribute]
-pub fn table(_: TokenStream, input: TokenStream) -> TokenStream {
+pub fn table(table_args: TokenStream, input: TokenStream) -> TokenStream {
     let mut model = parse_macro_input!(input as ItemStruct);
 
     for ref mut field in model.fields.iter_mut() {
@@ -126,16 +80,28 @@ pub fn table(_: TokenStream, input: TokenStream) -> TokenStream {
         }
     }
 
+    let table = match Table::parse_struct(&model, table_args) {
+        Ok(table) => table,
+        Err(error) => return error.into_compile_error().into(),
+    };
+
+    for field in model.fields.iter_mut() {
+        field.attrs.retain(|attr| !attr.path().is_ident("sql"));
+    }
+
     let model = model.to_token_stream();
+    let derives = derive::all(&table);
 
     quote! {
         #[derive(::atmosphere::sqlx::FromRow)]
         #model
+
+        #derives
     }
     .into()
 }
 
-/// An attribute macro for registering on a table. Must be used after `#[derive(Schema)]`.
+/// An attribute macro for registering on a table. Must be used with `#[table]` macro.
 ///
 /// Takes as argument a type which implements `Hook<Self>` for the entity type.
 ///
@@ -144,7 +110,6 @@ pub fn table(_: TokenStream, input: TokenStream) -> TokenStream {
 /// ```ignore
 /// # use atmosphere::prelude::*;
 /// # use atmosphere::hooks::*;
-/// #[derive(Schema)]
 /// #[table(schema = "public", name = "user")]
 /// #[hooks(MyHook)]
 /// struct User {
