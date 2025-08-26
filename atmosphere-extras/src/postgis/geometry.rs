@@ -117,6 +117,19 @@ mod polygon {
         }
     }
 
+    impl FromIterator<super::Point> for Polygon {
+        fn from_iter<T: IntoIterator<Item = super::Point>>(iter: T) -> Self {
+            let exterior = iter.into_iter().map(|point| point.0).collect();
+            Self(geo_types::Polygon::new(exterior, Vec::default()))
+        }
+    }
+
+    impl From<&[super::Point]> for Polygon {
+        fn from(points: &[super::Point]) -> Self {
+            Self::from_iter(points.iter().copied())
+        }
+    }
+
     impl Type<Postgres> for Polygon {
         fn type_info() -> <Postgres as Database>::TypeInfo {
             PgTypeInfo::with_name("geometry")
