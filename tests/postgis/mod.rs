@@ -1,5 +1,5 @@
+use atmosphere::postgis::{Point, Polygon};
 use atmosphere::{Create, Read, Table as _, table};
-use atmosphere_extras::postgis::{Point, Polygon};
 use sqlx::{Executor, PgPool};
 
 #[derive(Debug, PartialEq)]
