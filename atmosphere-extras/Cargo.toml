@@ -22,8 +22,7 @@ sqlx.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-serde_json = "1.0.143"
-atmosphere = { path = "../", features = ["postgres"] }
+serde_json = "1"
 
 [package.metadata.docs.rs]
 features = ["postgis"]
