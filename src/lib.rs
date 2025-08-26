@@ -34,6 +34,9 @@
 pub use atmosphere_core::*;
 pub use atmosphere_macros::*;
 
+#[cfg(feature = "postgis")]
+pub use atmosphere_extras::postgis;
+
 /// A prelude module for bringing commonly used types into scope
 pub mod prelude {
     pub use async_trait::async_trait;
