@@ -10,7 +10,7 @@ pub enum DecodeErr {
         decoded: geo_types::Geometry,
     },
     /// Indicates that we received a `NULL` value instead of a concrete geometry value.
-    #[error("expected a point, but got NULL instead")]
+    #[error("expected a non-NULL value, but got NULL instead")]
     UnexpectedNull,
 }
 
