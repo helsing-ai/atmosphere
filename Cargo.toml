@@ -47,7 +47,7 @@ default = []
 mysql = ["atmosphere-core/mysql", "atmosphere-macros/mysql"]
 postgres = ["atmosphere-core/postgres", "atmosphere-macros/postgres"]
 sqlite = ["atmosphere-core/sqlite", "atmosphere-macros/sqlite"]
-postgis = ["atmosphere-extras/postgis"]
+postgis = ["postgres", "atmosphere-extras/postgis"]
 
 [dev-dependencies]
 sqlx = { version = "0.8", features = [
