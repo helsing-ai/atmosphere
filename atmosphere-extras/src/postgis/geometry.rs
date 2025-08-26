@@ -98,6 +98,22 @@ pub mod point {
                 Ok(geo_types::Point::new(internal_point.x, internal_point.y).into())
             }
         }
+
+        #[cfg(test)]
+        mod tests {
+            use crate::postgis::Point;
+
+            #[test]
+            fn serialize_deserialize() {
+                let point = Point::new(4., 2.);
+
+                let serialized = serde_json::to_string(&point).unwrap();
+                assert_eq!(serialized, r#"{"x":4.0,"y":2.0}"#);
+
+                let deserialized = serde_json::from_str(&serialized).unwrap();
+                assert_eq!(point, deserialized);
+            }
+        }
     }
 }
 
@@ -207,6 +223,32 @@ mod polygon {
                 let polygon = geo_types::Polygon::new(exterior, Vec::default());
 
                 Ok(Self(polygon))
+            }
+        }
+
+        #[cfg(test)]
+        mod tests {
+            use crate::postgis::Point;
+
+            use super::super::Polygon;
+
+            #[test]
+            fn serialize_deserialize() {
+                let polygon = Polygon::from_iter([
+                    Point::new(0., 0.),
+                    Point::new(1., 0.),
+                    Point::new(0., 1.),
+                    Point::new(1., 1.),
+                ]);
+
+                let serialized = serde_json::to_string(&polygon).unwrap();
+                assert_eq!(
+                    serialized,
+                    r#"[{"x":0.0,"y":0.0},{"x":1.0,"y":0.0},{"x":0.0,"y":1.0},{"x":1.0,"y":1.0},{"x":0.0,"y":0.0}]"#
+                );
+
+                let deserialized = serde_json::from_str(&serialized).unwrap();
+                assert_eq!(polygon, deserialized);
             }
         }
     }
