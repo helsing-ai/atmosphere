@@ -19,7 +19,7 @@ pub mod point {
 
     /// Wrapper type for PostGIS Point type, which can be used in a table. Provides encoding and
     /// decoding implementations.
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, Copy, PartialEq)]
     pub struct Point(pub(crate) geo_types::Point<f64>);
 
     impl From<geo_types::Point<f64>> for Point {
