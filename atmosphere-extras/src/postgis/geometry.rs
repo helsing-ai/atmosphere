@@ -122,7 +122,7 @@ mod polygon {
 
     use super::*;
 
-    /// A wrapper for the PostGIS `Point` type, providing `Encode` and `Decode` implementations for
+    /// A wrapper for the PostGIS `Polygon` type, providing `Encode` and `Decode` implementations for
     /// database persistence.
     #[derive(Debug, Clone, PartialEq)]
     pub struct Polygon(pub(crate) geo_types::Polygon<f64>);
