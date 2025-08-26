@@ -22,6 +22,12 @@ pub mod point {
     #[derive(Debug, Clone, Copy, PartialEq)]
     pub struct Point(pub(crate) geo_types::Point<f64>);
 
+    impl Point {
+        pub fn new(x: f64, y: f64) -> Self {
+            Self(geo_types::Point::new(x, y))
+        }
+    }
+
     impl From<geo_types::Point<f64>> for Point {
         fn from(value: geo_types::Point<f64>) -> Self {
             Self(value)
