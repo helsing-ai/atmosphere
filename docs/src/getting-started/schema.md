@@ -1,8 +1,8 @@
 # Define your Schema
 
 To make use of Atmosphere, you must define your schema in a way that Atmosphere
-can understand it. To do so, you use Rust structs augmented with the [`Schema`]
-derive macro and some metadata which tells it how to map it to SQL.
+can understand it. To do so, you use Rust structs augmented with the [`table`]
+attribute macro and some metadata which tells it how to map it to SQL.
 
 Here is an example of what such a schema might look like if you are storing
 users and posts in a database.
@@ -12,7 +12,6 @@ users and posts in a database.
 # extern crate sqlx;
 use atmosphere::prelude::*;
 
-#[derive(Schema)]
 #[table(schema = "public", name = "user")]
 struct User {
     #[sql(pk)]
@@ -22,7 +21,6 @@ struct User {
     email: String,
 }
 
-#[derive(Schema)]
 #[table(schema = "public", name = "post")]
 struct Post {
     #[sql(pk)]
@@ -46,7 +44,6 @@ the appropriate keys on the `#[table]` annotation.
 # extern crate atmosphere;
 # extern crate sqlx;
 # use atmosphere::prelude::*;
-#[derive(Schema)]
 #[table(schema = "public", name = "users")]
 struct User {
     # #[sql(pk)]
@@ -62,4 +59,4 @@ struct User {
 Every struct member corresponds to one row of your backing table. Here you can
 use the `#[sql]` annotation to add metadata.
 
-[`Schema`]: https://docs.rs/atmosphere/latest/atmosphere/derive.Schema.html
+[`table`]: https://docs.rs/atmosphere/latest/atmosphere/attr.table.html

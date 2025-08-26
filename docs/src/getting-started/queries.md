@@ -1,7 +1,7 @@
 # Queries
 
 When using Atmosphere, you have two options for writing queries. Once you
-derive `Schema` on your entities, it gives you the ability to use querying
+annotate your entities with `table`, it gives you the ability to use querying
 traits that Atmosphere comes with. However, you can at any point reach down
 and write your queries in raw SQL, the way you would if you used `sqlx`
 directly.
@@ -16,7 +16,7 @@ Atmosphere creates traits that allow for simple operations on the tables.
 # extern crate sqlx;
 # extern crate tokio;
 # use atmosphere::prelude::*;
-# #[derive(Schema, Debug, PartialEq)]
+# #[derive(Debug, PartialEq)]
 # #[table(schema = "public", name = "user")]
 # struct User {
 #     #[sql(pk)]
@@ -25,7 +25,7 @@ Atmosphere creates traits that allow for simple operations on the tables.
 #     #[sql(unique)]
 #     email: String,
 # }
-# #[derive(Schema, Debug, PartialEq)]
+# #[derive(Debug, PartialEq)]
 # #[table(schema = "public", name = "post")]
 # struct Post {
 #     #[sql(pk)]
