@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "atmosphere-core", "atmosphere-macros"]
+members = [".", "atmosphere-core", "atmosphere-macros", "atmosphere-extras"]
 
 [workspace.package]
 version = "0.3.1"
@@ -17,6 +17,7 @@ keywords = ["sqlx", "postgres", "database", "orm", "backend"]
 
 [workspace.dependencies]
 atmosphere-core = { version = "=0.3.1", path = "atmosphere-core" }
+atmosphere-extras = { version = "=0.3.1", path = "atmosphere-extras" }
 atmosphere-macros = { version = "=0.3.1", path = "atmosphere-macros" }
 async-trait = "0.1"
 lazy_static = "1"
@@ -36,6 +37,7 @@ repository.workspace = true
 
 [dependencies]
 atmosphere-core.workspace = true
+atmosphere-extras.workspace = true
 atmosphere-macros.workspace = true
 async-trait.workspace = true
 sqlx.workspace = true
@@ -45,6 +47,8 @@ default = []
 mysql = ["atmosphere-core/mysql", "atmosphere-macros/mysql"]
 postgres = ["atmosphere-core/postgres", "atmosphere-macros/postgres"]
 sqlite = ["atmosphere-core/sqlite", "atmosphere-macros/sqlite"]
+postgis = ["postgres", "atmosphere-extras/postgis"]
+serde = ["atmosphere-extras/serde"]
 
 [dev-dependencies]
 sqlx = { version = "0.8", features = [

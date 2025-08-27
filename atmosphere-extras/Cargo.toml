@@ -1,0 +1,28 @@
+[package]
+name = "atmosphere-extras"
+description = "Implementations for additional database types."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[features]
+default = []
+postgis = ["sqlx/postgres", "dep:geozero", "dep:geo-types"]
+serde = ["dep:serde", "geo-types/serde"]
+
+[dependencies]
+geo-types = { version = "0.7", optional = true }
+geozero = { version = "0.14", features = [
+    "with-postgis-sqlx",
+], optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+sqlx.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+serde_json = "1"
+
+[package.metadata.docs.rs]
+features = ["postgis"]
