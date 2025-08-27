@@ -13,11 +13,11 @@ postgis = ["sqlx/postgres", "dep:geozero", "dep:geo-types"]
 serde = ["dep:serde"]
 
 [dependencies]
-geo-types = { version = "0.7.17", optional = true }
-geozero = { version = "0.14.0", features = [
+geo-types = { version = "0.7", optional = true }
+geozero = { version = "0.14", features = [
     "with-postgis-sqlx",
 ], optional = true }
-serde = { version = "1.0.219", features = ["derive"], optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
 sqlx.workspace = true
 thiserror.workspace = true
 
