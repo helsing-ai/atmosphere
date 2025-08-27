@@ -10,7 +10,7 @@ repository.workspace = true
 [features]
 default = []
 postgis = ["sqlx/postgres", "dep:geozero", "dep:geo-types"]
-serde = ["dep:serde"]
+serde = ["dep:serde", "geo-types/serde"]
 
 [dependencies]
 geo-types = { version = "0.7", optional = true }

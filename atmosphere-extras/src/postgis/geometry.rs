@@ -20,6 +20,8 @@ pub mod point {
     /// Wrapper type for PostGIS Point type, which can be used in a table. Provides encoding and
     /// decoding implementations.
     #[derive(Debug, Clone, Copy, PartialEq)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+    #[cfg_attr(feature = "serde", serde(transparent))]
     pub struct Point(pub(crate) geo_types::Point<f64>);
 
     impl Point {
@@ -67,52 +69,20 @@ pub mod point {
         }
     }
 
-    #[cfg(feature = "serde")]
-    mod serde {
-        #[derive(serde::Serialize, serde::Deserialize)]
-        struct InternalPoint {
-            x: f64,
-            y: f64,
-        }
+    #[cfg(test)]
+    mod tests {
+        use crate::postgis::Point;
 
-        impl serde::Serialize for super::Point {
-            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-            where
-                S: serde::Serializer,
-            {
-                let point = InternalPoint {
-                    x: self.0.x(),
-                    y: self.0.y(),
-                };
+        #[cfg(feature = "serde")]
+        #[test]
+        fn serialize_deserialize() {
+            let point = Point::new(4., 2.);
 
-                point.serialize(serializer)
-            }
-        }
+            let serialized = serde_json::to_string(&point).unwrap();
+            assert_eq!(serialized, r#"{"x":4.0,"y":2.0}"#);
 
-        impl<'de> serde::Deserialize<'de> for super::Point {
-            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                let internal_point = InternalPoint::deserialize(deserializer)?;
-                Ok(geo_types::Point::new(internal_point.x, internal_point.y).into())
-            }
-        }
-
-        #[cfg(test)]
-        mod tests {
-            use crate::postgis::Point;
-
-            #[test]
-            fn serialize_deserialize() {
-                let point = Point::new(4., 2.);
-
-                let serialized = serde_json::to_string(&point).unwrap();
-                assert_eq!(serialized, r#"{"x":4.0,"y":2.0}"#);
-
-                let deserialized = serde_json::from_str(&serialized).unwrap();
-                assert_eq!(point, deserialized);
-            }
+            let deserialized = serde_json::from_str(&serialized).unwrap();
+            assert_eq!(point, deserialized);
         }
     }
 }
