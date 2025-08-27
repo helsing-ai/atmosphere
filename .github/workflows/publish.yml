@@ -10,6 +10,12 @@ jobs:
       id-token: write
     steps:
     - uses: actions/checkout@v4
+    - name: Install latest nightly
+      uses: actions-rs/toolchain@v1
+      with:
+          toolchain: nightly
+          override: true
+          components: cargo
     - uses: rust-lang/crates-io-auth-action@v1
       id: auth
     - run: cargo publish -Z package-workspace --workspace
