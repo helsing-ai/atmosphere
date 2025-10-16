@@ -21,7 +21,7 @@ atmosphere-extras = { version = "=0.4.0", path = "atmosphere-extras" }
 atmosphere-macros = { version = "=0.4.0", path = "atmosphere-macros" }
 async-trait = "0.1"
 lazy_static = "1"
-sqlx = { version = "0.8", features = ["chrono"] }
+sqlx = { version = "0.8", default-features = false, features = ["chrono"] }
 thiserror = "2"
 
 [package]
