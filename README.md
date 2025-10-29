@@ -212,6 +212,40 @@ Atmosphere is able to generate utility queries to move across `Table` boundaries
 > Note that the function names contain `model` and `submodel` – they are derived from
 > the respective struct names.
 
+### Json support
+
+Several databases support a `JSON` (and often `JSONB`) type, for which `sqlx` has native support through `#[sqlx(json)]` and `#[sqlx(json(nullable))]`.
+
+Since `atmosphere` only needs to know whether the column is JSON and to stay forward-compatible with future changes to `sqlx`'s attribute, we use the following syntax:
+
+```rust
+#[table(schema = "public", name = "submodel")]
+struct Submodel {
+    #[sql(pk)]
+    id: i32,
+    #[sql(json)]
+    #[sqlx(json)]
+    data: HashMap<String, u64>,
+    #[sql(json)]
+    #[sqlx(json(nullable))]
+    optional_data: Option<HashMap<String, String>>,
+}
+```
+
+You can also manually handle the JSON support using the following (it will mean accessing the inner type through `.as_ref()` or `.0`):
+
+```rust
+use sqlx::types::Json;
+
+#[table(schema = "public", name = "submodel")]
+struct Submodel {
+    #[sql(pk)]
+    id: i32,
+    data: Json<HashMap<String, u64>>,
+    optional_data: Option<Json<HashMap<String, String>>>,
+}
+```
+
 ## Contribution
 
 We welcome contributions! Please see [our contribution guidelines](CONTRIBUTING.md) for more details.

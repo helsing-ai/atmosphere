@@ -35,12 +35,22 @@ pub fn bindings(table: &Table) -> TokenStream {
     for data in &table.data_columns {
         let field = data.name.field();
 
-        binds.extend(quote!(
-            if #col.field() == stringify!(#field) {
-                use ::atmosphere::Bindable;
-                return Ok(#query.dyn_bind(&self.#field));
-            }
-        ));
+        if data.modifiers.json {
+            binds.extend(quote!(
+                if #col.field() == stringify!(#field) {
+                    use ::atmosphere::Bindable;
+                    use ::atmosphere::sqlx::types::Json;
+                    return Ok(#query.dyn_bind(Json(&self.#field)));
+                }
+            ));
+        } else {
+            binds.extend(quote!(
+                if #col.field() == stringify!(#field) {
+                    use ::atmosphere::Bindable;
+                    return Ok(#query.dyn_bind(&self.#field));
+                }
+            ));
+        }
     }
 
     for ts in &table.timestamp_columns {
