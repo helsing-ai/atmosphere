@@ -29,6 +29,7 @@ impl NameSet {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ColumnModifiers {
     pub unique: bool,
+    pub json: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -135,6 +136,7 @@ pub mod attribute {
     const PRIMARY_KEY: &str = "pk";
     const FOREIGN_KEY: &str = "fk";
     const UNIQUE: &str = "unique";
+    const JSON: &str = "json";
     const TIMESTAMP: &str = "timestamp";
 
     const TIMESTAMP_CREATED: &str = "created";
@@ -214,34 +216,49 @@ pub mod attribute {
         fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
             let kind: ColumnKind = input.parse()?;
 
-            let mut modifiers = ColumnModifiers { unique: false };
+            let mut modifiers = ColumnModifiers {
+                unique: false,
+                json: false,
+            };
             let mut renamed = None;
 
             while !input.is_empty() {
                 let ident: syn::Ident = input.parse()?;
 
-                // we found a tag
-                if ident.to_string().as_str() == UNIQUE {
-                    if modifiers.unique {
-                        return Err(Error::new(
-                            ident.span(),
-                            "found redundant `unique` modifier",
-                        ));
+                {
+                    let span = ident.span();
+                    let ident = ident.to_string();
+
+                    // we found a tag
+                    if ident == UNIQUE {
+                        if modifiers.unique {
+                            return Err(Error::new(span, "found redundant `unique` modifier"));
+                        }
+
+                        modifiers.unique = true;
+
+                        if !input.peek(Token![,]) {
+                            break;
+                        }
+
+                        input.parse::<Token![,]>()?;
+
+                        continue;
+                    } else if ident == JSON {
+                        if modifiers.json {
+                            return Err(Error::new(span, "found redundant `json` modifier"));
+                        }
+
+                        modifiers.json = true;
+
+                        if !input.peek(Token![,]) {
+                            break;
+                        }
+
+                        input.parse::<Token![,]>()?;
+
+                        continue;
                     }
-
-                    modifiers.unique = true;
-
-                    if !input.peek(Token![,]) {
-                        break;
-                    }
-
-                    input.parse::<Token![,]>()?;
-
-                    continue;
-                }
-
-                if !input.peek(Token![=]) {
-                    break;
                 }
 
                 // we found a kv pair
@@ -287,7 +304,10 @@ impl TryFrom<Field> for Column {
 
         let Some(attribute) = attribute else {
             return Ok(Self::Data(DataColumn {
-                modifiers: ColumnModifiers { unique: false },
+                modifiers: ColumnModifiers {
+                    unique: false,
+                    json: false,
+                },
                 name: NameSet::new(name, None),
                 ty,
             }));
@@ -300,7 +320,10 @@ impl TryFrom<Field> for Column {
 
         match attribute.kind {
             attribute::ColumnKind::PrimaryKey => Ok(Self::PrimaryKey(PrimaryKey {
-                modifiers: ColumnModifiers { unique: true },
+                modifiers: ColumnModifiers {
+                    unique: true,
+                    json: false,
+                },
                 name,
                 ty,
             })),
