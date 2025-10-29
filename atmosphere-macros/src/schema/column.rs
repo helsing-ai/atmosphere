@@ -240,6 +240,10 @@ pub mod attribute {
                     continue;
                 }
 
+                if !input.peek(Token![=]) {
+                    break;
+                }
+
                 // we found a kv pair
                 input.parse::<Token![=]>()?;
                 let value: LitStr = input.parse()?;
