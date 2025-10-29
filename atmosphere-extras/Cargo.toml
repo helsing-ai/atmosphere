@@ -17,7 +17,7 @@ geo-types = { version = "0.7", optional = true }
 geozero = { version = "0.14", features = [
     "with-postgis-sqlx",
 ], optional = true }
-serde = { version = "1", features = ["derive"], optional = true }
+serde = { workspace = true, features = ["derive"], optional = true }
 sqlx.workspace = true
 thiserror.workspace = true
 

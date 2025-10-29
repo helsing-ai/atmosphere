@@ -23,6 +23,7 @@ async-trait = "0.1"
 lazy_static = "1"
 sqlx = { version = "0.8", default-features = false, features = ["chrono"] }
 thiserror = "2"
+serde = "1"
 
 [package]
 name = "atmosphere"
@@ -60,6 +61,7 @@ sqlx = { version = "0.8", features = [
 ] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tokio-test = "0"
+serde = { workspace = true, features = ["derive"] }
 
 [[example]]
 name = "forest"
