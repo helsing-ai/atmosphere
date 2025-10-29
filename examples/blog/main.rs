@@ -44,7 +44,7 @@ async fn main() -> atmosphere::Result<()> {
         name: "our".to_owned(),
         email: "some@email.com".to_owned(),
     }
-    .save(&pool)
+    .create(&pool)
     .await?;
 
     Ok(())

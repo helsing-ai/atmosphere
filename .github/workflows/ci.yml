@@ -24,6 +24,15 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --all-targets --workspace --features postgres -- -D warnings -D clippy::all
 
+  # Examples require the `sqlite` feature
+  clippy-examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustup update && rustup component add clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --all-targets --workspace --features sqlite -- -D warnings -D clippy::all
+
   test:
     runs-on: ubuntu-latest
     steps:
