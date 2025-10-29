@@ -40,14 +40,14 @@ async fn main() -> atmosphere::Result<()> {
         created: chrono::Utc::now(),
     };
 
-    forest.save(&pool).await?;
+    forest.create(&pool).await?;
 
     for id in 0..5 {
         Tree {
             id,
             forest: forest.id,
         }
-        .save(&pool)
+        .create(&pool)
         .await?;
     }
 
